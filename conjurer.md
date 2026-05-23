@@ -213,6 +213,8 @@ Together, these turn a Conjurer session from monologue into dialogue. The practi
 
 **Conjurer is not a thin wrapper around LLM prompts.** The grimoire system, context inheritance, execution primitives, and semantic constructs constitute a genuine language with semantics. The LLM is the runtime, but the language has its own theory.
 
+**Conjurer is not session-scoped.** A conversation ends; a `.cnj` file persists. Conjurer projects span sessions, editors, and agents — with the `.cnj` file carrying the project's intellectual history intact from one context to the next. This is a fundamentally different model from an AI assistant that forgets everything when the chat closes.
+
 ---
 
 ## The grimoire ecosystem
@@ -221,25 +223,58 @@ Conjurer's standard library is organized into grimoires — thematic collections
 
 The grimoires are peers, not a hierarchy. `core` is foundational in the sense that its constructs appear in all programs — but `semantics` is not less important than `domain`; they address different concerns with equal depth.
 
-| Grimoire | What it encodes |
-|---|---|
-| **core** | The language's fundamental constructs: `conjure`, `refine`, `context`, `using`, `ritual`, `explain`, `witness`, `weave`, `ward`, `~>`, and the execution primitives |
-| **domain** | The discipline of knowledge extraction: exploring documents, modeling domains, resolving conflicts between sources, generating domain-specific languages |
-| **data** | The full lifecycle of data: schema definition, synthetic generation, transformation pipelines, validation, format conversion |
-| **web** | Web development from analysis to artifact: style extraction, component generation, full-stack prototyping, accessibility-first design |
-| **semantics** | Deep textual understanding: multi-model analysis, perspectival interpretation, synthesis across competing viewpoints |
-| **reasoning** | Inference from facts and rules: deductive, inductive, abductive derivation with explicit traceability |
-| **taxonomy** | Classification systems and hierarchical organization: controlled vocabularies, facets, and concept trees |
-| **orchestrate** | Workflow coordination: multi-stage pipelines, saga patterns, circuit breakers, human-in-the-loop integration |
-| **eloquence** | Communication as a first-class concern: tone, audience, rhetorical structure, cross-cultural adaptation |
+| Grimoire | Namespace | What it encodes |
+|---|---|---|
+| **core** | _(none)_ | The language's fundamental constructs, execution primitives, and ecosystem connectives (`charter`, `target`, `asset`, `handover`) |
+| **domain** | `d/` | Knowledge extraction: exploring documents, modeling domains, resolving conflicts between sources |
+| **data** | `data/` | The full data lifecycle: schema definition, generation, transformation, validation, provenance, and privacy |
+| **web** | `w/` | Web development: style extraction, component generation, full-stack prototyping, accessibility-first design |
+| **semantics** | `s/` | Deep textual understanding: multi-model analysis, perspectival interpretation, dialectical synthesis |
+| **orchestrate** | `o/` | Runtime workflow coordination: multi-stage pipelines, saga patterns, circuit breakers, human-in-the-loop |
+| **eloquence** | `e/` | Communication as a first-class concern: audience adaptation, tone, rhetorical structure, plain language |
+| **reasoning** | `r/` | Logical inference: deductive, inductive, and abductive reasoning with full derivation tracing |
+| **taxonomy** | `t/` | Classification: taxonomy definition, item classification, cross-system alignment, versioned evolution |
+| **agent** | `a/` | Autonomous action: agent definition, invocation, delegation, multi-agent coordination, and quality loops |
 
+No grimoires are currently under active consideration for addition to the standard library.
 
+---
+
+## The ecosystem layer: Conjurer as project memory
+
+Sessions end. Projects do not.
+
+This is the gap that the ecosystem layer addresses. A Conjurer session produces knowledge — domain models, design decisions, semantic analyses, workflow specifications. Without persistence, that knowledge evaporates when the chat closes. The next session starts from scratch. The same decisions get re-made, re-argued, sometimes reversed without anyone remembering why they were made in the first place. This is project entropy: the gradual degradation of shared understanding through context loss.
+
+The `.cnj` file is the antidote. Every serious Conjurer project produces one — a structured, version-controlled artifact that accumulates the project's intellectual history in the language of the domain itself. Not a chat transcript (unstructured, verbose, tool-specific). Not a requirements document (prose, loses the reasoning). A `.cnj` file is machine-parseable, human-readable, Git-friendly, and composable. Drop it into any editor that understands Conjurer and the full project context is restored instantly.
+
+### The four ecosystem constructs
+
+Four constructs in `core` operate at this project level rather than within a session:
+
+**`charter`** is the session anchor — the first construct in every `.cnj` file. It captures the problem domain, goals, audience, a dated decision log, and open questions. Every session that attaches a `.cnj` file reads the `charter` first and continues without re-explanation. The decision log is particularly important: decisions that were made and then forgotten are a primary source of project entropy. An append-only, dated, reasoned log prevents this.
+
+**`target`** declares the implementation form of a specific output: which language, which framework, which team standard, which artefacts to produce. Most domain knowledge stays as Conjurer permanently — it is the authoritative specification. Only specific surfaces are declared as targets and materialised into code or other artefacts. This selective materialisation is a deliberate design choice, not an accident: most of what is interesting and durable about a domain is better expressed in Conjurer than in TypeScript.
+
+**`asset`** registers external capabilities — coding standards, style guides, component libraries, domain vocabularies — making them referenceable by name throughout the project. A team's coding standard registered as an asset is not an invisible convention carried in developers' heads. It is an inspectable, versioned, agent-visible specification that any agent joining the project can fetch and apply. The standard is applied because it was given to the agent, not because the practitioner remembered to mention it.
+
+**`handover`** packages the current session's context and transfers it to a specialist agent — another LLM instance, a code-generation agent, a documentation agent. The handover is not a prompt. It is a structured context object containing the charter, the domain model, the relevant target specifications, the registered assets, and the decision log. Everything the receiving agent needs is explicit, complete, and inspectable.
+
+### The boundary between core and orchestrate
+
+One distinction is worth making explicit. `orchestrate` coordinates *runtime service operations*: workflows, sagas, circuit breakers, scheduled jobs. These are things that happen inside a running system. `handover` coordinates *LLM agent context across sessions and tools*: this is an entirely different concern. The placement of `handover` in `core`'s ecosystem layer, alongside `charter`, `target`, and `asset`, reflects this: these four constructs operate at the project and tooling level, not at the runtime service level.
+
+### Selective materialisation
+
+A single Conjurer project may produce artefacts of several different kinds — and some parts may produce nothing at all except Conjurer specification. This is not a failure mode. A beautifully articulated domain model that stays in Conjurer is the authoritative specification against which all implementations are eventually measured. The implementations are derivatives; the Conjurer description is the source of truth.
+
+The `target` construct makes materialisation decisions explicit. A project might materialise three REST endpoints in TypeScript, a PostgreSQL schema, and a Markdown architecture document — while leaving the entire domain model, all business rules, and all classification schemes as Conjurer. The `.cnj` file declares which is which. Nothing is accidentally omitted; nothing is accidentally generated.
 
 ---
 
 ## The practitioner
 
-Conjurer is designed for people who think in systems but prefer to communicate in intent. The ideal practitioner is not someone who wants to avoid writing code — it is someone who recognizes that the highest-leverage thing they can do is specify *what* a system should do with great clarity, and then trust a capable collaborator to determine *how*.
+Conjurer is designed for people who think in systems but prefer to communicate in intent. The ideal practitioner is not someone who wants to avoid writing code — it is someone who recognises that the highest-leverage thing they can do is specify *what* a system should do with great clarity, and then trust a capable collaborator to determine *how*.
 
 This requires a different skill than conventional programming. The skill is not precision in syntax — it is precision in *intent*. It is knowing what you want clearly enough to state it declaratively. It is knowing when to be specific and when to leave productive space for judgment. It is knowing when the first manifestation has revealed something about your requirements that you did not know before you saw it.
 
@@ -249,14 +284,16 @@ These are the skills of a good systems thinker, a good designer, a good product 
 
 ## How to read this specification
 
-**Start with the grimoires, not the constructs.** Each grimoire opens with a philosophical section that explains *why* it exists and what design principles govern it. Reading these sections gives you the language's shape before you encounter its surface.
+**Start with this document, then `core`.** `conjurer.md` establishes the philosophical foundation; `grimoires/core.md` provides the language itself — all constructs with full signatures and examples. Read the ecosystem layer (Part VI of core) early: `charter`, `target`, `asset`, and `handover` shape how the whole project is organised.
 
-**Read examples before signatures.** The function signatures are precise but abstract. The examples are concrete and reveal the intent behind the design. When a signature confuses you, skip to the first example.
+**Read examples before signatures.** Function signatures are precise but abstract. Examples are concrete and reveal the intent behind the design. When a signature confuses you, skip to the first example.
 
-**Treat the integration patterns as the curriculum.** The most important things in Conjurer happen at the boundaries between grimoires — where `d/explore` flows into `data/schema`, where `s/texan` feeds `e/format`, where `o/define-workflow` composes `w/component` generation. These patterns are where the language's expressive power becomes visible.
+**Treat the integration patterns as the curriculum.** The most important things in Conjurer happen at the boundaries between grimoires — where `d/explore` flows into `data/schema`, where `s/texan` feeds `e/compose`, where `r/derive` draws conclusions from a `t/classify` result. These patterns are where the language's expressive power becomes visible.
 
-**Read the implementation notes for LLM processors.** Even if you are not building a Conjurer interpreter, these sections articulate the semantic commitments the language makes — what each construct promises, how ambiguity should be resolved, what "production quality" means in context. They are the language's contract with its runtime.
+**Read the implementation notes for LLM processors.** Even if you are not building a Conjurer interpreter, these sections articulate the semantic commitments the language makes — what each construct promises, how ambiguity should be resolved, what production quality means in context. They are the language's contract with its runtime.
+
+**Use the `.cnj` file spec in `template.md`.** Before starting a project, read the canonical `.cnj` file structure. The `charter` construct is where every project begins; everything else grows from it.
 
 ---
 
-*Continue to [`grimoires/core.md`](grimoires/core.md) for the language's foundational constructs.*
+*Continue to [`grimoires/core.md`](grimoires/core.md) for the language's foundational constructs, or to [`template.md`](grimoires/template.md) for the canonical structure of grimoires and `.cnj` project files.*

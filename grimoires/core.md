@@ -2028,6 +2028,830 @@ prose so the practitioner can inspect and refine it.
 
 ---
 
+## Part VI: Session and ecosystem constructs
+
+The constructs in Parts I–V operate *within* a session — they describe,
+compose, refine, and execute. The constructs in this part operate *across*
+sessions, agents, editors, and implementation targets. They are the connective
+tissue of the Conjurer ecosystem: the vocabulary for persisting intent,
+declaring what gets built and how, registering external capabilities, and
+transferring context to specialist agents.
+
+Every serious Conjurer project produces a `.cnj` file. That file begins with
+a `charter`. It references `asset` definitions. It declares `target` outputs.
+When the time comes to cross from specification into implementation, it issues
+a `handover`. These four constructs transform Conjurer from a session-scoped
+language into a persistent, portable, multi-agent design medium.
+
+---
+
+### `charter`
+
+The session anchor. The first construct in every `.cnj` file. Captures the
+problem domain, goals, audience, key decisions made so far, open questions,
+and output targets — in sufficient structure for any agent in any editor to
+pick up where a previous session left off.
+
+A `charter` is not a summary written at the end of a session. It is a living
+document updated throughout: decisions are appended as they are made, open
+questions are resolved or replaced, references accumulate as the project grows.
+The `.cnj` file *is* the project's intellectual history, and the `charter`
+is its index.
+
+#### Signature
+
+```clojure
+(charter title
+  :version     semver
+  :created     iso-date
+  :updated     iso-date
+  :domain      "description of the subject domain"
+  :language    :nl | :en | :de | ...
+  :goals       ["goal statement" ...]
+  :audience    {:primary   :audience-keyword
+                :secondary [:audience-keyword ...]}
+  :decisions   [{:date iso-date :decision "what was decided and why"} ...]
+  :open        ["unresolved question" ...]
+  :outputs     {output-name output-target-or-keyword ...}
+  :references  ["other-file.cnj" ...]
+  :tags        [:domain-tag ...])
+```
+
+#### Parameters
+
+**`title`** — The project name. Human-readable, memorable, unambiguous within
+the organisation.
+
+**`:version`** — Semantic version of the charter itself. Increment when
+decisions change the scope or direction of the project. Enables version-pinned
+references from other files.
+
+**`:goals`** — What the project exists to accomplish. Written as outcome
+statements, not as task lists. Goals are the standard against which every
+manifestation is eventually evaluated.
+
+**`:decisions`** — A dated, append-only log of design decisions made during
+the project. Each entry includes the date, the decision, and enough context
+to understand why it was made. This log is the project's institutional memory.
+
+**`:open`** — Unresolved questions. Regularly reviewed and resolved; never
+quietly abandoned. An open question that has been implicitly answered but not
+recorded is a latent misunderstanding.
+
+**`:outputs`** — A map of named outputs to their intended form. Values can be:
+- `:conjurer-only` — this output remains as Conjurer description; no code
+  target
+- A `target` definition (see below) — specifies language, standard, framework
+- A `handover` reference — this output is produced by a specialist agent
+
+**`:references`** — Other `.cnj` files this charter depends on or builds from.
+Enables composition of projects: a shared `domain.cnj` referenced by multiple
+feature-level `.cnj` files.
+
+**`:tags`** — Categorisation tags for discoverability in asset registries or
+team wikis.
+
+#### Design rationale
+
+Every project accumulates context — domain knowledge, design decisions, open
+questions, agreed conventions — that lives nowhere useful. It is scattered
+across chat transcripts, meeting notes, tickets, and the memories of specific
+people. When a new team member joins, or a new session begins, or a different
+agent picks up the work, that context must be reconstructed expensively.
+
+`charter` gives this context a home: structured enough to be machine-parseable,
+rich enough to be genuinely useful, versioned enough to be trustworthy.
+
+The `:decisions` log is particularly important. Decisions that were made,
+understood at the time, and then forgotten are a primary source of project
+entropy. They get re-opened in new sessions, re-argued, sometimes reversed
+without understanding the original reason. An append-only, dated, reasoned
+decision log prevents this.
+
+#### Example: SaaS subscription and contract management
+
+```clojure
+(charter "Subscription & Contract Management Platform"
+  :version  "0.4.0"
+  :created  "2025-11-01"
+  :updated  "2025-11-04"
+  :domain   "B2B SaaS; subscription lifecycle, contract management, and billing"
+
+  :goals [
+    "Replace spreadsheet-based contract tracking with a reliable digital system"
+    "Automate renewal reminders and escalations before contract expiry"
+    "Give finance real-time visibility into ARR, churn risk, and upcoming renewals"
+    "Integrate with the existing CRM for customer and contact data (phase 2)"]
+
+  :audience {:primary   :engineering-team
+             :secondary [:finance :sales-operations :customer-success]}
+
+  :decisions [
+    {:date "2025-11-01"
+     :decision "Backend in TypeScript; functional style throughout per team coding standard.
+                Reason: existing team expertise; standard is already documented as an asset."}
+    {:date "2025-11-02"
+     :decision "Event-driven billing notifications preferred over polling.
+                Stripe webhooks will drive subscription state changes."}
+    {:date "2025-11-03"
+     :decision "CRM integration deferred to phase 2. Phase 1 accepts customer data
+                via CSV import to reduce initial scope and CRM dependency."}
+    {:date "2025-11-04"
+     :decision "Contract amendments require finance approval before taking effect.
+                Self-service amendments without approval are out of scope for phase 1."}]
+
+  :open [
+    "What is the data retention period for cancelled subscription records? (Legal to confirm)"
+    "Should renewal notifications be sent from a shared team inbox or a dedicated no-reply address?"
+    "Proration logic for mid-cycle plan changes: confirm rounding behaviour with finance"]
+
+  :outputs {
+    :domain-model      :conjurer-only
+    :billing-rules     :conjurer-only
+    :api               (target :api :language :typescript :standard :team-coding-standard
+                          :produces [:rest-api :openapi])
+    :frontend          (target :frontend :language :typescript :framework :react
+                          :standard :team-coding-standard :produces [:spa])
+    :database          (target :database :language :sql :runtime :postgresql-16
+                          :produces [:ddl :migration])
+    :documentation     (target :documentation :language :markdown
+                          :via :eloquence :audience :engineering-team)}
+
+  :references ["subscription-domain.cnj" "billing-rules.cnj"]
+  :tags       [:saas :billing :contracts :phase-1])
+```
+
+#### Using a charter to resume a session
+
+When a practitioner drops a `.cnj` file into a new chat:
+
+```
+[attaches subscription-platform.cnj]
+
+"We settled the amendment approval flow yesterday. Let's now model
+ the contract entity and its state machine."
+```
+
+The agent reads the `charter`, sees the v0.4.0 decisions, notes the open
+questions, understands the output targets, and continues from precisely
+where the previous session ended — without any re-explanation.
+
+---
+
+### `target`
+
+Declares the implementation form of a specific output: what language or
+framework should be used, what standard should govern it, what the scope is,
+and what artefacts should be produced.
+
+`target` answers the question the `charter`'s `:outputs` map raises: *when
+it is time to materialise this output, what does that look like?*
+
+#### Signature
+
+```clojure
+(target output-name
+  :language    :typescript | :clojure | :clojurescript | :python | :sql | :markdown | ...
+  :framework   :react | :next | :express | :ring | :fastapi | ...
+  :standard    :team-coding-standard | :pep-8 | :google-style | :custom-asset-name
+  :runtime     :node | :deno | :browser | :jvm | :python-3
+  :produces    [:artefact-type ...]
+  :scope       [:domain-concept ...]
+  :from        domain-model-or-binding
+  :style       {:style-constraint value ...}
+  :agent       :agent-name
+  :via         :handover | :direct
+  :manifest    target-binding)
+```
+
+#### Parameters
+
+**`:language`** — The implementation language. When absent, defaults to
+`:conjurer-only` — the output remains as Conjurer specification.
+
+**`:standard`** — A named coding standard or style guide that governs the
+generated code. References a registered `asset` definition by name. When a
+standard is named here, all of its `:enforces` constraints apply to every
+artefact in this target's scope, and all of its `:prohibits` anti-patterns
+are actively avoided. Common values: `:team-coding-standard`, `:pep-8`,
+`:google-style`, or any custom name registered via `asset`.
+
+**`:produces`** — What artefact types to generate:
+- `:rest-api` — HTTP endpoint implementations
+- `:openapi` — OpenAPI 3.1 specification
+- `:spa` — Single-page application
+- `:ddl` — SQL data definition language
+- `:migration` — Database migration scripts
+- `:test-suite` — Automated tests
+- `:types` — Type definitions only (TypeScript `.d.ts`, Zod schemas)
+- `:storybook` — Component stories
+- `:docker` — Containerisation configuration
+
+**`:scope`** — Which domain concepts to materialise. When absent, the entire
+domain model is in scope. When specified, only the named concepts are included.
+
+**`:via`** — How this target is executed:
+- `:direct` — the current agent materialises the target immediately
+- `:handover` — the target is packaged and sent to the named `:agent`
+
+**`:style`** — Implementation style constraints beyond the named standard.
+Additive, not replacing.
+
+#### Design rationale
+
+The most important thing `target` does is make materialisation **selective and
+intentional**. Without it, the practitioner must decide in every invocation
+whether to generate code or specification. With it, that decision is declared
+once at the project level and respected throughout.
+
+The second important thing `target` does is decouple *what* from *how*. The
+domain model describes what the system does; the `target` describes how that
+is realised. The same domain model can produce a TypeScript API for one target
+and a Clojure ring handler for another. The domain knowledge is expressed once;
+the implementation strategy is applied on demand.
+
+#### Example 1: TypeScript API with team coding standard
+
+```clojure
+(target :api
+  :language  :typescript
+  :runtime   :node
+  :framework :express
+  :standard  :team-coding-standard   ;; references a registered asset
+  :produces  [:rest-api :openapi :types]
+  :scope     [:subscription :contract :invoice :renewal-check]
+  :from      subscription-domain-model
+  :style     {:error-handling :result-type
+              :validation     :schema-library
+              :async          :effect-based}
+  :via       :handover
+  :agent     :typescript-specialist-agent)
+```
+
+#### Example 2: PostgreSQL schema
+
+```clojure
+(target :database
+  :language  :sql
+  :runtime   :postgresql-16
+  :produces  [:ddl :migration]
+  :scope     :all-entities
+  :from      subscription-domain-model
+  :style     {:naming :snake-case
+              :timestamps :audit-columns
+              :soft-delete true})
+```
+
+#### Example 3: Documentation only — no code
+
+```clojure
+(target :system-documentation
+  :language  :markdown
+  :produces  [:architecture-overview :api-reference :operations-guide]
+  :from      :entire-session
+  :via       (e/compose :audience :engineering-team :tone :professional))
+
+;; This target never produces code.
+;; It materialises the session's knowledge as human-readable documentation.
+;; :language :markdown here means the output format, not a programming language.
+```
+
+#### Example 4: Selective materialisation
+
+```clojure
+;; A rich domain model where most remains Conjurer, only a thin surface materialises
+(def billing-domain (d/explore "requirements.pdf" :depth 4))
+
+;; The conceptual heart stays in Conjurer — it is the specification.
+;; No :target on the domain model itself.
+
+;; Only the public API surface is materialised
+(target :api
+  :language :typescript
+  :standard :team-coding-standard
+  :scope    [:subscription-create :subscription-query :renewal-report] ;; three endpoints only
+  :from     billing-domain
+  :produces [:rest-api])
+
+;; Everything else — entities, rules, billing logic — remains as elegant Conjurer
+;; and serves as the authoritative specification the API is measured against.
+```
+
+---
+
+### `asset`
+
+Registers a named external capability — a coding standard, a style guide, a
+component library, a domain vocabulary, or a specialist agent definition —
+making it referenceable by name throughout the session and from `.cnj` files.
+
+Assets are how Conjurer knows that a team's coding standard exists, what it
+requires, and which specialist agent knows how to apply it. Without asset
+registration, standards and specialist capabilities are invisible to the
+language — carried in people's heads, inconsistently applied, and completely
+opaque to agents joining the session.
+
+#### Signature
+
+```clojure
+(asset name
+  :type        :code-standard | :style-guide | :component-library
+               | :domain-vocabulary | :agent-definition | :api-specification
+  :description "what this asset is and what it governs"
+  :language    :language-keyword
+  :location    "relative path or URL to the asset file"
+  :version     semver
+  :enforces    [:rule-or-constraint ...]
+  :prohibits   [:anti-pattern ...]
+  :applies-to  [:artefact-type ...]
+  :agent       :agent-name
+  :active-in   :session | :project)
+```
+
+#### Parameters
+
+**`:location`** — Where the asset lives. A relative path from the `.cnj` file
+(e.g. `"standards/typescript-standard.md"`) or a URL. When an agent needs to
+apply the standard, it fetches and reads this file. The asset is not embedded
+in the `.cnj` file — it is referenced. This keeps the charter portable and the
+standard maintainable independently.
+
+**`:enforces`** — Positive constraints the asset imposes. When a `target`
+references this asset via `:standard`, these constraints are applied to all
+generated code.
+
+**`:prohibits`** — Anti-patterns the asset explicitly forbids. When generating
+code for a target that references this asset, the system actively avoids these
+patterns and flags them if they appear in existing code.
+
+**`:agent`** — The specialist agent that knows how to apply this asset. When
+a `handover` references a target with this standard, the handover is directed
+to this agent.
+
+#### Design rationale
+
+External standards and coding conventions are a fundamental part of every real
+software project. They govern style, structure, and quality in ways that a
+domain model cannot. Without a first-class mechanism for registering and
+referencing them, they remain as invisible background assumptions — known to
+some team members, unknown to others, and completely invisible to agents.
+
+`asset` makes standards explicit. A new team member reading the `.cnj` file
+sees immediately: this project uses the team coding standard; here is where
+to find it. An agent processing a `target` knows: this output must satisfy
+that standard — it fetches the standard file and applies it. The standard is
+no longer carried in someone's head or buried in a team wiki.
+
+The `:location` parameter is central to this design. The asset is not embedded
+in the `.cnj` file — it is referenced by path or URL. This keeps the charter
+portable and the standard maintainable independently. When the team updates
+their coding standard, a single file changes; all projects that reference it
+are automatically updated on the next session.
+
+#### Example 1: Team TypeScript coding standard
+
+```clojure
+(asset :team-coding-standard
+  :type        :code-standard
+  :description "Team TypeScript standard — functional style, explicit types,
+                no imperative loops, effect-based error handling"
+  :language    :typescript
+  :location    "standards/typescript-standard.md"
+  :version     "3.0.0"
+  :enforces    [
+    "Functional programming style throughout — no class-based OOP"
+    "All functions are pure unless explicitly marked effectful"
+    "No for/while loops — use map, filter, reduce, or recursion"
+    "Maximum nesting depth: 2 levels"
+    "No TypeScript any — all types explicit"
+    "Error handling via Result<T, E> type, not thrown exceptions"
+    "Runtime validation via schema library at all external boundaries"]
+  :prohibits   [
+    "Imperative mutation of shared state"
+    "throw statements in business logic"
+    "Untyped function parameters or return values"
+    "Default exports"
+    "Barrel files re-exporting from index.ts"]
+  :applies-to  [:rest-api :spa :types :test-suite]
+  :agent       :typescript-specialist-agent
+  :active-in   :project)
+```
+
+#### Example 2: Shared component library
+
+```clojure
+(asset :design-system
+  :type        :component-library
+  :description "Company shared design system — accessible, brand-compliant
+                React components with design token foundation"
+  :language    :typescript
+  :location    "https://design.company.internal/documentation"
+  :version     "4.2.0"
+  :enforces    [
+    "All interactive components meet WCAG 2.1 AA minimum"
+    "Design tokens from the shared system used for all visual decisions"
+    "Component APIs match the design system specification"]
+  :applies-to  [:spa :storybook]
+  :active-in   :project)
+```
+
+#### Example 3: Domain vocabulary asset
+
+```clojure
+(asset :billing-terminology
+  :type        :domain-vocabulary
+  :description "Authoritative terminology for subscription states, billing cycles,
+                proration logic, and contract amendment procedures"
+  :location    "subscription-domain.cnj"
+  :enforces    [
+    "Use canonical subscription status names from subscription-domain.cnj"
+    "Monetary amounts always represented in minor units (integer cents)"
+    "Billing cycle terms match those defined in the domain model"]
+  :applies-to  [:rest-api :documentation :openapi]
+  :active-in   :project)
+```
+
+---
+
+### `handover`
+
+Packages the current session's context and transfers it to a specialist agent,
+providing everything the receiving agent needs to continue work within a
+defined scope.
+
+A handover is not a prompt. It is a structured context object — inspectable,
+versioned, and explicit about what it includes and what it asks for.
+
+#### Signature
+
+```clojure
+(handover :to      agent-name
+  :from            :current-session | charter-binding | [binding ...]
+  :scope           [:output-name ...] | :all
+  :include         [:charter :domain-model :target-specs :assets
+                    :decisions :open-questions :references]
+  :briefing        "natural-language instruction to the receiving agent"
+  :produces        [:artefact-type ...]
+  :return-to       :current-session | nil
+  :on-completion   :merge-results | :notify | :terminal
+  :manifest        handover-package)
+```
+
+#### Parameters
+
+**`:from`** — The source of context to package. `:current-session` includes
+everything established in the active session. Specific bindings include only
+named manifestations.
+
+**`:scope`** — Which outputs from the charter the receiving agent should work
+on. If `:all`, the agent receives the full project scope. Named outputs scope
+the work precisely.
+
+**`:include`** — What to package into the handover:
+- `:charter` — the full session charter with goals, decisions, and open questions
+- `:domain-model` — all domain manifestations
+- `:target-specs` — the `target` definitions for the scoped outputs
+- `:assets` — all registered `asset` definitions relevant to the scope
+- `:decisions` — the full decision log
+- `:open-questions` — unresolved questions the receiving agent should be aware of
+- `:references` — referenced `.cnj` files
+
+**`:return-to`** — What happens when the specialist agent completes its work:
+- `:current-session` — results are merged back into the originating session
+- `nil` — terminal; the handover is a one-way transfer
+
+**`:on-completion`** — How to handle the returned results: merge them into the
+session context, notify the practitioner, or terminate.
+
+#### Design rationale
+
+The handover is the boundary crossing between specification and implementation,
+between the Conjurer session and the specialist agent, between intent and code.
+Getting this boundary right is critical.
+
+The failure mode without `handover` is familiar: a practitioner pastes a wall
+of context into a new chat, the agent produces something that doesn't match
+the project's standards, the practitioner explains the standards again, the
+agent still misses conventions it doesn't know about. Each session reinvents
+the context.
+
+`handover` packages the context once, explicitly, completely. The receiving
+agent gets: the goals (from the charter), the domain model, the coding standard
+(from the asset), the specific scope, and the briefing. It has everything. The
+practitioner does not repeat themselves. The standard — whatever the team has defined — is applied because the agent
+was given the standard's file, not because the practitioner remembered to
+mention it.
+
+#### Example 1: Handing off API implementation to a specialist agent
+
+```clojure
+(handover :to :typescript-specialist-agent
+  :from   subscription-platform-charter
+  :scope  [:api]
+  :include [:charter :domain-model :target-specs :assets :decisions]
+  :briefing
+    "Implement the subscription management REST API as specified in the :api target.
+     Apply the team coding standard throughout — the full standard is included in the
+     registered assets. The domain model in subscription-domain.cnj defines the
+     authoritative entities and invariants. Pay particular attention to the contract
+     amendment workflow; finance approval is required before amendments take effect.
+     This decision is recorded in the charter log dated 2025-11-04."
+  :produces     [:rest-api :openapi :types]
+  :return-to    :current-session
+  :on-completion :merge-results)
+```
+
+#### Example 2: Database handover with no return
+
+```clojure
+(handover :to :database-specialist-agent
+  :from    [subscription-domain-model database-target]
+  :scope   [:database]
+  :include [:domain-model :target-specs]
+  :briefing
+    "Generate a PostgreSQL 16 schema from the provided domain model.
+     Use snake_case naming, add created_at/updated_at audit columns to all tables,
+     implement soft delete with deleted_at. Produce both DDL and Flyway migrations."
+  :produces     [:ddl :migration]
+  :return-to    nil
+  :on-completion :notify)
+```
+
+#### Example 3: Documentation handover to eloquence
+
+```clojure
+;; Handover within the Conjurer ecosystem — to the eloquence grimoire
+(handover :to :eloquence
+  :from    :current-session
+  :scope   [:documentation]
+  :include [:charter :domain-model :decisions]
+  :briefing
+    "Produce the system documentation package as specified in the :documentation target.
+     The primary audience is the engineering team. The architecture overview should
+     explain the system design without diving into implementation detail. The operations
+     guide should be a practical reference for the team running the system in production."
+  :produces     [:architecture-overview :api-reference :operations-guide]
+  :return-to    :current-session)
+```
+
+---
+
+### The `.cnj` file — canonical structure
+
+A complete `.cnj` file follows this structure. Every section is optional
+except `charter`, which is always first.
+
+```clojure
+;; ─────────────────────────────────────────────────
+;; SECTION 1: Session anchor
+;; ─────────────────────────────────────────────────
+(charter "Project Name"
+  ...)
+
+;; ─────────────────────────────────────────────────
+;; SECTION 2: Assets — external standards and capabilities
+;; ─────────────────────────────────────────────────
+(asset :team-coding-standard ...)
+(asset :design-system ...)
+
+;; ─────────────────────────────────────────────────
+;; SECTION 3: Assumptions — operative constraints
+;; ─────────────────────────────────────────────────
+(assume
+  :environment :production-saas
+  :team        {:size 4 :skill-level :senior}
+  ...)
+
+;; ─────────────────────────────────────────────────
+;; SECTION 4: Context — domain semantic frame
+;; ─────────────────────────────────────────────────
+(context establish project-context
+  :domain      :subscription-billing
+  :regulations [:gdpr :psd2]
+  ...)
+
+;; ─────────────────────────────────────────────────
+;; SECTION 5: Domain work — the intellectual body of the project
+;; ─────────────────────────────────────────────────
+(def billing-domain (d/explore "requirements.pdf" :depth 4))
+(def billing-rules  (r/rules ...))
+(def plan-taxonomy  (t/define ...))
+
+;; ─────────────────────────────────────────────────
+;; SECTION 6: Targets — implementation declarations
+;; ─────────────────────────────────────────────────
+(target :api ...)
+(target :database ...)
+(target :documentation ...)
+
+;; ─────────────────────────────────────────────────
+;; SECTION 7: Handovers — when ready to materialise
+;; ─────────────────────────────────────────────────
+(handover :to :typescript-specialist-agent :scope [:api] ...)
+```
+
+The file is ordered from most stable (the charter, which changes slowly) to
+most volatile (handovers, which are issued when the time is right). A reader
+skimming the file from top to bottom understands the project before they reach
+the implementation details.
+
+---
+
+### The bootstrapping ritual
+
+When a practitioner provides natural-language text as the starting point,
+the system's first response is always a `charter` — not domain analysis,
+not code, not questions. The charter is what gets saved. Everything else flows
+from it.
+
+```
+User:
+"We need to build a proper system for managing customer subscriptions and contracts.
+ Right now everything is tracked in spreadsheets and email. Finance is constantly
+ chasing renewals manually. We need something that tracks contract status, sends
+ renewal reminders automatically, and eventually connects to the CRM."
+
+System:
+[Produces subscription-platform.cnj with charter, initial goals inferred from text,
+ open questions surfaced (retention periods, notification channels, proration rules),
+ output targets proposed, team coding standard noted as pending asset registration.
+ Saves the file. All subsequent work hangs from it.]
+```
+
+The charter produced from this conversation would look like the example above.
+The practitioner reviews it, corrects what the system misunderstood, adds
+what was missing. The `.cnj` file is now the project's single source of truth.
+
+---
+
+## Updated grimoire metadata
+
+```clojure
+{:grimoire    "core"
+ :version     "4.0.0"
+ :description "Foundational constructs, composition machinery, execution
+               primitives, and ecosystem connectives for the Conjurer language"
+
+ :constructs {
+   :fundamental   [conjure refine context using assume]
+   :semantic      [ritual explain meta-query witness as]
+   :composition   [~> transmute weave lore]
+   :execution     [sequence parallel branch retry intercept ward]
+   :typing        [shape]
+   :ecosystem     [charter target asset handover]}
+
+ :best-for [
+   "Declarative intent specification with explicit topology"
+   "Progressive refinement as a discovery process"
+   "Context establishment, inheritance, and semantic gravity"
+   "Cross-grimoire composition and system integration"
+   "Resilient workflows with graceful degradation"
+   "Transparent reasoning and audit trails"
+   "Perspectival analysis and multi-role review"
+   "Session persistence and cross-session continuity via .cnj files"
+   "Selective materialisation — some outputs stay Conjurer, some become code"
+   "Agent handover with complete, explicit context packaging"
+   "External standard registration and enforcement (team coding standards, design systems, etc.)"]
+
+ :works-with :all-grimoires
+
+ :key-concepts [
+   {:term "Invocation"
+    :definition "An expression of intent that the system manifests into reality"}
+   {:term "Manifestation"
+    :definition "The artefact produced in response to an invocation"}
+   {:term "Semantic gravity"
+    :definition "The interpretive pull exerted by established context.
+                 Heavier context enables terser, more precise invocations."}
+   {:term "Intent topology"
+    :definition "The structural importance hierarchy of a specification:
+                 :requires > :prefers > :style; :deferred is dormant."}
+   {:term "Productive ambiguity"
+    :definition "Deliberate openness in a specification that invites creative
+                 judgment rather than demanding complete prescription."}
+   {:term "Transmutation"
+    :definition "Form-changing transformation that preserves semantic essence.
+                 Different from refinement (same form, enhanced) and
+                 conjuration (new form, from scratch)."}
+   {:term "Witness"
+    :definition "Non-invasive observation of a manifestation's reasoning
+                 without modifying the manifestation itself."}
+   {:term "Ward"
+    :definition "Structured error containment with explicit degradation strategy.
+                 The :recover map is the degradation ladder, made visible."}
+   {:term "Charter"
+    :definition "The session anchor. The first construct in every .cnj file.
+                 Captures goals, decisions, open questions, and output targets.
+                 The project's persistent intellectual memory."}
+   {:term "Target"
+    :definition "A declared implementation form for a specific output: language,
+                 standard, framework, scope, and artefact types. Makes
+                 materialisation selective and intentional."}
+   {:term "Asset"
+    :definition "A registered external capability: a coding standard, style guide,
+                 component library, or agent definition. Makes standards and
+                 conventions first-class, referenceable, and agent-visible."}
+   {:term "Handover"
+    :definition "A structured context transfer to a specialist agent. Packages
+                 everything the receiving agent needs — charter, domain model,
+                 target specs, assets — as an explicit, inspectable object."}
+   {:term "Selective materialisation"
+    :definition "The deliberate choice of which outputs become working code
+                 and which remain as Conjurer specification. Most domain
+                 knowledge stays in Conjurer; only the necessary surfaces
+                 are materialised into target languages."}
+   {:term ".cnj file"
+    :definition "A Conjurer source file serving as persistent, portable session
+                 memory. Begins with charter; accumulates domain work, targets,
+                 and handovers. Can be referenced in any editor or agent session
+                 to restore full project context instantly."}]}
+```
+
+---
+
+## Additional implementation notes for LLM processors
+
+### Charter as context bootstrap
+
+When a session begins with an attached `.cnj` file, the first processing step
+is always to read and internalise the `charter`. The goals become the evaluation
+criteria for all subsequent manifestations. The decisions inform interpretive
+choices. The open questions are surfaced when relevant work begins. The output
+targets govern what form subsequent work takes.
+
+Do not request re-explanation of context that is present in the charter. The
+charter exists precisely so this re-explanation is unnecessary.
+
+### Bootstrapping from natural language
+
+When a practitioner provides natural-language text and no `.cnj` file exists,
+the correct first response is to produce a `charter` — not to begin domain
+analysis. Infer:
+- **`:domain`** from the subject matter described
+- **`:language`** from the text's language and any named locale signals
+- **`:goals`** from outcome statements and problems mentioned
+- **`:audience`** from roles and users mentioned
+- **`:open`** from questions the text raises but does not answer
+- **`:outputs`** from capabilities mentioned (API, interface, database, etc.)
+- **`:decisions`** leave empty — no decisions have been made yet
+
+Present the charter for review before proceeding. The practitioner may correct
+what was inferred; this is expected and welcome.
+
+### Target interpretation
+
+When processing a `target` declaration:
+
+1. Identify the `:from` domain model that scopes the content
+2. Apply the `:scope` filter — only named concepts are in scope
+3. Fetch and read the `:standard` asset file if one is referenced
+4. Generate artefacts in the `:produces` list, applying all `:enforces`
+   constraints from the referenced asset and all `:prohibits` as active
+   avoidances
+5. If `:via :handover`, package the target and asset into a handover object
+   rather than generating directly
+
+A `target` with `:language :conjurer-only` or no `:language` is a signal
+that this output remains as Conjurer. Do not generate code for it.
+
+### Asset enforcement
+
+When a target references an asset via `:standard`, the asset's `:enforces`
+constraints are applied to *every* generated artefact in that target's scope —
+not just the ones the practitioner mentioned. The asset is a blanket constraint,
+not a per-invocation reminder.
+
+When generated code would violate an `:enforces` constraint, fix the violation.
+When generated code would violate a `:prohibits` constraint, fix the violation
+and note it explicitly: "Team standard prohibits imperative for-loops — replaced
+with Array.map." This transparency lets the practitioner verify that the
+standard is being applied correctly.
+
+### Handover packaging
+
+A `handover` object is not a prompt. When constructing the handover:
+
+1. Serialise every `:include` item in full — the receiving agent has no other
+   source for this information
+2. Include the `:briefing` as a natural-language summary that guides the
+   receiving agent's focus, not as a replacement for the structured content
+3. Include the relevant `asset` definitions in full — the receiving agent must
+   have the standard, not just its name
+4. If `:scope` is named, filter the domain model to include only concepts
+   relevant to the scoped outputs
+5. Include the `:decisions` log — the receiving agent must know what was
+   already decided and why, to avoid re-opening closed questions
+
+### Decision log discipline
+
+When a significant design decision is made during a session — one that would
+affect future invocations or that a new agent would need to know — append it
+to the charter's `:decisions` list with the current date. Do not wait for the
+practitioner to instruct this. Decisions that are made and not recorded are
+the primary cause of context loss between sessions.
+
+---
+
 *This grimoire is the foundation. Master its constructs and every other
 grimoire opens — not as an isolated capability, but as a composable extension
 of the same language.*
