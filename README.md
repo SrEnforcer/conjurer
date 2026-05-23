@@ -111,10 +111,12 @@ Conjurer's standard library is organized into **grimoires** — thematic spellbo
 | [data](grimoires/data.md) | `data/` | Synthetic data generation, transformation, validation pipelines |
 | [web](grimoires/web.md) | `w/` | Web analysis, component generation, full-stack prototyping |
 | [semantics](grimoires/semantics.md) | `s/` | Deep textual analysis, multi-model interpretation, synthesis |
+| [reasoning](grimoires/reasoning.md) | `r/` | Inference, rule-based derivation, decision logic, traceable conclusions |
+| [taxonomy](grimoires/taxonomy.md) | `t/` | Classification systems, hierarchical organization, controlled vocabularies |
 | [orchestrate](grimoires/orchestrate.md) | `o/` | Workflow coordination, saga patterns, human-in-the-loop |
 | [eloquence](grimoires/eloquence.md) | `e/` | Tone, audience targeting, rhetorical structure |
 
-New grimoires under consideration: `taxonomy`, `semiotics`, `chronos`.
+
 
 ---
 
@@ -154,8 +156,9 @@ conjurer/
 ├── CHANGELOG.md           ← design history and decisions
 ├── conjurer.md            ← philosophy, naming rationale, full principles
 └── grimoires/
-    ├── template.md        ← canonical structure for all grimoires (meta-spec)
     ├── core.md            ← the language's foundational constructs
+    ├── taxonomy.md
+    ├── reasoning.md
     ├── domain.md
     ├── data.md
     ├── web.md

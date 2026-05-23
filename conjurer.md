@@ -228,10 +228,12 @@ The grimoires are peers, not a hierarchy. `core` is foundational in the sense th
 | **data** | The full lifecycle of data: schema definition, synthetic generation, transformation pipelines, validation, format conversion |
 | **web** | Web development from analysis to artifact: style extraction, component generation, full-stack prototyping, accessibility-first design |
 | **semantics** | Deep textual understanding: multi-model analysis, perspectival interpretation, synthesis across competing viewpoints |
+| **reasoning** | Inference from facts and rules: deductive, inductive, abductive derivation with explicit traceability |
+| **taxonomy** | Classification systems and hierarchical organization: controlled vocabularies, facets, and concept trees |
 | **orchestrate** | Workflow coordination: multi-stage pipelines, saga patterns, circuit breakers, human-in-the-loop integration |
 | **eloquence** | Communication as a first-class concern: tone, audience, rhetorical structure, cross-cultural adaptation |
 
-Grimoires under active design: `taxonomy` (classification and hierarchical organization), `semiotics` (sign systems and meaning production), `chronos` (temporal logic and timeline analysis).
+
 
 ---
 
