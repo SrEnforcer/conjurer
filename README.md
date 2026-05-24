@@ -1,9 +1,17 @@
 # Conjurer
 
-> A declarative language for LLM interaction. You specify *what* should exist,
-> not *how* to create it. Clojure-inspired syntax, composable grimoires, and
-> semantic context accumulation let intent compress over time. The LLM is not
-> an executor — it is a co-author that ascends to meet you.
+> "Shall I make spirits fetch me what I please,
+> Resolve me of all ambiguities,
+> Perform what desperate enterprise I will?"
+> <br/>— Christopher Marlowe, The Tragical History of the Life and Death of Doctor Faustus (c. 1592)
+
+<img width="754" height="629" alt="image" src="https://github.com/user-attachments/assets/50411de2-b675-49b1-b8cd-d650aa9c92f6" />
+
+<br/>
+Conjurer is a declarative language for LLM interaction. You specify *what* should exist,
+not *how* to create it. Clojure-inspired syntax, composable grimoires, and
+semantic context accumulation let intent compress over time. The LLM is not
+an executor — it is a co-author that ascends to meet you.
 
 ---
 
