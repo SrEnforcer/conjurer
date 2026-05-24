@@ -3,7 +3,7 @@
 > "Shall I make spirits fetch me what I please,
 > Resolve me of all ambiguities,
 > Perform what desperate enterprise I will?"
-> <br/>— Christopher Marlowe, The Tragical History of the Life and Death of Doctor Faustus (c. 1592)
+> — Christopher Marlowe, The Tragical History of the Life and Death of Doctor Faustus (c. 1592)
 
 <img width="754" height="629" alt="image" src="https://github.com/user-attachments/assets/50411de2-b675-49b1-b8cd-d650aa9c92f6" />
 
