@@ -3035,55 +3035,68 @@ vocabulary on which domain-specific abstractions are built.
  :works-with :all-grimoires
 
  :key-concepts [
-   {:term "Invocation"
-    :definition "An expression of intent that the system manifests into reality"}
-   {:term "Manifestation"
-    :definition "The artefact produced in response to an invocation"}
+
+   ;; ─── Epistemic stance ───────────────────────────────────────────────
+
+   {:term "Semantic equivalence classes"
+    :definition "LLMs do not match strings; they recognise meaning. The same
+                 intent expressed in many lexically different forms produces
+                 the same manifestation. This is the substrate that makes
+                 declarative, polymorphic specification possible without the
+                 rigid grammar conventional languages require."}
    {:term "Semantic gravity"
     :definition "The interpretive pull exerted by established context.
-                 Heavier context enables terser, more precise invocations."}
-   {:term "Intent topology"
-    :definition "The structural importance hierarchy of a specification:
-                 :requires > :prefers > :style; :deferred is dormant."}
+                 Heavier context enables terser, more precise invocations —
+                 invocations grow shorter as sessions mature, not longer."}
+   {:term "Semantic determinism"
+    :definition "The middle ground Conjurer occupies between mechanical
+                 determinism (classical languages) and free-form prompting
+                 (raw LLM use). Specifications with concrete constraints,
+                 examples, and named outcomes converge toward consistent
+                 manifestations even when underlying token sequences vary."}
+   {:term "Behavioural determinism"
+    :definition "Output consistency at the level of effect rather than form.
+                 Two manifestations are behaviourally deterministic if they
+                 satisfy the same constraints, honour the same contracts, and
+                 produce the same observable outcomes — even if their internal
+                 representations differ. The target Conjurer's certainty
+                 vocabulary helps practitioners reach."}
+   {:term "Inference under uncertainty"
+    :definition "When assumptions about input state are implicit, the system
+                 must infer them — and this inference is the largest single
+                 source of misalignment between specification and result. The
+                 given construct exists to eliminate it: make the assumed
+                 state inspectable, overridable, and auditable."}
    {:term "Productive ambiguity"
     :definition "Deliberate openness in a specification that invites creative
-                 judgment rather than demanding complete prescription."}
-   {:term "Transmutation"
-    :definition "Form-changing transformation that preserves semantic essence.
-                 Different from refinement (same form, enhanced) and
-                 conjuration (new form, from scratch)."}
-   {:term "Witness"
-    :definition "Non-invasive observation of a manifestation's reasoning
-                 without modifying the manifestation itself."}
-   {:term "Ward"
-    :definition "Structured error containment with explicit degradation strategy.
-                 The :recover map is the degradation ladder, made visible."}
-   {:term "Charter"
-    :definition "The session anchor. The first construct in every .cnj file.
-                 Captures goals, decisions, open questions, and output targets.
-                 The project's persistent intellectual memory."}
-   {:term "Target"
-    :definition "A declared implementation form for a specific output: language,
-                 standard, framework, scope, and artefact types. Makes
-                 materialisation selective and intentional."}
-   {:term "Asset"
-    :definition "A registered external capability: a coding standard, style guide,
-                 component library, or agent definition. Makes standards and
-                 conventions first-class, referenceable, and agent-visible."}
-   {:term "Handover"
-    :definition "A structured context transfer to a specialist agent. Packages
-                 everything the receiving agent needs — charter, domain model,
-                 target specs, assets — as an explicit, inspectable object."}
-   {:term "Selective materialisation"
-    :definition "The deliberate choice of which outputs become working code
-                 and which remain as Conjurer specification. Most domain
-                 knowledge stays in Conjurer; only the necessary surfaces
-                 are materialised into target languages."}
-   {:term ".cnj file"
-    :definition "A Conjurer source file serving as persistent, portable session
-                 memory. Begins with charter; accumulates domain work, targets,
-                 and handovers. Can be referenced in any editor or agent session
-                 to restore full project context instantly."}
+                 judgment rather than demanding complete prescription.
+                 Distinguished from resolvable ambiguity (which context
+                 resolves) and from laziness (which thinks unclearly)."}
+   {:term "Collaborative discovery"
+    :definition "The practitioner-system relationship as co-authorship rather
+                 than command-and-execute. The system clarifies specifications,
+                 surfaces tensions, and proposes improvements; the practitioner
+                 retains authorship of intent. Surfaced through explain,
+                 meta-query, and witness."}
+
+   ;; ─── Intent declaration ────────────────────────────────────────────
+
+   {:term "Invocation"
+    :definition "An expression of intent that the system manifests into reality."}
+   {:term "Manifestation"
+    :definition "The artefact produced in response to an invocation."}
+   {:term "Intent topology"
+    :definition "The structural importance hierarchy of a specification at
+                 the capability level: :requires > :prefers > :style;
+                 :deferred is dormant. Tells the system how to choose when
+                 constraints conflict."}
+   {:term "Calibrated certainty"
+    :definition "The value-level commitment gradient (certain · prefer · allow)
+                 and the lifecycle contracts (given · ensure). Distinct from
+                 intent topology: where topology declares which capabilities
+                 are load-bearing, calibrated certainty declares how strongly
+                 individual values bind and which enforcement layer is
+                 responsible for each guarantee."}
    {:term "Certain"
     :definition "Inline qualifier marking a value as bound — no substitution
                  permitted at any layer. The strongest value-level commitment."}
@@ -3096,11 +3109,12 @@ vocabulary on which domain-specific abstractions are built.
                  may substitute freely with any value fitting the context."}
    {:term "Given"
     :definition "Declarative precondition. States facts taken as true entering
-                 an invocation, including MCP tool results treated as ground truth."}
+                 an invocation, including MCP tool results treated as ground
+                 truth — the antidote to inference under uncertainty."}
    {:term "Ensure"
-    :definition "Declarative postcondition. States properties that must hold of
-                 the manifested artefact, with explicit honesty about which
-                 enforcement layer verifies each."}
+    :definition "Declarative postcondition. States properties that must hold
+                 of the manifested artefact, with explicit honesty about which
+                 enforcement layer verifies each (MCP / LLM / target tooling)."}
    {:term "Certainty spectrum"
     :definition "The gradient from bit-deterministic (MCP results, structural
                  numerics) through semantically anchored (LLM-honoured intent)
@@ -3108,6 +3122,56 @@ vocabulary on which domain-specific abstractions are built.
                  honesty: declared intent ≠ mechanical guarantee, but declared
                  intent with precise certainty markers converges toward
                  behavioural determinism."}
+
+   ;; ─── Composition and transformation ────────────────────────────────
+
+   {:term "Transmutation"
+    :definition "Form-changing transformation that preserves semantic essence.
+                 Different from refinement (same form, enhanced) and
+                 conjuration (new form, from scratch)."}
+   {:term "Witness"
+    :definition "Non-invasive observation of a manifestation's reasoning
+                 without modifying the manifestation itself."}
+   {:term "Ward"
+    :definition "Structured error containment with explicit degradation
+                 strategy. The :recover map is the degradation ladder, made
+                 visible."}
+
+   ;; ─── Ecosystem and persistence ─────────────────────────────────────
+
+   {:term "Charter"
+    :definition "The session anchor. The first construct in every .cnj file.
+                 Captures goals, decisions, open questions, and output targets.
+                 The project's persistent intellectual memory."}
+   {:term "Target"
+    :definition "A declared implementation form for a specific output:
+                 language, standard, framework, scope, and artefact types.
+                 Makes materialisation selective and intentional."}
+   {:term "Asset"
+    :definition "A registered external capability: a coding standard, style
+                 guide, component library, or agent definition. Makes standards
+                 and conventions first-class, referenceable, and agent-visible."}
+   {:term "Handover"
+    :definition "A structured context transfer to a specialist agent. Packages
+                 everything the receiving agent needs — charter, domain model,
+                 target specs, assets — as an explicit, inspectable object."}
+   {:term "Selective materialisation"
+    :definition "The deliberate choice of which outputs become working code
+                 and which remain as Conjurer specification. Most domain
+                 knowledge stays in Conjurer; only the necessary surfaces
+                 are materialised into target languages."}
+   {:term ".cnj file"
+    :definition "A Conjurer source file serving as persistent, portable
+                 session memory. Begins with charter; accumulates domain work,
+                 targets, and handovers. Can be referenced in any editor or
+                 agent session to restore full project context instantly."}
+   {:term "Project entropy"
+    :definition "The gradual degradation of shared project understanding
+                 through context loss between sessions. Decisions made and
+                 forgotten get re-made, re-argued, or silently reversed. The
+                 ecosystem constructs — particularly charter's append-only
+                 decision log and the .cnj file as a whole — exist to
+                 prevent this."}
    ]}
 ```
 

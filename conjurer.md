@@ -49,7 +49,7 @@ It also changes what "complete" means. A Conjurer program is never complete in t
 
 ---
 
-## Seven design principles
+## Eight design principles
 
 ### I. Declarative supremacy
 
@@ -92,10 +92,10 @@ The language is not sloppy — it is *semantically polymorphic*. The same meanin
 
 Context accumulates mass. The heavier it grows, the more precisely it determines interpretation — and the terser your invocations can become.
 
-A single `context establish` slightly biases how the system interprets ambiguous terms. A rich, multi-dimensional context nearly *determines* interpretation — ambiguity collapses under its mass. This is not a limitation; it is the mechanism by which sessions become increasingly expressive as shared understanding deepens.
+A single `context` declaration slightly biases how the system interprets ambiguous terms. A rich, multi-dimensional context nearly *determines* interpretation — ambiguity collapses under its mass. This is not a limitation; it is the mechanism by which sessions become increasingly expressive as shared understanding deepens.
 
 ```clojure
-(context establish
+(context financial-services
   :domain :financial-services
   :regulations [:psd2 :aml-kyc]
   :entities {:transaction [:amount :currency :timestamp :counterparty]
@@ -189,7 +189,29 @@ When constraints conflict — and in real systems they always eventually conflic
 
 ---
 
-### VII. Collaborative discovery
+### VII. Calibrated certainty
+
+Not all values in an invocation are equally committed. Some are bound — the practitioner has decided, and no substitution is acceptable. Some are leanings — preferences honoured when constraints permit. Some are illustrative — example values the system may freely replace. Conjurer makes this gradient *explicit* at the granularity where the decision lives: beside the value itself.
+
+This is a different concern from intent topology. Topology addresses capability prioritization — which whole features are load-bearing. Calibrated certainty addresses value commitment — how strongly a specific number, keyword, or string binds the manifestation.
+
+```clojure
+(conjure transaction-screening
+  :thresholds {
+    :daily-limit       (certain (eur 10000))    ;; binding — likely a compliance threshold
+    :velocity-window   (prefer  (minutes 5))    ;; reasonable default, tunable
+    :anomaly-score-cut (allow   0.75)})         ;; illustrative — system may recalibrate
+```
+
+The same principle extends across the invocation lifecycle. `given` declares preconditions — facts taken as true *entering* an invocation, including deterministic MCP tool results treated as ground truth. `ensure` declares postconditions — properties that must hold of the *manifested result*, with explicit attribution of which enforcement layer verifies each.
+
+This is the language admitting what it can and cannot do. Conjurer cannot generate parsers for every materialisation target. It does not promise mechanical determinism where only semantic determinism is achievable. What it does promise is that the practitioner has *vocabulary to declare exactly how strongly committed they are*, at exactly which point, and which layer is expected to enforce what — MCP-level structural checks, LLM-level semantic enforcement, or target-level tooling such as generated tests, linters, and type checkers. Declared intent with precise certainty markers converges toward behavioural determinism even when underlying token sequences vary.
+
+The honesty matters. A language that pretends to deliver guarantees it cannot enforce is worse than one that names its limits and gives practitioners the means to work confidently within them.
+
+---
+
+### VIII. Collaborative discovery
 
 The practitioner-system relationship in Conjurer is not command-and-execute. It is co-authorship.
 
@@ -225,7 +247,7 @@ The grimoires are peers, not a hierarchy. `core` is foundational in the sense th
 
 | Grimoire | Namespace | What it encodes |
 |---|---|---|
-| **core** | _(none)_ | The language's fundamental constructs, execution primitives, and ecosystem connectives (`charter`, `target`, `asset`, `handover`) |
+| **core** | _(none)_ | The language itself — fundamentals, composition, execution primitives, certainty contracts (`given`/`ensure`), reflection, and ecosystem connectives (`charter`, `target`, `asset`, `handover`) |
 | **domain** | `d/` | Knowledge extraction: exploring documents, modeling domains, resolving conflicts between sources |
 | **data** | `data/` | The full data lifecycle: schema definition, generation, transformation, validation, provenance, and privacy |
 | **web** | `w/` | Web development: style extraction, component generation, full-stack prototyping, accessibility-first design |
@@ -284,7 +306,7 @@ These are the skills of a good systems thinker, a good designer, a good product 
 
 ## How to read this specification
 
-**Start with this document, then `core`.** `conjurer.md` establishes the philosophical foundation; `grimoires/core.md` provides the language itself — all constructs with full signatures and examples. Read the ecosystem layer (Part VI of core) early: `charter`, `target`, `asset`, and `handover` shape how the whole project is organised.
+**Start with this document, then `core`.** `conjurer.md` establishes the philosophical foundation; `grimoires/core.md` provides the language itself — all constructs with full signatures and examples. The grimoire opens with a construct map and progresses through seven thematic parts: fundamentals, composition, execution, certainty, typing, reflection, and ecosystem. Read Part IV (Certainty and contracts) when the work demands binding guarantees, and Part VII (Session and ecosystem constructs) early when starting any serious project — `charter`, `target`, `asset`, and `handover` shape how the whole project is organised.
 
 **Read examples before signatures.** Function signatures are precise but abstract. Examples are concrete and reveal the intent behind the design. When a signature confuses you, skip to the first example.
 
