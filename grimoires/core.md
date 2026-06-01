@@ -27,6 +27,29 @@ The answer to each question is a construct in this grimoire.
 
 ---
 
+## Construct map
+
+The grimoire is organised into seven thematic parts. Each part addresses a
+distinct concern; together they form the complete core vocabulary.
+
+| Part | Theme                          | Constructs                                                              |
+|------|--------------------------------|-------------------------------------------------------------------------|
+| I    | Fundamental invocations        | `conjure` · `refine` · `context` · `using` · `assume`                   |
+| II   | Composition and transformation | `ritual` · `~>` · `transmute` · `weave` · `lore`                        |
+| III  | Execution primitives           | `sequence` · `parallel` · `branch` · `retry` · `intercept` · `ward`     |
+| IV   | Certainty and contracts        | `certain` · `prefer` · `allow` · `given` · `ensure`                     |
+| V    | Semantic typing                | `shape`                                                                 |
+| VI   | Reflection and perspective     | `explain` · `meta-query` · `witness` · `as`                             |
+| VII  | Session and ecosystem          | `charter` · `target` · `asset` · `handover`                             |
+
+A practitioner rarely needs every construct in a single session. Most
+programs draw heavily from Parts I and II; the rest are summoned when the
+session demands them — execution control for production workflows, certainty
+qualifiers for high-stakes specifications, ecosystem constructs when work
+must persist across sessions or be handed off to specialist agents.
+
+---
+
 ## Part I: Fundamental invocations
 
 The five fundamental invocations — `conjure`, `refine`, `context`, `using`,
@@ -296,7 +319,7 @@ subsequent invocations in its scope are interpreted.
 #### Signature
 
 ```clojure
-(context establish name
+(context name
   :inherits    parent-context-name
   :domain      :domain-keyword
   :entities    {:entity-name [:attribute ...] ...}
@@ -359,7 +382,7 @@ compliance requirements into every `conjure` — they write only what is
 
 ```clojure
 ;; Base: shared across all services in the platform
-(context establish platform-base
+(context platform-base
   :conventions {:error-format   :rfc-7807
                 :auth           :jwt-bearer
                 :date-format    :iso-8601
@@ -368,7 +391,7 @@ compliance requirements into every `conjure` — they write only what is
   :active-in   :session)
 
 ;; Payment: inherits base, extends with financial domain
-(context establish payments
+(context payments
   :inherits    platform-base
   :domain      :financial-services
   :regulations [:psd2 :aml-kyc]           ;; extends [:gdpr], does not replace it
@@ -387,7 +410,7 @@ compliance requirements into every `conjure` — they write only what is
 #### Example 2: Healthcare context
 
 ```clojure
-(context establish clinical
+(context clinical
   :domain      :healthcare
   :entities    {:patient   [:id :mrn :dob :phi-flag]
                 :provider  [:id :specialty :license-number]
@@ -433,7 +456,7 @@ namespace.
 #### Example 1: Scoped financial conventions
 
 ```clojure
-(context establish dcf-model
+(context dcf-model
   :conventions {:compounding :continuous
                 :day-count   :actual-360
                 :rounding    2})
@@ -527,12 +550,13 @@ pressures.
 
 ---
 
-## Part II: Semantic constructs
+## Part II: Composition and transformation
 
-These constructs address the *meaning* layer of a Conjurer session: how to
-structure multi-phase invocations, how to make reasoning transparent, how to
-observe without intervening, and how to engage the same artifact from
-different positions.
+These constructs describe how Conjurer programs are *structured*: how
+data flows through a pipeline, how multi-phase work is organised into
+deliberate steps, how forms change while essence is preserved, how
+independent components are integrated into coherent systems, and how
+domain wisdom is encoded for reuse.
 
 ---
 
@@ -597,227 +621,6 @@ making the approach inspectable, reproducible, and teachable.
 ;; :checkpoint :after-each-phase means the system pauses and reports,
 ;; allowing course-correction before continuing.
 ```
-
----
-
-### `explain`
-
-Requests a transparent account of how a manifestation was produced: what the
-system understood, what alternatives it considered, and what decisions it made.
-
-#### Signature
-
-```clojure
-(explain target-manifestation
-  :show  [:interpretation :alternatives :decisions :confidence :assumptions]
-  :depth :summary | :full)
-```
-
-#### Design rationale
-
-Transparency is not a debugging tool — it is a design principle. When a
-practitioner understands *why* the system made the choices it did, they can
-refine intent more precisely, catch misinterpretations early, and build
-justified confidence in the output.
-
-`explain` is the primary surface of Conjurer's collaborative discovery
-principle. The session becomes a dialogue: the system manifests, the
-practitioner asks why, understanding develops, the specification sharpens.
-
-#### Example
-
-```clojure
-(explain fraud-detector
-  :show  [:interpretation :alternatives :confidence]
-  :depth :full)
-
-;; Returns:
-{:interpretation
- "Implemented as composite scoring (velocity + geography + amount deviation
-  + device fingerprint) rather than threshold rules, because the domain
-  context specifies financial services where composite models substantially
-  reduce false positives on legitimate cross-border spend."
-
- :alternatives-considered [
-   {:approach  "Simple threshold rules"
-    :rejected  "Too many false positives for customers who travel frequently"}
-   {:approach  "Isolation forest (unsupervised)"
-    :rejected  "Requires offline training batch; incompatible with real-time
-                scoring requirement from domain context"}]
-
- :confidence 0.83
- :note "High confidence on scoring logic; moderate on alert thresholds —
-        these should be calibrated against real transaction data before
-        going to production."}
-```
-
----
-
-### `meta-query`
-
-Interrogates a manifestation or the current session at a meta level: what
-assumptions underlie it, how would changes propagate, what are the failure
-modes, what would the system do differently given different constraints.
-
-#### Signature
-
-```clojure
-(meta-query target
-  :questions ["natural-language question" ...])
-```
-
-#### Design rationale
-
-The practitioner often senses that something is incomplete or misaligned but
-cannot articulate it precisely. `meta-query` externalises this: rather than
-requiring diagnosis, the practitioner asks the system to reason about its
-own outputs. This is particularly valuable for exploring trade-offs and
-surfacing non-obvious consequences of design decisions.
-
-#### Example
-
-```clojure
-(meta-query payment-processor
-  :questions [
-    "Which of the current operative assumptions most constrain the architecture?"
-    "What would change if we needed to support USD and GBP alongside EUR?"
-    "What are the three most likely failure modes under 10× normal load?"
-    "Which compliance requirements are currently underserved by this implementation?"])
-```
-
----
-
-### `witness`
-
-Observes a manifestation transparently — capturing interpretive reasoning,
-alternatives considered, and decisions made — without modifying the
-manifestation itself. The epistemic counterpart to `intercept`.
-
-#### Signature
-
-```clojure
-(witness target-invocation
-  :observe              [:interpretation :alternatives :decisions :timing ...]
-  :record-to            destination
-  :include-alternatives boolean)
-```
-
-#### Design rationale
-
-There is a meaningful difference between *changing* an operation's behaviour
-and *observing* it. `intercept` changes; `witness` only observes. This
-distinction matters for auditability, for understanding the system's reasoning
-without affecting outcomes, and for building decision trails that survive
-beyond the session.
-
-`witness` can be inserted at any point in a `~>` pipeline without altering
-the values being threaded. It produces an out-of-band observation record;
-the in-band result passes through unchanged.
-
-#### Example 1: Architecture decision record
-
-```clojure
-(witness
-  (conjure system-architecture
-    :for crm-platform
-    :constraints [:gdpr :three-engineer-team :postgres-only])
-  :observe              [:interpretation :alternatives :decisions]
-  :record-to            architecture-decision-log
-  :include-alternatives true)
-
-;; The architecture is produced unchanged.
-;; The log records: why each structural choice was made, what alternatives
-;; were considered and set aside, which constraints were most influential.
-```
-
-#### Example 2: Inline pipeline observation
-
-```clojure
-(~> raw-transactions
-  (validate :schema transaction-schema)
-
-  (witness
-    (conjure risk-scorer :model :gradient-boosted-composite)
-    :observe   [:scoring-factors :feature-weights :threshold-rationale]
-    :record-to risk-scoring-audit-trail
-    :include-alternatives true)
-
-  (conjure decision-engine :from risk-score))
-
-;; The risk score threads through unchanged.
-;; The audit trail captures the scoring reasoning independently,
-;; without touching the pipeline's in-band value.
-```
-
----
-
-### `as`
-
-Applies a perspectival role to an invocation, producing a manifestation shaped
-by that role's characteristic priorities, vocabulary, and evaluative criteria.
-
-#### Signature
-
-```clojure
-(as role-or-persona
-  invocation)
-```
-
-#### Design rationale
-
-Knowledge is perspectival. A security auditor reading an architecture diagram
-sees threat surfaces and trust boundaries. A new engineer reading the same
-diagram sees onboarding complexity and documentation gaps. A regulator sees
-compliance obligations and audit requirements. None of these perspectives is
-wrong — they are differently positioned.
-
-`as` makes perspectival invocation first-class. The same artefact can be
-reviewed, critiqued, or extended from multiple positions, producing
-complementary outputs that together give a more complete picture than any
-single perspective could.
-
-#### Example 1: Multi-perspective system review
-
-```clojure
-;; Four perspectives on the same payment processor
-(as :security-auditor
-  (conjure review :target payment-processor
-    :produce [:threat-model :vulnerability-assessment :compliance-gaps]))
-
-(as :on-call-engineer
-  (conjure review :target payment-processor
-    :produce [:failure-modes :runbook :alert-thresholds]))
-
-(as :new-team-member
-  (conjure review :target payment-processor
-    :produce [:onboarding-guide :local-dev-setup :common-gotchas]))
-
-(as :product-manager
-  (conjure review :target payment-processor
-    :produce [:conversion-friction :missing-payment-methods :ux-gaps]))
-```
-
-#### Example 2: Parallel perspective synthesis
-
-```clojure
-(parallel comprehensive-review
-  :operations [
-    (as :security-auditor   (refine architecture :identify :risks))
-    (as :performance-lead   (refine architecture :identify :bottlenecks))
-    (as :accessibility-lead (refine architecture :identify :barriers))
-    (as :compliance-officer (refine architecture :identify :regulatory-gaps))]
-  :combine-results :synthesise
-  :manifest        complete-assessment)
-```
-
----
-
-## Part III: Composition and transformation
-
-These constructs describe how Conjurer programs are *structured*: how data
-flows through a pipeline, how forms change while essence is preserved, how
-independent components are integrated into coherent systems, and how domain
-wisdom is encoded for reuse.
 
 ---
 
@@ -1135,12 +938,13 @@ Conjurer, making it available to every subsequent invocation within its scope
 
 ---
 
-## Part IV: Execution primitives
+## Part III: Execution primitives
 
-The execution primitives describe how operations *relate and combine*. Unlike
-domain-specific invocations that manifest complete artefacts, execution
-primitives are about structure: ordering, concurrency, conditionality,
-resilience, cross-cutting concerns, and graceful failure.
+The execution primitives describe how operations *relate and combine*.
+Where the constructs of Part II compose artefacts in structure and form,
+execution primitives compose them in time and behaviour: ordering,
+concurrency, conditionality, resilience, cross-cutting concerns, and
+graceful failure.
 
 ---
 
@@ -1636,7 +1440,452 @@ across catch blocks.
 
 ---
 
+## Part IV: Certainty and contracts
+
+Conjurer sits between two extremes. At one end, classical programming
+languages promise mechanical determinism — the same input produces bit-for-bit
+identical output every time. At the other end, a free-form natural-language
+prompt produces whatever the model decides to produce, with no structural
+guarantees at all. Conjurer occupies the middle: *semantic determinism*.
+Specifications with concrete constraints, examples, and named outcomes converge
+toward behaviourally consistent manifestations, even when the underlying token
+sequences vary.
+
+This part introduces the vocabulary that makes the certainty gradient *explicit*.
+Some values are bound — the practitioner has decided, and the system must
+honour the decision. Some values are leanings — the practitioner has a
+preference, but the system may exercise judgment when constraints conflict.
+Some values are open — the practitioner has delegated the choice entirely.
+Some statements describe what must be true *entering* an invocation. Others
+describe what must be true *leaving* it.
+
+Without this vocabulary, every parameter carries the same implicit weight,
+and the system cannot distinguish a binding constraint from a stylistic hint.
+With it, intent has *grain*: practitioners articulate exactly how much
+freedom they are granting, at exactly which point.
+
+A note on honesty: declaring a value `certain` does not mechanically force
+the materialised output to match. Conjurer cannot generate parsers for every
+target language, and certain enforcement happens across three layers:
+
+- **MCP-level enforcement** for tool results and structural validation — truly
+  deterministic where the MCP server can verify.
+- **LLM-level enforcement** at the executing client (Copilot, Antigravity,
+  Claude in an IDE) — semantically binding instructions that the model is
+  asked to honour without exception.
+- **Target-level enforcement** through generated tests, linters, and schema
+  validation in materialised code — post-manifestation verification.
+
+The constructs in this part declare *intent with maximum semantic clarity*.
+They do not lie about which layer enforces what.
+
+---
+
+### Inline qualifiers: `certain`, `prefer`, `allow`
+
+Three forms that wrap a value to declare its degree of freedom. They are the
+finest-grained instrument in the language — they operate inside parameter
+maps, on individual values, not on whole invocations.
+
+#### Signature
+
+```clojure
+(certain value)   ;; bound — no substitution permitted
+(prefer  value)   ;; lean — honour if compatible with binding constraints
+(allow   value)   ;; open — value is illustrative; choose freely
+```
+
+Each form is unary, taking a single value of any type — primitive, keyword,
+literal, expression, or nested form. The wrapped value retains its meaning;
+the qualifier annotates *how strongly the practitioner is committed to it*.
+
+#### Design rationale
+
+A parameter map like `{:hero true :width :auto :max-height (px 200)}` does
+not say whether `(px 200)` is a binding constraint or a starting suggestion.
+A skilled practitioner often knows the answer for each value individually:
+the maximum height is non-negotiable because it must fit the viewport budget;
+the layout choice is a preference because several would work; the placeholder
+copy is illustrative because the writer will replace it. Without a vocabulary
+to express these distinctions, all three values look identical and the system
+must guess.
+
+The qualifiers make the gradient explicit at the point where the decision
+lives — beside the value itself, not in a separate topology section. They
+compose freely with everything else: ordinary map entries (which are treated
+as `prefer` by default — sensible defaults for the unannotated common case),
+intent topology keywords (`:requires`, `:prefers`, `:style`), `shape`
+declarations, and the new pre/post constructs introduced below.
+
+The relationship to intent topology is parallel, not redundant. Topology
+keywords operate at the *capability* level — `:requires [:pci-compliance]`
+declares that PCI compliance is a load-bearing capability. Qualifiers operate
+at the *value* level — `(certain (px 200))` declares that 200 pixels
+specifically is bound. Both kinds of constraint coexist in the same invocation.
+
+#### Example 1: Layout specification with mixed certainty
+
+```clojure
+(conjure hero-section
+  :layout {
+    :hero        (certain true)
+    :width       (prefer  :full-bleed)
+    :max-height  (certain (px 200))
+    :background  (allow   :gradient-soft-warm)
+    :alignment   :centre}                          ;; default = prefer
+  :content {
+    :headline    (certain "Articulate intent. Manifest software.")
+    :sub         (prefer  "A declarative language for working with LLMs.")
+    :cta-label   (allow   "Get started")})
+
+;; The hero attribute is bound — this section must read as a hero.
+;; The width may degrade to :contained if the surrounding grid demands it.
+;; The 200px ceiling is non-negotiable; viewport fit depends on it.
+;; The background is illustrative — the system may select any aesthetic that fits.
+;; The headline copy is fixed; the sub-headline may be paraphrased; the CTA label
+;; is a placeholder to be replaced.
+```
+
+#### Example 2: Numeric thresholds in a policy decision
+
+```clojure
+(conjure transaction-screening
+  :thresholds {
+    :daily-limit       (certain (eur 10000))
+    :velocity-window   (prefer  (minutes 5))
+    :anomaly-score-cut (allow   0.75)}
+  :on-trigger :require-step-up-authentication)
+
+;; The €10 000 daily limit is binding — likely a compliance threshold.
+;; The five-minute velocity window is a reasonable default but may be tuned.
+;; The anomaly cutoff is illustrative; the system may recalibrate against
+;; historical false-positive rates without consulting the practitioner.
+```
+
+#### Example 3: Defaults remain unceremonious
+
+```clojure
+(conjure customer-table
+  :columns [:name :email :signed-up :status]
+  :sort-by :signed-up
+  :sort-order (certain :descending))
+
+;; No need to qualify every value. Unmarked entries behave as :prefer.
+;; Only the sort order is bound — newest-first is a hard product decision.
+```
+
+---
+
+### `given`
+
+Declares preconditions: facts taken as true *entering* the invocation. Where
+`assume` describes operative constraints on the environment, and `context`
+describes structural facts about the domain, `given` describes specific
+*input-state* truths for a particular invocation or block.
+
+#### Signature
+
+```clojure
+(given
+  :facts        {fact-name fact-value ...}
+  :state        {state-key state-value ...}
+  :from-mcp     [tool-result ...]
+  :unverified?  boolean
+  :scope        :invocation | :block | :session)
+```
+
+#### Parameters
+
+**`:facts`** — Named propositions taken as true. May reference earlier
+manifestations, external system state, or practitioner-asserted truths.
+
+**`:state`** — Structured state inputs assumed valid. Typically used when
+the invocation continues a workflow whose prior state must be trusted.
+
+**`:from-mcp`** — Results returned by MCP tools in the current session.
+These are *genuinely deterministic* — the MCP server returned them and they
+are not subject to LLM interpretation. Marking them as `given` lets the
+LLM client treat them as ground truth rather than re-deriving them.
+
+**`:unverified?`** — When `true`, signals that the facts have not been
+independently verified by the system. Useful when a practitioner is
+exploring a hypothetical state. When `false` (default), facts are treated
+as verified preconditions.
+
+**`:scope`** — Determines how long the preconditions hold:
+- `:invocation` — only for the next form
+- `:block` — for the surrounding `do`/`sequence`/`~>` block
+- `:session` — for the remainder of the session
+
+#### Design rationale
+
+Every manifestation rests on assumptions about its input state. When those
+assumptions are implicit, the system must infer them — and inference under
+uncertainty is the largest single source of misalignment between specification
+and result. `given` makes the assumed state inspectable, overridable, and
+auditable.
+
+`given` is also the natural seam between deterministic MCP results and
+probabilistic LLM manifestation. When the MCP server returns
+`{:user {:role :admin :id "u-7842"}}`, that result is bit-deterministic.
+Wrapping it in `(given :from-mcp [...])` tells the executing LLM client:
+treat this as ground truth, do not re-derive it, do not paraphrase it.
+
+The distinction from `assume` is real and worth holding precisely:
+
+- `context` — *what the domain is*: entities, regulations, vocabulary
+- `assume` — *what the environment is*: scale, team, infrastructure, budget
+- `given`  — *what the input state is*: facts and data entering this invocation
+
+#### Example 1: MCP result as precondition
+
+```clojure
+;; After an MCP tool call returned the user record
+(given
+  :from-mcp [{:tool :users/lookup
+              :result {:user {:id "u-7842" :role :admin :tenant "acme"}}}]
+  :scope :block)
+
+(conjure admin-dashboard
+  :for-user (certain "u-7842")
+  :tenant   (certain "acme")
+  :sections [:tenant-config :user-management :audit-log])
+
+;; The dashboard is generated against verified ground truth.
+;; No risk of the LLM hallucinating a different user record.
+```
+
+#### Example 2: Workflow-resumption preconditions
+
+```clojure
+(given
+  :state {:onboarding-step      :email-verified
+          :payment-method-added true
+          :tos-accepted-at      "2026-05-21T14:33:00Z"}
+  :scope :invocation)
+
+(conjure next-onboarding-step
+  :for-user current-user
+  :respecting :state-machine)
+
+;; The system knows exactly where the user is in the onboarding flow
+;; and produces only the next legitimate step — no re-validation needed.
+```
+
+#### Example 3: Hypothetical exploration
+
+```clojure
+(given
+  :facts {:peak-traffic (per-second 50000)
+          :db-write-latency-p99 (ms 12)}
+  :unverified? true
+  :scope :block)
+
+(conjure capacity-plan
+  :horizon (months 6)
+  :produce [:bottleneck-analysis :scaling-recommendations])
+
+;; The practitioner is testing a what-if. Marking :unverified? true
+;; tells the system to caveat conclusions appropriately and avoid
+;; presenting them as conclusions from known data.
+```
+
+---
+
+### `ensure`
+
+Declares postconditions: properties that must hold of the *manifested
+output*. Where `given` describes truths entering an invocation, `ensure`
+describes truths leaving it.
+
+#### Signature
+
+```clojure
+(ensure
+  :structural [predicate ...]
+  :semantic   [predicate-or-statement ...]
+  :behavioural [scenario ...]
+  :verify-via [layer ...]
+  :on-violation :halt | :warn | :document)
+```
+
+#### Parameters
+
+**`:structural`** — Properties verifiable by inspecting the artefact:
+file structure, type signatures, presence of required fields, numeric bounds
+on configuration values. These are the *hardest* postconditions because
+they can be checked mechanically.
+
+**`:semantic`** — Properties expressible in natural language but not
+mechanically verifiable from structure alone: "error messages are
+user-friendly", "the UI feels responsive on slow networks". The LLM
+honours these as binding instructions.
+
+**`:behavioural`** — Concrete scenarios the artefact must satisfy. Often
+the strongest form: examples are more precise than abstract predicates.
+
+**`:verify-via`** — Which enforcement layers the practitioner expects to
+participate. Honest enumeration prevents over-claiming:
+- `:mcp` — Conjurer MCP server validates against structural checks
+- `:llm` — the executing client (Copilot, Antigravity) honours as instruction
+- `:tests` — generated tests in the target language verify post-materialisation
+- `:lint` — linter rules in the target language verify post-materialisation
+
+**`:on-violation`** — What happens if a postcondition fails:
+- `:halt` — refuse to manifest; surface the failure
+- `:warn` — manifest but flag the violation prominently
+- `:document` — manifest and record the unmet postcondition for review
+
+#### Design rationale
+
+The gap between *what the practitioner declared* and *what the materialised
+code actually does* is where most disappointment with LLM-generated software
+lives. `ensure` closes that gap by stating, at the specification level, the
+properties the output must exhibit — and by being honest about which layer
+verifies which property.
+
+This is the construct that bridges Conjurer's declarative surface to its
+practical accountability. A practitioner reading an invocation should be
+able to see, without leaving the page, what the manifested artefact is
+expected to *do* and *not do* — and which mechanism enforces each.
+
+`ensure` complements `shape` (semantic type contracts on data) and intent
+topology (`:requires` capability declarations). Where `shape` describes
+*data shape* and `:requires` describes *capability presence*, `ensure`
+describes *artefact properties* of any kind: code structure, runtime
+behaviour, accessibility, performance characteristics, copy tone.
+
+The `:verify-via` field is non-cosmetic. It is the construct's promise of
+honesty: the system declares which guarantees are mechanical and which are
+semantic, so practitioners are not misled into trusting a constraint that
+is only as strong as the model's commitment.
+
+#### Example 1: Generated form with verifiable structure
+
+```clojure
+(conjure customer-signup-form
+  :fields [:name :email :company :role]
+  :validation :client-and-server
+
+  :within (ensure
+    :structural [
+      (every-field-has-label?)
+      (form-action-is :post)
+      (csrf-token-included?)]
+    :semantic [
+      "error messages are kind and actionable, not blaming"
+      "the submit button reflects loading state without layout shift"]
+    :behavioural [
+      "submitting with empty :email surfaces the error within 200ms"
+      "submitting a duplicate email shows the recovery path, not a stack trace"]
+    :verify-via [:lint :tests :llm]
+    :on-violation :warn))
+
+;; The lint layer checks labels and CSRF; the tests cover behaviour;
+;; the LLM honours the tone requirements semantically.
+;; If a structural check fails, the practitioner sees a warning rather
+;; than receiving silently broken markup.
+```
+
+#### Example 2: Numeric bounds in generated infrastructure
+
+```clojure
+(conjure rate-limiter-config
+  :tier :standard
+  :within (ensure
+    :structural [
+      (<= :requests-per-minute 300)
+      (>= :burst-allowance     30)
+      (in? :algorithm #{:token-bucket :sliding-window})]
+    :verify-via [:mcp]
+    :on-violation :halt))
+
+;; The MCP server can validate these structurally before manifestation.
+;; If the LLM proposes 500 requests/minute, the configuration is rejected
+;; before it ever reaches the target system.
+```
+
+#### Example 3: Composing `given` and `ensure` around a transformation
+
+```clojure
+(given
+  :from-mcp [{:tool :db/schema :result current-schema}]
+  :scope :invocation)
+
+(conjure migration-plan
+  :from current-schema
+  :to   target-schema
+  :strategy :zero-downtime
+
+  :within (ensure
+    :structural [
+      (no-destructive-step-without :dual-write-window)
+      (every-step-has :rollback)
+      (total-locked-time <= (seconds 5))]
+    :semantic [
+      "operational runbook is written for a 3am page, not a planning meeting"]
+    :behavioural [
+      "rollback at any step returns to last known-good schema"]
+    :verify-via [:mcp :llm]
+    :on-violation :halt))
+
+;; Preconditions: the current schema is the MCP-verified ground truth.
+;; Postconditions: structural safety properties, an honest runbook tone,
+;; and the behavioural guarantee of recoverable rollback.
+;; The combination expresses the practitioner's full contract in one block.
+```
+
+---
+
+### The honest grammar of certainty
+
+Taken together, the constructs in this part form a small but expressive
+grammar:
+
+```clojure
+;; Inline value-level certainty
+(certain value)   (prefer value)   (allow value)
+
+;; Invocation-level pre and post
+(given   :facts {...} :from-mcp [...] :scope ...)
+(ensure  :structural [...] :semantic [...] :verify-via [...])
+```
+
+The grammar is honest about three things. First, it distinguishes the
+truly deterministic (MCP results, structural numerics) from the
+semantically anchored (LLM-honoured intent) from the openly delegated.
+Second, it lets practitioners declare exactly which layer they expect to
+enforce which constraint, preventing the silent assumption that "the
+language will catch this for me". Third, it acknowledges that some
+guarantees end at the boundary of generated code, where target-language
+tooling — tests, linters, type checkers — takes over.
+
+This is the language admitting what it can and cannot do, and giving
+practitioners the vocabulary to work confidently within those limits.
+
+```mermaid
+flowchart LR
+    G[given — preconditions, facts entering]
+    I[invocation: conjure / refine / ...]
+    E[ensure — postconditions, properties leaving]
+    Q[certain / prefer / allow — value-level qualifiers]
+
+    G --> I --> E
+    I -. operates on values via .-> Q
+```
+
+Solid arrows trace the invocation lifecycle: preconditions flow in, the
+invocation runs, postconditions hold of the result. The dotted arrow marks
+that qualifiers are not part of that time-flow — they apply *inside* the
+invocation, at the granularity of individual values.
+
 ## Part V: Semantic typing
+
+The `shape` construct describes what data *means*, not just the form it
+takes. It is the bridge between Conjurer's declarative surface and the
+type-aware tooling of materialised targets.
+
+---
 
 ### `shape`
 
@@ -1739,303 +1988,240 @@ concept; a schema is an implementation of it.
 
 ---
 
-## Best practices
+## Part VI: Reflection and perspective
 
-### Intention over instruction
-
-State what you want the manifestation to accomplish, not how to accomplish it.
-Success criteria, constraints, and examples communicate intent better than
-algorithmic descriptions.
-
-```clojure
-;; Good: outcome-oriented, testable against clear criteria
-(conjure email-validator
-  :accepts   email-string
-  :rejects   [:missing-at-sign :invalid-domain :leading-trailing-whitespace]
-  :normalises [:lowercase-domain :trim-whitespace]
-  :returns   {:valid boolean :normalised string :reason string})
-
-;; Avoid: prescribing the implementation
-(conjure email-validator
-  :use-regex "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
-  :split-on  "@"
-  :verify-mx-record true)
-```
-
-### Establish context early; let gravity do the rest
-
-A rich context at the start of a session is worth dozens of repeated parameters
-across individual invocations. The investment compounds: the heavier the
-established context, the shorter and more precise every subsequent invocation.
-
-### Lead with examples when precision matters
-
-The `:examples` parameter is often more precise than prose. When normalisation
-behaviour, edge-case handling, or output format are nuanced, show them rather
-than describing them.
-
-### Make topology explicit
-
-Use `:requires`, `:prefers`, `:style`, and `:deferred` deliberately. They
-prevent the system from treating a stylistic preference as a correctness
-requirement, or from trading away a compliance constraint to satisfy a
-performance preference.
-
-### Prefer `~>` for multi-step transformations
-
-When a value passes through multiple sequential transformations, `~>` makes
-the flow readable and each step independently observable. Nested `conjure`
-calls obscure the data flow; threaded pipelines make it explicit.
-
-### Layer execution primitives from outermost concern inward
-
-`intercept` wraps the outermost scope (cross-cutting infrastructure).
-`sequence` or `parallel` structures the operation. `retry` and `ward` handle
-resilience at the most specific level. This layering keeps concerns at their
-appropriate scope.
-
-```clojure
-;; Clear layering: infrastructure wraps structure wraps resilience
-(intercept with-auth-and-observability
-  :operation (sequence data-pipeline
-    :operations [
-      (retry fetch-source-data :attempts 3 :backoff :exponential)
-      (parallel [enrich-a enrich-b enrich-c])
-      (ward persist-results
-        :protect (conjure write :to primary-store)
-        :recover {unavailable? (conjure write :to fallback-queue)})]))
-```
-
-### Use `witness` to build decision trails
-
-Inserting `witness` calls into a `~>` pipeline costs nothing in terms of the
-pipeline's output. It produces an invaluable record of reasoning that can be
-reviewed, audited, and used to improve the specification over time.
+Some constructs do not produce primary artefacts at all — they observe,
+explain, or recast existing manifestations. `explain` requests a transparent
+account of how a result came to be. `meta-query` interrogates the
+specification itself. `witness` captures interpretive reasoning without
+altering the manifestation. `as` engages the same artefact from a chosen
+viewpoint — security auditor, new user, regulator — producing different but
+equally valid analyses. Together they make Conjurer sessions inspectable,
+auditable, and pedagogically rich.
 
 ---
 
-## Integration patterns
+### `explain`
 
-### Core as the composition layer
+Requests a transparent account of how a manifestation was produced: what the
+system understood, what alternatives it considered, and what decisions it made.
 
-`core` constructs make all other grimoires composable. Domain knowledge from
-`domain`, text analysed by `semantics`, workflows from `orchestrate` — all
-flow through `core`'s composition machinery.
+#### Signature
 
 ```clojure
-;; Cross-grimoire pipeline
-(~> requirements-document
-  (d/explore    :depth 3 :focus [:entities :workflows :constraints])
-  (s/texan      :models [:logical :argumentation] :surface :implicit-requirements)
-  (conjure api-design :from-domain true :incorporating-implicit-requirements true)
-  (weave platform
-    :strands  [api-design auth-service data-layer]
-    :ensuring [:consistent-auth :unified-error-taxonomy])
-  (witness :observe [:architectural-decisions :trade-offs]
-    :record-to adr-log))
+(explain target-manifestation
+  :show  [:interpretation :alternatives :decisions :confidence :assumptions]
+  :depth :summary | :full)
 ```
 
-### Context propagates into all grimoires
+#### Design rationale
 
-A `context establish` at the core level propagates into every grimoire
-automatically. Healthcare context established once applies to `d/explore`,
-`data/schema`, `w/prototype`, and `s/texan` invocations without
-re-specification. Regulations, entity definitions, and conventions are
-available everywhere within scope.
+Transparency is not a debugging tool — it is a design principle. When a
+practitioner understands *why* the system made the choices it did, they can
+refine intent more precisely, catch misinterpretations early, and build
+justified confidence in the output.
 
-### Execution primitives underpin grimoire abstractions
+`explain` is the primary surface of Conjurer's collaborative discovery
+principle. The session becomes a dialogue: the system manifests, the
+practitioner asks why, understanding develops, the specification sharpens.
 
-Higher-level grimoire constructs are built on core primitives.
-`o/define-workflow` is `sequence` and `parallel` with richer state management.
-`d/comprehensive-analysis` is `parallel` extraction followed by `d/merge`.
-The primitives are not low-level — they are the universal composition
-vocabulary on which domain-specific abstractions are built.
-
----
-
-## Grimoire metadata
+#### Example
 
 ```clojure
-{:grimoire    "core"
- :version     "3.0.0"
- :description "Foundational constructs, composition machinery, and execution
-               primitives for the Conjurer language"
+(explain fraud-detector
+  :show  [:interpretation :alternatives :confidence]
+  :depth :full)
 
- :constructs {
-   :fundamental  [conjure refine context using assume]
-   :semantic     [ritual explain meta-query witness as]
-   :composition  [~> transmute weave lore]
-   :execution    [sequence parallel branch retry intercept ward]
-   :typing       [shape]}
+;; Returns:
+{:interpretation
+ "Implemented as composite scoring (velocity + geography + amount deviation
+  + device fingerprint) rather than threshold rules, because the domain
+  context specifies financial services where composite models substantially
+  reduce false positives on legitimate cross-border spend."
 
- :best-for [
-   "Declarative intent specification with explicit topology"
-   "Progressive refinement as a discovery process"
-   "Context establishment, inheritance, and semantic gravity"
-   "Cross-grimoire composition and system integration"
-   "Resilient workflows with graceful degradation"
-   "Transparent reasoning and audit trails"
-   "Perspectival analysis and multi-role review"]
+ :alternatives-considered [
+   {:approach  "Simple threshold rules"
+    :rejected  "Too many false positives for customers who travel frequently"}
+   {:approach  "Isolation forest (unsupervised)"
+    :rejected  "Requires offline training batch; incompatible with real-time
+                scoring requirement from domain context"}]
 
- :works-with :all-grimoires
-
- :key-concepts [
-   {:term "Invocation"
-    :definition "An expression of intent that the system manifests into reality"}
-   {:term "Manifestation"
-    :definition "The artefact produced in response to an invocation"}
-   {:term "Semantic gravity"
-    :definition "The interpretive pull exerted by established context.
-                 Heavier context enables terser, more precise invocations."}
-   {:term "Intent topology"
-    :definition "The structural importance hierarchy of a specification:
-                 :requires > :prefers > :style; :deferred is dormant."}
-   {:term "Productive ambiguity"
-    :definition "Deliberate openness in a specification that invites creative
-                 judgment rather than demanding complete prescription."}
-   {:term "Transmutation"
-    :definition "Form-changing transformation that preserves semantic essence.
-                 Different from refinement (same form, enhanced) and
-                 conjuration (new form, from scratch)."}
-   {:term "Witness"
-    :definition "Non-invasive observation of a manifestation's reasoning
-                 without modifying the manifestation itself."}
-   {:term "Ward"
-    :definition "Structured error containment with explicit degradation strategy.
-                 The :recover map is the degradation ladder, made visible."}]}
+ :confidence 0.83
+ :note "High confidence on scoring logic; moderate on alert thresholds —
+        these should be calibrated against real transaction data before
+        going to production."}
 ```
 
 ---
 
-## Implementation notes for LLM processors
+### `meta-query`
 
-### Semantic understanding
+Interrogates a manifestation or the current session at a meta level: what
+assumptions underlie it, how would changes propagate, what are the failure
+modes, what would the system do differently given different constraints.
 
-Interpret invocation intent from context and parameters rather than relying on
-exact syntax. Recognise semantic equivalence: `:validates`, `:ensures`,
-`:requires`, and `:checks` all express constraint intent and should produce
-equivalent validation logic. Infer reasonable defaults from established context
-when parameters are absent rather than requesting specification of every detail.
+#### Signature
 
-### Intent topology
+```clojure
+(meta-query target
+  :questions ["natural-language question" ...])
+```
 
-When processing `:requires`, `:prefers`, `:style`, and `:deferred`:
+#### Design rationale
 
-- Apply all `:requires` items unconditionally. A manifestation that omits a
-  `:requires` item is incorrect.
-- Apply `:prefers` items when they don't conflict with `:requires`. Under
-  constraint, `:requires` always wins.
-- Use `:style` to inform presentation, tone, and aesthetic decisions. Style
-  never overrides correctness or compliance.
-- Record `:deferred` items in the manifestation's documentation with a clear
-  note that they are intentionally not yet implemented.
+The practitioner often senses that something is incomplete or misaligned but
+cannot articulate it precisely. `meta-query` externalises this: rather than
+requiring diagnosis, the practitioner asks the system to reason about its
+own outputs. This is particularly valuable for exploring trade-offs and
+surfacing non-obvious consequences of design decisions.
 
-When a genuine conflict exists between `:requires` items, surface it
-explicitly rather than silently prioritising one. Ask the practitioner to
-adjudicate.
+#### Example
 
-### Context and semantic gravity
-
-Accumulate context throughout the session. When `context establish` names
-`:regulations`, apply their implied behaviours automatically:
-
-- **GDPR**: data minimisation, right-to-erasure support, processing lawfulness,
-  data-subject request handling
-- **HIPAA/HITECH**: PHI encryption at rest and in transit, audit logging on
-  all PHI access, minimum-necessary access controls, BAA awareness
-- **PSD2**: strong customer authentication before authorisation (not after),
-  open banking API requirements, payment initiation security
-- **AML/KYC**: transaction monitoring, suspicious activity reporting,
-  customer due diligence
-
-Context established via `:inherits` extends the parent; it does not replace
-it. Additions apply on top; overrides replace specific items while preserving
-the rest.
-
-### Conditional refinement (`:when`)
-
-When a `refine` carries a `:when` predicate: if evaluable and false, do not
-apply the refinement but record it as a pending conditional refinement in the
-manifestation's metadata. If the predicate is not evaluable at invocation time,
-record the refinement as dormant — note the condition under which it will
-activate.
-
-### Threading (`~>`)
-
-Execute steps in declaration order. Pass the result of each step as the
-implicit first argument to the next. `witness` calls within a `~>` chain
-observe the passing value but do not modify it — the threaded value continues
-unchanged through the chain. If a step is `parallel`, execute its operations
-concurrently and pass the combined result to the next step.
-
-### Transmutation
-
-Transmutation is not regeneration. Interpret the source manifestation's full
-semantic content, then recast it in the target form using conventions native
-to that form. `:preserving` items survive as semantic content; `:discarding`
-items are structural artefacts of the source form that do not transfer. The
-result must feel natural in the target form, not like a mechanical translation
-from the source.
-
-### Weaving
-
-A woven system is more than combined strands. Generate the integration
-contracts specified in `:integrations` with explicit interface types, error
-behaviours, and versioning expectations. `:ensuring` clauses are system-level
-invariants — verify that the proposed architecture demonstrably satisfies them.
-Note any that require runtime mechanisms (eventual consistency, distributed
-transactions, unified error taxonomies) to be architecturally visible and
-explicitly designed, not assumed.
-
-### Ward and graceful degradation
-
-Attempt `:protect` first. On failure, match against `:recover` patterns in
-declaration order; execute the first matching recovery operation. If
-`:degrade-gracefully` is true, a partial or degraded result is a valid outcome
-— prefer it to an empty result. If the `:escalate` predicate is met, signal
-that human intervention is required *in addition to* executing the recovery
-operation, not instead of it.
-
-### Witness
-
-Produce a separate observation record alongside the manifestation. The
-observation is out-of-band: the manifestation is identical to what would have
-been produced without the `witness`. The record should document what the system
-understood the intent to be, any ambiguities resolved and how, which
-alternatives were considered and set aside, and which design decisions were
-made and why. This record is queryable via subsequent `explain` or `meta-query`
-invocations on the witnessed target.
-
-### Shape
-
-Use shape definitions to inform all manifestation decisions involving that
-data type: validation logic, serialisation format, display formatting, error
-messages, and persistence constraints. `:invariants` written in natural
-language should be translated into concrete validation rules applied wherever
-the shape is handled. `:phi-fields` always trigger appropriate data-handling
-requirements regardless of whether the active context has named the relevant
-regulation.
-
-### Result quality
-
-Every manifestation must be production-ready: no placeholders, no TODO
-comments, no incomplete implementations. Specified features must be present
-and functional. Code must work immediately when executed. Include inline
-comments for non-obvious logic. Honour `:non-negotiable` items from `assume`
-without exception. When a significant interpretive decision has been made —
-filling a gap with a design judgment — note it transparently in accompanying
-prose so the practitioner can inspect and refine it.
+```clojure
+(meta-query payment-processor
+  :questions [
+    "Which of the current operative assumptions most constrain the architecture?"
+    "What would change if we needed to support USD and GBP alongside EUR?"
+    "What are the three most likely failure modes under 10× normal load?"
+    "Which compliance requirements are currently underserved by this implementation?"])
+```
 
 ---
 
-## Part VI: Session and ecosystem constructs
+### `witness`
 
-The constructs in Parts I–V operate *within* a session — they describe,
-compose, refine, and execute. The constructs in this part operate *across*
-sessions, agents, editors, and implementation targets. They are the connective
-tissue of the Conjurer ecosystem: the vocabulary for persisting intent,
-declaring what gets built and how, registering external capabilities, and
-transferring context to specialist agents.
+Observes a manifestation transparently — capturing interpretive reasoning,
+alternatives considered, and decisions made — without modifying the
+manifestation itself. The epistemic counterpart to `intercept`.
+
+#### Signature
+
+```clojure
+(witness target-invocation
+  :observe              [:interpretation :alternatives :decisions :timing ...]
+  :record-to            destination
+  :include-alternatives boolean)
+```
+
+#### Design rationale
+
+There is a meaningful difference between *changing* an operation's behaviour
+and *observing* it. `intercept` changes; `witness` only observes. This
+distinction matters for auditability, for understanding the system's reasoning
+without affecting outcomes, and for building decision trails that survive
+beyond the session.
+
+`witness` can be inserted at any point in a `~>` pipeline without altering
+the values being threaded. It produces an out-of-band observation record;
+the in-band result passes through unchanged.
+
+#### Example 1: Architecture decision record
+
+```clojure
+(witness
+  (conjure system-architecture
+    :for crm-platform
+    :constraints [:gdpr :three-engineer-team :postgres-only])
+  :observe              [:interpretation :alternatives :decisions]
+  :record-to            architecture-decision-log
+  :include-alternatives true)
+
+;; The architecture is produced unchanged.
+;; The log records: why each structural choice was made, what alternatives
+;; were considered and set aside, which constraints were most influential.
+```
+
+#### Example 2: Inline pipeline observation
+
+```clojure
+(~> raw-transactions
+  (validate :schema transaction-schema)
+
+  (witness
+    (conjure risk-scorer :model :gradient-boosted-composite)
+    :observe   [:scoring-factors :feature-weights :threshold-rationale]
+    :record-to risk-scoring-audit-trail
+    :include-alternatives true)
+
+  (conjure decision-engine :from risk-score))
+
+;; The risk score threads through unchanged.
+;; The audit trail captures the scoring reasoning independently,
+;; without touching the pipeline's in-band value.
+```
+
+---
+
+### `as`
+
+Applies a perspectival role to an invocation, producing a manifestation shaped
+by that role's characteristic priorities, vocabulary, and evaluative criteria.
+
+#### Signature
+
+```clojure
+(as role-or-persona
+  invocation)
+```
+
+#### Design rationale
+
+Knowledge is perspectival. A security auditor reading an architecture diagram
+sees threat surfaces and trust boundaries. A new engineer reading the same
+diagram sees onboarding complexity and documentation gaps. A regulator sees
+compliance obligations and audit requirements. None of these perspectives is
+wrong — they are differently positioned.
+
+`as` makes perspectival invocation first-class. The same artefact can be
+reviewed, critiqued, or extended from multiple positions, producing
+complementary outputs that together give a more complete picture than any
+single perspective could.
+
+#### Example 1: Multi-perspective system review
+
+```clojure
+;; Four perspectives on the same payment processor
+(as :security-auditor
+  (conjure review :target payment-processor
+    :produce [:threat-model :vulnerability-assessment :compliance-gaps]))
+
+(as :on-call-engineer
+  (conjure review :target payment-processor
+    :produce [:failure-modes :runbook :alert-thresholds]))
+
+(as :new-team-member
+  (conjure review :target payment-processor
+    :produce [:onboarding-guide :local-dev-setup :common-gotchas]))
+
+(as :product-manager
+  (conjure review :target payment-processor
+    :produce [:conversion-friction :missing-payment-methods :ux-gaps]))
+```
+
+#### Example 2: Parallel perspective synthesis
+
+```clojure
+(parallel comprehensive-review
+  :operations [
+    (as :security-auditor   (refine architecture :identify :risks))
+    (as :performance-lead   (refine architecture :identify :bottlenecks))
+    (as :accessibility-lead (refine architecture :identify :barriers))
+    (as :compliance-officer (refine architecture :identify :regulatory-gaps))]
+  :combine-results :synthesise
+  :manifest        complete-assessment)
+```
+
+---
+
+## Part VII: Session and ecosystem constructs
+
+The constructs in Parts I–VI operate *within* a session — they describe,
+compose, refine, execute, constrain, type, and reflect. The constructs in
+this part operate *across* sessions, agents, editors, and implementation
+targets. They are the connective tissue of the Conjurer ecosystem: the
+vocabulary for persisting intent, declaring what gets built and how,
+registering external capabilities, and transferring context to specialist
+agents.
 
 Every serious Conjurer project produces a `.cnj` file. That file begins with
 a `charter`. It references `asset` definitions. It declares `target` outputs.
@@ -2132,9 +2318,7 @@ decision log prevents this.
 
 ```clojure
 (charter "Subscription & Contract Management Platform"
-  :version  "0.4.0"
   :created  "2025-11-01"
-  :updated  "2025-11-04"
   :domain   "B2B SaaS; subscription lifecycle, contract management, and billing"
 
   :goals [
@@ -2192,7 +2376,7 @@ When a practitioner drops a `.cnj` file into a new chat:
  the contract entity and its state machine."
 ```
 
-The agent reads the `charter`, sees the v0.4.0 decisions, notes the open
+The agent reads the `charter`, sees the recorded decisions, notes the open
 questions, understands the output targets, and continues from precisely
 where the previous session ended — without any re-explanation.
 
@@ -2601,6 +2785,27 @@ mention it.
 A complete `.cnj` file follows this structure. Every section is optional
 except `charter`, which is always first.
 
+```mermaid
+flowchart TB
+    CH[charter — session anchor]
+    DM[domain — contexts, entities, rules]
+    TG[targets — declared output specs]
+    HV[handover — structured transfer to specialist]
+    AS[assets — external files: standards, design systems]
+
+    CH --> DM --> TG --> HV
+    TG -. references .-> AS
+    HV -. packages .-> AS
+```
+
+The solid path traces the in-file accumulation order across a project's
+life: `charter` anchors the session, domain work fills in as understanding
+deepens, `targets` declare what gets materialised when ready, and
+`handover` packages everything when the work crosses to a specialist
+agent. `assets` sits off to the side because it lives in separate files —
+referenced from targets and packaged into handovers, but never embedded
+in the `.cnj` itself.
+
 ```clojure
 ;; ─────────────────────────────────────────────────
 ;; SECTION 1: Session anchor
@@ -2625,7 +2830,7 @@ except `charter`, which is always first.
 ;; ─────────────────────────────────────────────────
 ;; SECTION 4: Context — domain semantic frame
 ;; ─────────────────────────────────────────────────
-(context establish project-context
+(context project-context
   :domain      :subscription-billing
   :regulations [:gdpr :psd2]
   ...)
@@ -2684,20 +2889,134 @@ what was missing. The `.cnj` file is now the project's single source of truth.
 
 ---
 
-## Updated grimoire metadata
+## Best practices
+
+### Intention over instruction
+
+State what you want the manifestation to accomplish, not how to accomplish it.
+Success criteria, constraints, and examples communicate intent better than
+algorithmic descriptions.
+
+```clojure
+;; Good: outcome-oriented, testable against clear criteria
+(conjure email-validator
+  :accepts   email-string
+  :rejects   [:missing-at-sign :invalid-domain :leading-trailing-whitespace]
+  :normalises [:lowercase-domain :trim-whitespace]
+  :returns   {:valid boolean :normalised string :reason string})
+
+;; Avoid: prescribing the implementation
+(conjure email-validator
+  :use-regex "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+  :split-on  "@"
+  :verify-mx-record true)
+```
+
+### Establish context early; let gravity do the rest
+
+A rich context at the start of a session is worth dozens of repeated parameters
+across individual invocations. The investment compounds: the heavier the
+established context, the shorter and more precise every subsequent invocation.
+
+### Lead with examples when precision matters
+
+The `:examples` parameter is often more precise than prose. When normalisation
+behaviour, edge-case handling, or output format are nuanced, show them rather
+than describing them.
+
+### Make topology explicit
+
+Use `:requires`, `:prefers`, `:style`, and `:deferred` deliberately. They
+prevent the system from treating a stylistic preference as a correctness
+requirement, or from trading away a compliance constraint to satisfy a
+performance preference.
+
+### Prefer `~>` for multi-step transformations
+
+When a value passes through multiple sequential transformations, `~>` makes
+the flow readable and each step independently observable. Nested `conjure`
+calls obscure the data flow; threaded pipelines make it explicit.
+
+### Layer execution primitives from outermost concern inward
+
+`intercept` wraps the outermost scope (cross-cutting infrastructure).
+`sequence` or `parallel` structures the operation. `retry` and `ward` handle
+resilience at the most specific level. This layering keeps concerns at their
+appropriate scope.
+
+```clojure
+;; Clear layering: infrastructure wraps structure wraps resilience
+(intercept with-auth-and-observability
+  :operation (sequence data-pipeline
+    :operations [
+      (retry fetch-source-data :attempts 3 :backoff :exponential)
+      (parallel [enrich-a enrich-b enrich-c])
+      (ward persist-results
+        :protect (conjure write :to primary-store)
+        :recover {unavailable? (conjure write :to fallback-queue)})]))
+```
+
+### Use `witness` to build decision trails
+
+Inserting `witness` calls into a `~>` pipeline costs nothing in terms of the
+pipeline's output. It produces an invaluable record of reasoning that can be
+reviewed, audited, and used to improve the specification over time.
+
+---
+
+## Integration patterns
+
+### Core as the composition layer
+
+`core` constructs make all other grimoires composable. Domain knowledge from
+`domain`, text analysed by `semantics`, workflows from `orchestrate` — all
+flow through `core`'s composition machinery.
+
+```clojure
+;; Cross-grimoire pipeline
+(~> requirements-document
+  (d/explore    :depth 3 :focus [:entities :workflows :constraints])
+  (s/texan      :models [:logical :argumentation] :surface :implicit-requirements)
+  (conjure api-design :from-domain true :incorporating-implicit-requirements true)
+  (weave platform
+    :strands  [api-design auth-service data-layer]
+    :ensuring [:consistent-auth :unified-error-taxonomy])
+  (witness :observe [:architectural-decisions :trade-offs]
+    :record-to adr-log))
+```
+
+### Context propagates into all grimoires
+
+A `context` declaration at the core level propagates into every grimoire
+automatically. Healthcare context established once applies to `d/explore`,
+`data/schema`, `w/prototype`, and `s/texan` invocations without
+re-specification. Regulations, entity definitions, and conventions are
+available everywhere within scope.
+
+### Execution primitives underpin grimoire abstractions
+
+Higher-level grimoire constructs are built on core primitives.
+`o/define-workflow` is `sequence` and `parallel` with richer state management.
+`d/comprehensive-analysis` is `parallel` extraction followed by `d/merge`.
+The primitives are not low-level — they are the universal composition
+vocabulary on which domain-specific abstractions are built.
+
+---
+
+## Grimoire metadata
 
 ```clojure
 {:grimoire    "core"
- :version     "4.0.0"
  :description "Foundational constructs, composition machinery, execution
                primitives, and ecosystem connectives for the Conjurer language"
 
  :constructs {
    :fundamental   [conjure refine context using assume]
-   :semantic      [ritual explain meta-query witness as]
-   :composition   [~> transmute weave lore]
+   :composition   [ritual ~> transmute weave lore]
    :execution     [sequence parallel branch retry intercept ward]
+   :certainty     [certain prefer allow given ensure]
    :typing        [shape]
+   :reflection    [explain meta-query witness as]
    :ecosystem     [charter target asset handover]}
 
  :best-for [
@@ -2764,12 +3083,223 @@ what was missing. The `.cnj` file is now the project's single source of truth.
     :definition "A Conjurer source file serving as persistent, portable session
                  memory. Begins with charter; accumulates domain work, targets,
                  and handovers. Can be referenced in any editor or agent session
-                 to restore full project context instantly."}]}
+                 to restore full project context instantly."}
+   {:term "Certain"
+    :definition "Inline qualifier marking a value as bound — no substitution
+                 permitted at any layer. The strongest value-level commitment."}
+   {:term "Prefer"
+    :definition "Inline qualifier marking a value as the practitioner's lean.
+                 Honoured unless overridden by a binding constraint. The
+                 default semantics for unmarked map entries."}
+   {:term "Allow"
+    :definition "Inline qualifier marking a value as illustrative. The system
+                 may substitute freely with any value fitting the context."}
+   {:term "Given"
+    :definition "Declarative precondition. States facts taken as true entering
+                 an invocation, including MCP tool results treated as ground truth."}
+   {:term "Ensure"
+    :definition "Declarative postcondition. States properties that must hold of
+                 the manifested artefact, with explicit honesty about which
+                 enforcement layer verifies each."}
+   {:term "Certainty spectrum"
+    :definition "The gradient from bit-deterministic (MCP results, structural
+                 numerics) through semantically anchored (LLM-honoured intent)
+                 to openly delegated (free model choice). Conjurer's central
+                 honesty: declared intent ≠ mechanical guarantee, but declared
+                 intent with precise certainty markers converges toward
+                 behavioural determinism."}
+   ]}
 ```
 
 ---
 
-## Additional implementation notes for LLM processors
+## Implementation notes for LLM processors
+
+### Semantic understanding
+
+Interpret invocation intent from context and parameters rather than relying on
+exact syntax. Recognise semantic equivalence: `:validates`, `:ensures`,
+`:requires`, and `:checks` all express constraint intent and should produce
+equivalent validation logic. Infer reasonable defaults from established context
+when parameters are absent rather than requesting specification of every detail.
+
+### Intent topology
+
+When processing `:requires`, `:prefers`, `:style`, and `:deferred`:
+
+- Apply all `:requires` items unconditionally. A manifestation that omits a
+  `:requires` item is incorrect.
+- Apply `:prefers` items when they don't conflict with `:requires`. Under
+  constraint, `:requires` always wins.
+- Use `:style` to inform presentation, tone, and aesthetic decisions. Style
+  never overrides correctness or compliance.
+- Record `:deferred` items in the manifestation's documentation with a clear
+  note that they are intentionally not yet implemented.
+
+When a genuine conflict exists between `:requires` items, surface it
+explicitly rather than silently prioritising one. Ask the practitioner to
+adjudicate.
+
+### Context and semantic gravity
+
+Accumulate context throughout the session. When a `context` declaration names
+`:regulations`, apply their implied behaviours automatically:
+
+- **GDPR**: data minimisation, right-to-erasure support, processing lawfulness,
+  data-subject request handling
+- **HIPAA/HITECH**: PHI encryption at rest and in transit, audit logging on
+  all PHI access, minimum-necessary access controls, BAA awareness
+- **PSD2**: strong customer authentication before authorisation (not after),
+  open banking API requirements, payment initiation security
+- **AML/KYC**: transaction monitoring, suspicious activity reporting,
+  customer due diligence
+
+Context established via `:inherits` extends the parent; it does not replace
+it. Additions apply on top; overrides replace specific items while preserving
+the rest.
+
+### Conditional refinement (`:when`)
+
+When a `refine` carries a `:when` predicate: if evaluable and false, do not
+apply the refinement but record it as a pending conditional refinement in the
+manifestation's metadata. If the predicate is not evaluable at invocation time,
+record the refinement as dormant — note the condition under which it will
+activate.
+
+### Threading (`~>`)
+
+Execute steps in declaration order. Pass the result of each step as the
+implicit first argument to the next. `witness` calls within a `~>` chain
+observe the passing value but do not modify it — the threaded value continues
+unchanged through the chain. If a step is `parallel`, execute its operations
+concurrently and pass the combined result to the next step.
+
+### Transmutation
+
+Transmutation is not regeneration. Interpret the source manifestation's full
+semantic content, then recast it in the target form using conventions native
+to that form. `:preserving` items survive as semantic content; `:discarding`
+items are structural artefacts of the source form that do not transfer. The
+result must feel natural in the target form, not like a mechanical translation
+from the source.
+
+### Weaving
+
+A woven system is more than combined strands. Generate the integration
+contracts specified in `:integrations` with explicit interface types, error
+behaviours, and versioning expectations. `:ensuring` clauses are system-level
+invariants — verify that the proposed architecture demonstrably satisfies them.
+Note any that require runtime mechanisms (eventual consistency, distributed
+transactions, unified error taxonomies) to be architecturally visible and
+explicitly designed, not assumed.
+
+### Ward and graceful degradation
+
+Attempt `:protect` first. On failure, match against `:recover` patterns in
+declaration order; execute the first matching recovery operation. If
+`:degrade-gracefully` is true, a partial or degraded result is a valid outcome
+— prefer it to an empty result. If the `:escalate` predicate is met, signal
+that human intervention is required *in addition to* executing the recovery
+operation, not instead of it.
+
+### Witness
+
+Produce a separate observation record alongside the manifestation. The
+observation is out-of-band: the manifestation is identical to what would have
+been produced without the `witness`. The record should document what the system
+understood the intent to be, any ambiguities resolved and how, which
+alternatives were considered and set aside, and which design decisions were
+made and why. This record is queryable via subsequent `explain` or `meta-query`
+invocations on the witnessed target.
+
+### Shape
+
+Use shape definitions to inform all manifestation decisions involving that
+data type: validation logic, serialisation format, display formatting, error
+messages, and persistence constraints. `:invariants` written in natural
+language should be translated into concrete validation rules applied wherever
+the shape is handled. `:phi-fields` always trigger appropriate data-handling
+requirements regardless of whether the active context has named the relevant
+regulation.
+
+### Result quality
+
+Every manifestation must be production-ready: no placeholders, no TODO
+comments, no incomplete implementations. Specified features must be present
+and functional. Code must work immediately when executed. Include inline
+comments for non-obvious logic. Honour `:non-negotiable` items from `assume`
+without exception. When a significant interpretive decision has been made —
+filling a gap with a design judgment — note it transparently in accompanying
+prose so the practitioner can inspect and refine it.
+
+---
+
+### Inline qualifiers (`certain`, `prefer`, `allow`)
+
+A value wrapped in `certain` is bound. The manifestation must use that exact
+value. Substituting an equivalent or "improved" value is a violation —
+including substitution of a numeric value with one differing only by units,
+of a string with a synonym, or of a keyword with a closely-related variant.
+If `certain` cannot be honoured, refuse to manifest and surface the conflict.
+
+A value wrapped in `prefer` is the practitioner's lean. Honour it unless a
+`certain` value or a `:requires` capability demands otherwise. When a
+`prefer` is not honoured, document the substitution and the reason in the
+manifestation's prose so the practitioner can inspect the decision.
+
+A value wrapped in `allow` is illustrative. Treat the wrapped value as one
+example of a valid choice; substitute freely with any value that fits the
+surrounding context. Do not anchor on the wrapped value if a better fit is
+available.
+
+Unwrapped map entries default to `prefer` semantics. Practitioners who
+qualify nothing are taken to have a preference for the literal values they
+wrote.
+
+### `given`
+
+Treat `:from-mcp` entries as ground truth. Do not re-derive, paraphrase, or
+"correct" values present in MCP tool results. If the manifestation requires
+a transformation of an MCP value, perform the transformation but preserve
+the original as the source of truth in any cross-reference.
+
+Treat `:facts` entries as binding preconditions. Reject manifestations that
+would only be coherent under contradictory assumptions, even when the
+contradiction is implicit.
+
+When `:unverified?` is true, every conclusion that depends on the
+unverified facts must be marked as conditional in the manifestation's prose.
+Do not present derived conclusions as if they followed from verified inputs.
+
+Apply `:scope` strictly. Preconditions from an `:invocation`-scoped `given`
+do not propagate beyond the next form. `:session`-scoped preconditions
+persist until explicitly retracted.
+
+### `ensure`
+
+`:structural` predicates are mechanical. If a structural predicate can be
+checked at the MCP layer, do so before returning the manifestation. A
+structural violation with `:on-violation :halt` blocks the response.
+
+`:semantic` properties are LLM-enforced. Treat them as instructions of
+maximum priority — equivalent to `:requires` capabilities in topology weight.
+A manifestation that visibly violates a semantic postcondition is incorrect,
+even if it satisfies every other constraint.
+
+`:behavioural` scenarios are concrete cases the artefact must satisfy.
+Where the target language permits, generate tests that encode the scenarios.
+Where it does not, document the scenarios in inline comments at the
+relevant code site so reviewers can verify them by inspection.
+
+Honour `:verify-via` as a contract about enforcement layers. Do not claim
+mechanical verification when only semantic enforcement applies. When
+`:tests` is listed, materialise the tests as part of the artefact, not as
+a separate suggestion. When `:lint` is listed, produce a linter
+configuration or rule snippet alongside the primary artefact.
+
+`:on-violation :halt` is unconditional. A halted manifestation produces a
+structured failure report — the violated predicate, the proposed value, and
+the reason — not a partial artefact with caveats.
 
 ### Charter as context bootstrap
 
