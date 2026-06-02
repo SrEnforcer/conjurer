@@ -117,7 +117,8 @@ discovery.
   :infer         [:missing-concepts :implicit-rules :unstated-assumptions]
   :confidence-threshold 0.0-1.0
   :compare-to    existing-model
-  :output        :edn | :markdown | :graph)
+  :output        :edn | :markdown | :graph
+  :manifest      model-binding)
 ```
 
 #### Parameters
@@ -206,124 +207,149 @@ significant.
 #### Example 1: Dutch healthcare insurance domain
 
 ```clojure
-(d/explore "https://www.rijksoverheid.nl/onderwerpen/zorgverzekering"
+(d/explore "https://www.healthcare.gov/glossary/"
   :from    :url
   :depth   3
   :focus   [:taxonomy :legal-definitions :entities :constraints]
   :sources [:authoritative :legal]
-  :language :nl
+  :language :en
   :infer   [:implicit-rules]
   :output  :edn)
 
 ;; Returns:
-{:domain       "Nederlandse Zorgverzekering"
- :description  "Verplicht zorgstelsel geregeld door de Zorgverzekeringswet"
- :source       "rijksoverheid.nl/onderwerpen/zorgverzekering"
+{:domain      "US Health Insurance (ACA)"
+ :description "Regulated individual and employer health coverage under the
+               Affordable Care Act"
+ :source      "healthcare.gov/glossary"
 
  :taxonomy {
-   :root "Zorgverzekering"
+   :root "Health Insurance"
    :levels {
-     1 [{:concept     "Basisverzekering"
-         :definition  "Verplichte verzekering voor alle ingezetenen van Nederland"
-         :legal-ref   "Zorgverzekeringswet art. 2"
+     1 [{:concept    "Qualified Health Plan"
+         :definition "ACA-compliant plan sold through the Marketplace; covers
+                      essential health benefits"
+         :legal-ref  "ACA §1301"
+         :confidence :high}
+        {:concept    "Supplemental Coverage"
+         :definition "Voluntary coverage for services outside the QHP benefit
+                      package (dental, vision, gap plans)"
+         :confidence :high}]
+     2 [{:concept     "Deductible"
+         :parent      "Qualified Health Plan"
+         :definition  "Annual amount the enrollee pays out-of-pocket before the
+                       plan begins sharing costs"
+         :legal-ref   "ACA §1302(c)"
+         :amount-2024 1600
          :confidence  :high}
-        {:concept     "Aanvullende verzekering"
-         :definition  "Vrijwillige verzekering voor zorg buiten het basispakket"
-         :confidence  :high}]
-     2 [{:concept     "Eigen risico"
-         :parent      "Basisverzekering"
-         :definition  "Verplicht jaarlijks bedrag dat verzekerde zelf betaalt"
-         :legal-ref   "Zvw art. 19"
-         :amount-2024 385
-         :confidence  :high}
-        {:concept     "Zorgpremie"
-         :parent      "Basisverzekering"
-         :definition  "Maandelijks bedrag aan de verzekeraar"
-         :legal-ref   "Zvw art. 16"
-         :confidence  :high}]
-     3 [{:concept          "Zorgtoeslag"
-         :parent           "Zorgpremie"
-         :definition       "Inkomensafhankelijke tegemoetkoming in premiekosten"
-         :legal-ref        "Wet op de zorgtoeslag"
-         :administered-by  "Belastingdienst"
+        {:concept    "Premium"
+         :parent     "Qualified Health Plan"
+         :definition "Monthly amount paid to the insurer to maintain coverage"
+         :legal-ref  "ACA §1301"
+         :confidence :high}]
+     3 [{:concept          "Premium Tax Credit"
+         :parent           "Premium"
+         :definition       "Income-based federal subsidy that reduces monthly
+                            premium costs for eligible enrollees"
+         :legal-ref        "IRC §36B"
+         :administered-by  "IRS / Healthcare.gov"
          :confidence       :high}]}}
 
  :entities {
-   "verzekerde"      {:type :actor
-                      :attributes [:bsn :woonadres :inkomenscategorie]
-                      :roles [:premiebetaler :zorggebruiker]
-                      :lifecycle [:onverzekerd :verzekerd :geschorst]}
-   "zorgverzekeraar" {:type :actor
-                      :attributes [:vergunning-dnb :solvabiliteitsbuffer]
-                      :roles [:premie-innen :zorg-vergoeden :contracteren]
-                      :legal-obligations ["Acceptatieplicht art. 3 Zvw"]}
-   "zorgverlener"    {:type :actor
-                      :roles [:zorg-verlenen :declareren]
-                      :subtypes ["huisarts" "specialist" "apotheek" "ziekenhuis"]}}
+   "enrollee"   {:type :actor
+                 :attributes [:member-id :address :income-bracket]
+                 :roles [:premium-payer :care-recipient]
+                 :lifecycle [:unenrolled :enrolled :terminated]}
+   "insurer"    {:type :actor
+                 :attributes [:state-licence :mlr-compliance]
+                 :roles [:collect-premiums :pay-claims :contract-network]
+                 :legal-obligations ["Guaranteed issue — ACA §2702"
+                                     "No lifetime dollar limits — ACA §2711"]}
+   "provider"   {:type :actor
+                 :roles [:deliver-care :submit-claims]
+                 :subtypes ["primary-care-physician" "specialist"
+                            "hospital" "pharmacy"]}}
 
  :relationships [
-   {:from "verzekerde"    :to "zorgverzekeraar" :type :contracteert-met
-    :cardinality :many-to-one :constraint "Maximaal één basisverzekeraar"}
-   {:from "verzekerde"    :to "zorgverlener"    :type :ontvangt-zorg-van}
-   {:from "zorgverlener"  :to "zorgverzekeraar" :type :declareert-bij
-    :note "Alleen bij gecontracteerde zorgverleners directe declaratie"}]
+   {:from "enrollee" :to "insurer"  :type :holds-plan-with
+    :cardinality :many-to-one :constraint "One QHP per enrollee during plan year"}
+   {:from "enrollee" :to "provider" :type :receives-care-from}
+   {:from "provider" :to "insurer"  :type :submits-claim-to
+    :note "Direct billing applies only to in-network providers"}]
 
  :constraints [
    {:type :legal :strength :obligation
-    :description "Verzekeraar moet elke aanvrager van basisverzekering accepteren"
-    :source "Zorgverzekeringswet art. 3"
-    :applies-to ["zorgverzekeraar"]}
+    :description "Insurer must accept every applicant during open or special
+                  enrollment periods regardless of health status"
+    :source "ACA §2702 (guaranteed issue)"
+    :applies-to ["insurer"]}
    {:type :legal :strength :obligation
-    :description "Iedere ingezetene is verplicht een basisverzekering af te sluiten"
-    :source "Zvw art. 2"
-    :applies-to ["verzekerde"]}
+    :description "Plans must cover ten essential health benefit categories
+                  without annual or lifetime dollar limits"
+    :source "ACA §1302"
+    :applies-to ["insurer"]}
    {:type     :inferred
     :inferred true
-    :description "Wisselen van verzekeraar is alleen mogelijk per 1 januari,
-                  aanmelden vóór 1 februari"
-    :reasoning  "Volgt uit combinatie art. 4 (contractduur) en art. 8 (opzegrecht)"
+    :description "Enrollees who miss open enrollment may not obtain a QHP
+                  until the next open enrollment period unless a qualifying
+                  life event triggers a special enrollment period"
+    :reasoning  "Follows from ACA §1311(c)(6) (open enrollment windows) combined
+                 with §1311(c)(4) (special enrollment triggers); no single
+                 provision states the default lock-out explicitly"
     :confidence :medium}]
+ ;; ✓ The first two constraints carry :source — a citable statutory section —
+ ;;   and no :inferred marker; they are stated fact.
+ ;; ✓ The third carries :inferred true plus :reasoning instead of a :source:
+ ;;   no single article states the lock-out rule; it is derived from two
+ ;;   provisions read together. This is the inferred/stated boundary the
+ ;;   grimoire never collapses.
 
  :nomenclature {
-   "premie"       {:definition  "Maandelijks bedrag voor zorgverzekering"
-                   :legal-ref   "Zvw art. 16"
-                   :synonyms    ["zorgpremie" "verzekeringspremie"]}
-   "eigen risico" {:definition  "Verplicht jaarlijks eigen aandeel in zorgkosten"
-                   :legal-ref   "Zvw art. 19"
-                   :related     ["eigen bijdrage" "no-claim"]
-                   :note        "Eigen bijdrage is iets anders — per prestatie"}}}
+   "premium"    {:definition "Monthly payment to maintain health plan coverage"
+                 :legal-ref  "ACA §1301"
+                 :synonyms   ["health premium" "monthly premium"]}
+   "deductible" {:definition "Annual out-of-pocket threshold before cost-sharing begins"
+                 :legal-ref  "ACA §1302(c)"
+                 :related    ["out-of-pocket maximum" "co-insurance"]
+                 :note       "Out-of-pocket maximum is a separate, higher limit
+                              that caps total annual exposure including deductible"}}
 
  :metadata {
-   :analysed-at          "2025-11-02T18:30:00Z"
-   :source-language      :nl
-   :concepts-extracted   34
-   :confidence           :high
-   :completeness         0.85
-   :inferred-elements    3
-   :sources-consulted    ["rijksoverheid.nl" "Zvw" "zorginstituut.nl"]}}
+   :analysed-at        "2025-11-02T18:30:00Z"
+   :source-language    :en
+   :language           :en
+   :concepts-extracted 34
+   :inferred-elements  3
+   :confidence         :high
+   :completeness       0.85
+   :depth-achieved     3
+   :conflicts-found    0
+   :conflicts-resolved 0
+   :sources-consulted  ["healthcare.gov" "ACA text (Public Law 111-148)"
+                        "cms.gov/cciio"]}}
 ```
 
 #### Example 2: Multi-source regulatory exploration
 
 ```clojure
-(d/explore ["https://gdpr-info.eu/art-1-gdpr/"
-            "https://autoriteitpersoonsgegevens.nl/"
-            "national-implementation-notes.pdf"]
+(d/explore ["https://www.hhs.gov/hipaa/for-professionals/privacy/index.html"
+            "https://www.hhs.gov/hipaa/for-professionals/security/index.html"
+            "hipaa-omnibus-rule-2013.pdf"]
   :from    :multiple
   :depth   4
   :focus   [:legal-definitions :constraints :actors :operations]
   :sources [:legal :authoritative]
-  :language :nl
+  :language :en
   :infer   [:implicit-rules :unstated-assumptions]
   :output  :edn)
 
 ;; Returns unified model spanning all three sources:
-;; - Data subject rights extracted from EU text and Dutch implementation
-;; - Conflicts between EU art. 8 age of consent and Dutch implementation (age 16)
-;;   preserved and attributed to both sources
-;; - Implicit rule inferred: DPIA required for systematic processing of
-;;   special categories, even when not explicitly triggered by any single
-;;   criterion — marked :inferred true with reasoning
+;; - Patient rights extracted from Privacy Rule and Omnibus Rule amendments
+;; - Conflict between Privacy Rule's 60-day breach notification and Omnibus
+;;   Rule's clarified 60-day-from-discovery clock preserved with attribution
+;; - Implicit rule inferred: a Business Associate that sub-contracts PHI handling
+;;   must obtain a Business Associate Agreement from the sub-contractor, even
+;;   when the covered entity's BAA is silent on sub-contractors —
+;;   marked :inferred true with reasoning (follows from 45 CFR §164.308(b)(4))
 ```
 
 #### Example 3: Technical domain with inference
@@ -409,7 +435,8 @@ domain map, `d/extract` retrieves a precise answer to a specific question.
   :matching criteria
   :depth    n
   :as       :list | :map | :graph
-  :output   :edn)
+  :output   :edn
+  :manifest extraction-binding)
 ```
 
 #### Parameters
@@ -442,7 +469,7 @@ retrieves precisely that, without the overhead of a full exploration.
 #### Example 1: Entity extraction with depth
 
 ```clojure
-(d/extract healthcare-domain
+(d/extract health-insurance-domain
   :what     :entities
   :matching {:type :actor}
   :depth    2
@@ -450,12 +477,12 @@ retrieves precisely that, without the overhead of a full exploration.
 
 ;; Returns: all actor-type entities with their immediate relationships
 ;; {
-;;   "verzekerde" {
-;;     :attributes [:bsn :woonadres]
-;;     :related-entities ["zorgverzekeraar" "zorgverlener"]
-;;     :operations-as-actor ["aanmelden" "opzeggen" "declareren"]}
-;;   "zorgverzekeraar" { ... }
-;;   "zorgverlener"    { ... }}
+;;   "enrollee" {
+;;     :attributes [:member-id :address :income-bracket]
+;;     :related-entities ["insurer" "provider"]
+;;     :operations-as-actor ["enroll" "disenroll" "file-claim"]}
+;;   "insurer"  { ... }
+;;   "provider" { ... }}
 ```
 
 #### Example 2: Constraint extraction by type
@@ -511,7 +538,8 @@ detail.
   :depth     +n
   :enrich-from [additional-source ...]
   :infer     [:missing-concepts :implicit-rules]
-  :output    :enhanced-edn)
+  :output    :enhanced-edn
+  :manifest  refined-model)
 ```
 
 #### Parameters
@@ -547,23 +575,25 @@ those closely. `d/refine` formalises this expert reading strategy.
 #### Example
 
 ```clojure
-(def zorgverzekering (d/explore "rijksoverheid.nl/zorgverzekering"
+(def aca-domain (d/explore "https://www.healthcare.gov/glossary/"
   :depth 2 :breadth :moderate))
 
-(d/refine zorgverzekering
-  :focus-on "eigen-risico"
-  :expand   [:legal-framework :edge-cases :historical-context]
-  :depth    +3
-  :enrich-from ["https://www.rijksoverheid.nl/onderwerpen/eigen-risico"
-                "zvw-toelichting-artikel-19.pdf"])
+(d/refine aca-domain
+  :focus-on  "deductible"
+  :expand    [:legal-framework :edge-cases :historical-context]
+  :depth     +3
+  :enrich-from ["https://www.cms.gov/cciio/resources/data-resources/oop"
+                "aca-cost-sharing-regs-2024.pdf"])
 
 ;; Original model: unchanged
-;; eigen-risico branch: expanded to depth 5, with:
-;; - Legal basis: Zvw art. 19 with full legislative history
-;; - Current amounts per year (indexed series)
-;; - Exceptions: huisartsenzorg, kraamzorg, jeugdzorg t/m 18
-;; - Edge cases: chronisch-zorgforfait, compensatie chronisch zieken
-;; - Historical: introduction 2008, various reforms, 2012 no-claim abolition
+;; deductible branch: expanded to depth 5, with:
+;; - Legal basis: ACA §1302(c) with full regulatory history
+;; - Annual limit amounts per plan year (indexed series 2014–2025)
+;; - Exceptions: preventive services (cost-sharing-free under §2713),
+;;   out-of-network emergency care, embedded vs aggregate family deductibles
+;; - Edge cases: HSA-eligible HDHP minimum deductible interaction,
+;;   mid-year plan changes, deductible credit on plan switching
+;; - Historical: pre-ACA practice, 2014 introduction, subsequent CPI indexing
 ```
 
 ---
@@ -589,7 +619,8 @@ concepts and making conflicts between sources explicit.
   :align-concepts   true | false
   :perspective-map  {:model-1 :regulatory :model-2 :practitioner ...}
   :conflict-resolution :prefer-authoritative | :prefer-recent | :preserve-all
-  :output           :unified-edn)
+  :output           :unified-edn
+  :manifest         unified-model)
 ```
 
 #### Parameters
@@ -632,43 +663,48 @@ academic analysis, the merged model should carry that provenance. Not just
 difference between a model that can be used for compliance work (requires
 regulatory provenance) and one that can only inform general understanding.
 
-#### Example: Merging GDPR perspectives
+#### Example: Merging HIPAA perspectives
 
 ```clojure
-(def eu-gdpr   (d/explore "https://gdpr-info.eu" :sources [:legal]))
-(def nl-ap     (d/explore "https://autoriteitpersoonsgegevens.nl" :sources [:authoritative]))
-(def dpa-guide (d/explore "dpa-practitioner-guide-2024.pdf" :sources [:practitioner]))
+(def hhs-privacy  (d/explore "https://www.hhs.gov/hipaa/for-professionals/privacy"
+                    :sources [:legal]))
+(def hhs-security (d/explore "https://www.hhs.gov/hipaa/for-professionals/security"
+                    :sources [:legal]))
+(def hipaa-guide  (d/explore "hipaa-compliance-handbook-2024.pdf"
+                    :sources [:practitioner]))
 
-(d/merge [eu-gdpr nl-ap dpa-guide]
+(d/merge [hhs-privacy hhs-security hipaa-guide]
   :strategy        :synthesise
   :align-concepts  true
-  :perspective-map {:eu-gdpr   :eu-regulatory
-                    :nl-ap     :nl-supervisory-authority
-                    :dpa-guide :practitioner-operational}
+  :perspective-map {:hhs-privacy  :regulatory-privacy
+                    :hhs-security :regulatory-security
+                    :hipaa-guide  :practitioner-operational}
   :conflict-resolution :prefer-authoritative)
 
 ;; Returns:
-{:domain "GDPR / AVG"
- :perspectives {:eu-regulatory          "EU-tekst, bindend voor alle lidstaten"
-                :nl-supervisory-authority "Nederlandse uitleg door AP, gezaghebbend"
-                :practitioner-operational "Operationele richtlijnen voor praktijkgebruik"}
+{:domain "HIPAA"
+ :perspectives {:regulatory-privacy    "HHS Privacy Rule — governs use and disclosure of PHI"
+                :regulatory-security   "HHS Security Rule — governs electronic PHI safeguards"
+                :practitioner-operational "Operational compliance guidance for covered entities"}
 
  :aligned-concepts [
-   {:sources-terms  ["data subject" "betrokkene" "data-subject"]
-    :canonical      "data-subject"
-    :aligned-from   [:eu-regulatory :nl-supervisory-authority :practitioner-operational]}
-   {:sources-terms  ["controller" "verwerkingsverantwoordelijke"]
-    :canonical      "controller"}]
+   {:sources-terms  ["patient" "individual" "plan member"]
+    :canonical      "individual"
+    :aligned-from   [:regulatory-privacy :regulatory-security :practitioner-operational]
+    :note           "45 CFR uses 'individual'; guide uses 'patient' — aligned to regulatory term"}
+   {:sources-terms  ["covered entity" "CE" "health plan"]
+    :canonical      "covered-entity"}]
 
  :conflicts [
-   {:concept  "consent-age-minimum"
+   {:concept   "breach-notification-clock"
     :positions [
-      {:perspective :eu-regulatory          :value "13–16, member state discretion"
-       :source "GDPR Art. 8"}
-      {:perspective :nl-supervisory-authority :value 16
-       :source "AVG implementatiewet"}]
-    :resolution  "Netherlands has set 16; compliant with EU upper bound"
-    :actionable  "Use 16 for all NL-based implementations"}]
+      {:perspective :regulatory-privacy    :value "60 days from discovery"
+       :source "45 CFR §164.404(b)"}
+      {:perspective :practitioner-operational :value "as soon as reasonably possible"
+       :source "HIPAA Compliance Handbook 2024 §8.3"
+       :note   "Handbook interprets 60-day window as outer bound, not target"}]
+    :resolution "60-day limit is statutory; handbook guidance is aspirational"
+    :actionable "Model hard deadline as 60 days; add operational target of 10 business days"}]
 
  :confidence   :high
  :completeness 0.91}
@@ -690,7 +726,8 @@ an analysis of the *relationship* between two models.
   :dimensions   [:entities :operations :constraints :terminology :structure]
   :highlight    :alignments | :divergences | :gaps | :all
   :perspective  "natural-language framing of why this comparison matters"
-  :output       :comparison-report | :diff-edn)
+  :output       :comparison-report | :diff-edn
+  :manifest     comparison-binding)
 ```
 
 #### Design rationale
@@ -767,7 +804,8 @@ task — the scope narrows the lens without losing the parent context.
   :include   [:related-entities :applicable-constraints :relevant-operations]
   :depth     n
   :retain-provenance true
-  :output    :scoped-edn)
+  :output    :scoped-edn
+  :manifest  scoped-model)
 ```
 
 #### Design rationale
@@ -800,6 +838,504 @@ starting over.
 ;; Provenance: {:parent-model comprehensive-healthcare-domain
 ;;              :scope "prescription-management"
 ;;              :excluded-sub-domains ["billing" "ward-management" "diagnostics"]}
+```
+
+---
+
+### `d/bounded-context`
+
+Partitions a large domain model into bounded contexts — the regions within
+which a term has a single, unambiguous meaning — and produces the context map
+that describes how those regions relate. Where `d/scope` extracts one region
+for use, `d/bounded-context` reveals the seams of the whole.
+
+#### Signature
+
+```clojure
+(d/bounded-context domain-model
+  :strategy      :infer | :declare
+  :contexts      {:context-name {:owns        [:entity ...]
+                                 :language    "the term-meaning this context fixes"
+                                 :team        "owning team, if known"}}
+  :detect        [:linguistic-boundaries :transactional-boundaries
+                  :team-boundaries :lifecycle-boundaries]
+  :relationships :infer | [{:upstream :ctx-a :downstream :ctx-b
+                            :pattern  :pattern-keyword}]
+  :on-shared-term :flag | :split | :alias
+  :output        :context-map
+  :manifest      context-map)
+```
+
+#### Parameters
+
+**`:strategy`** — `:infer` asks the processor to discover context boundaries
+from the model itself; `:declare` takes the practitioner's `:contexts` map as
+authoritative and only validates it. Inference is for understanding an
+unfamiliar domain; declaration is for imposing a deliberate architecture.
+
+**`:contexts`** — Explicit context definitions. Each context `:owns` a set of
+entities and fixes the meaning of terms within its boundary. The same entity
+name may legitimately appear in two contexts with different attributes — that
+is the point of a bounded context, not a modelling error.
+
+**`:detect`** — Which signals to use when inferring boundaries:
+- `:linguistic-boundaries` — the same word means different things ("policy"
+  in underwriting vs. "policy" in claims)
+- `:transactional-boundaries` — clusters that change together within one
+  consistency boundary (aligns with aggregate roots)
+- `:team-boundaries` — Conway's-law seams: regions owned by different teams
+- `:lifecycle-boundaries` — entities whose state machines are independent
+
+**`:relationships`** — The context map. Either `:infer` the relationship
+patterns or declare them. Patterns follow the DDD strategic vocabulary:
+- `:shared-kernel` — two contexts share a small, jointly-owned model
+- `:customer-supplier` — downstream context's needs influence upstream's plan
+- `:conformist` — downstream accepts upstream's model wholesale, no translation
+- `:anticorruption-layer` — downstream translates upstream's model to protect
+  its own (the integration pattern for legacy or third-party systems)
+- `:open-host-service` — upstream publishes a stable protocol for many consumers
+- `:published-language` — a shared, documented interchange format between contexts
+- `:separate-ways` — no integration; the contexts deliberately do not connect
+
+**`:on-shared-term`** — What to do when one term appears in multiple contexts:
+`:flag` (report it, change nothing), `:split` (give each context its own
+qualified entity, e.g. `underwriting/policy` and `claims/policy`), `:alias`
+(keep one canonical entity, record the per-context reading).
+
+#### Design rationale
+
+The grimoire commits to Domain-Driven Design throughout — aggregate roots,
+value objects, the `:against :ddd` validation target — yet until now offered
+no way to express DDD's most consequential strategic pattern: the bounded
+context. `d/validate` even reports `:missing-bounded-context-definitions true`
+as a warning, naming a gap it had no construct to fill. `d/bounded-context`
+fills it.
+
+The decisive insight DDD contributes is that **a single ubiquitous language
+across a large domain is a mistake**, not an aspiration. "Policy" means a
+contract in underwriting and a coverage rule in claims; forcing one definition
+produces a model that is wrong in both contexts. Bounded contexts make
+disagreement legitimate: each context is internally consistent, and the
+context map governs translation at the seams. This is why `:on-shared-term`
+defaults to `:flag` rather than auto-merging — a shared term across contexts
+is usually a signal of a boundary, not a synonym to be reconciled.
+
+The construct pairs deliberately with `d/scope`. `d/scope` answers "give me
+the piece I need to build against"; `d/bounded-context` answers "show me where
+the pieces are and how they must talk." One is extraction, the other is
+cartography.
+
+#### Example 1: Inferring contexts in an insurance domain
+
+```clojure
+(d/bounded-context insurance-domain
+  :strategy :infer
+  :detect   [:linguistic-boundaries :transactional-boundaries :team-boundaries]
+  :on-shared-term :split
+  :manifest insurance-contexts)
+
+;; Returns:
+{:contexts {
+   :underwriting {:owns     ["application" "risk-assessment" "underwriting/policy" "premium"]
+                  :language "policy = the contract being priced and issued"
+                  :team     "Underwriting Engineering"}
+   :claims       {:owns     ["claim" "claims/policy" "settlement" "adjuster"]
+                  :language "policy = the coverage rules a claim is evaluated against"
+                  :team     "Claims Engineering"}
+   :billing      {:owns     ["invoice" "payment" "premium-schedule" "dunning"]
+                  :language "premium = the recurring amount owed"
+                  :team     "Finance Systems"}}
+
+ :shared-terms [
+   {:term "policy"
+    :appears-in [:underwriting :claims]
+    :action :split
+    :resolution "Split into underwriting/policy and claims/policy"
+    :note "Same word, genuinely different concept — not a synonym to merge"}
+   {:term "premium"
+    :appears-in [:underwriting :billing]
+    :action :flag
+    :note "Underwriting computes it; billing schedules it. Likely a published-language seam."}]
+
+ :context-map [
+   {:upstream :underwriting :downstream :billing  :pattern :customer-supplier
+    :note "Billing depends on underwriting's premium output; can influence its schedule format"}
+   {:upstream :underwriting :downstream :claims   :pattern :published-language
+    :note "Claims reads issued policies via a stable published contract"}]
+
+ :metadata {:contexts-found 3 :shared-terms 2 :strategy :infer :confidence :medium}}
+;; ✓ Boundaries were inferred from three signals at once; :confidence is :medium,
+;;   not :high, because inference from linguistic clues is fallible — a declared
+;;   strategy would raise this.
+;; ✓ "policy" was split (genuine homonym across contexts); "premium" was only
+;;   flagged (same concept handed across a seam) — the construct distinguishes
+;;   the two failure modes rather than treating every shared word identically.
+```
+
+#### Example 2: Declaring a deliberate architecture and validating it
+
+```clojure
+(d/bounded-context healthcare-domain
+  :strategy :declare
+  :contexts {
+    :clinical    {:owns ["patient" "encounter" "diagnosis" "clinical/order"]
+                  :language "order = a clinical instruction (medication, test, referral)"}
+    :scheduling  {:owns ["appointment" "slot" "provider-calendar"]
+                  :language "no overlap with clinical vocabulary"}
+    :billing     {:owns ["invoice" "billing/order" "claim" "tariff"]
+                  :language "order = a billable line item"}}
+  :relationships [{:upstream :clinical :downstream :billing
+                   :pattern :anticorruption-layer}]
+  :manifest care-contexts)
+
+;; Returns the declared map plus a validation of it:
+{:contexts { ... as declared ... }
+ :validation {
+   :coverage     :complete          ;; every entity in the model belongs to a context
+   :orphans      []                 ;; no entity left unassigned
+   :shared-terms [{:term "order" :appears-in [:clinical :billing] :handled :split}]
+   :seam-integrity :sound}
+ ;; ✓ "order" appears in both clinical and billing with incompatible meanings;
+ ;;   the declared :anticorruption-layer is exactly the right pattern — billing
+ ;;   translates clinical orders into billable items rather than importing the
+ ;;   clinical meaning, protecting its own model from upstream change.
+ :recommendations [
+   "Define the anticorruption translation explicitly: clinical/order → billing/order mapping"
+   "scheduling has no declared relationships — confirm :separate-ways is intentional"]}
+```
+
+#### Usage patterns
+
+```clojure
+;; Map the seams, then scope into one context to build against it
+(~> enterprise-domain
+  (d/bounded-context :strategy :infer :detect [:transactional-boundaries])
+  (d/scope :to :claims :include :all)
+  (transmute :into :rest-api :preserving [:entities :operations]))
+
+;; Validate that a hand-drawn architecture actually covers the model
+(d/bounded-context legacy-domain
+  :strategy :declare
+  :contexts proposed-team-boundaries
+  :on-shared-term :flag)   ;; surface every cross-context term for review
+```
+
+---
+
+### `d/ubiquitous-language`
+
+Reifies a domain's vocabulary as a first-class, enforceable glossary: the set
+of canonical terms, their precise definitions, their provenance, and — equally
+important — the terms that must *not* be used. Where `:nomenclature` is raw
+extracted terminology, a ubiquitous language is a curated, governable artefact.
+
+#### Signature
+
+```clojure
+(d/ubiquitous-language domain-model
+  :scope          :whole-domain | :per-context
+  :for-context    :context-name        ;; when scoped to a single bounded context
+  :canonicalise   :prefer-authoritative | :prefer-frequent | :practitioner-choice
+  :include        [:definitions :synonyms :forbidden-terms :examples :provenance]
+  :forbid         {"banned-term" "use this canonical term instead"}
+  :enforce-in     [:code :documentation :api :ui-copy]
+  :output         :glossary | :glossary-edn | :markdown
+  :manifest       language-binding)
+```
+
+#### Parameters
+
+**`:scope`** — `:whole-domain` produces one glossary; `:per-context` produces
+one per bounded context (the DDD-correct default for any domain that has been
+through `d/bounded-context`, since each context fixes its own meanings).
+
+**`:canonicalise`** — How to choose the canonical term when several compete:
+`:prefer-authoritative` (the term used by the most authoritative source),
+`:prefer-frequent` (the term practitioners actually use most), or
+`:practitioner-choice` (defer to an explicit human decision, recording it).
+
+**`:forbid`** — A map from banned terms to their canonical replacements. This
+is the teeth of the construct: it does not merely list preferred words, it
+names the words that cause confusion and routes them to the right one. A
+forbidden term with no replacement is a term to be eliminated entirely.
+
+**`:enforce-in`** — Where the language is meant to bind. A ubiquitous language
+that governs prose but not code is half-applied; the value of DDD's ubiquitous
+language is precisely that the *same* words appear in conversation, in the
+model, and in the source. This parameter records the intended reach so
+downstream generators (`d/generate-dsl`, `w/prototype`) can honour it.
+
+#### Design rationale
+
+Eric Evans's central claim in Domain-Driven Design is that the hardest bugs
+are not in the code but in the *translation* — the silent slippage between the
+word a domain expert uses, the word in the model, and the identifier in the
+source. A "reservation" becomes a "booking" becomes a `TxnRecord`, and with
+each rename a little meaning leaks away until the system quietly does the wrong
+thing and everyone is certain they asked for the right one.
+
+The grimoire already extracts `:nomenclature`, but extraction is not
+governance. A list of terms is a description; a ubiquitous language is a
+commitment. The difference is `:forbid` and `:enforce-in`: a real ubiquitous
+language tells you not only what to say but what to stop saying, and where the
+rule applies. This is why the construct is distinct from `d/extract :what
+:terminology` rather than a flag on it — extraction observes usage as it is,
+canonicalisation decides usage as it should be, and those are different
+epistemic acts that the grimoire keeps separate on principle.
+
+The output is designed to be consumed, not just read. The `:glossary-edn`
+form feeds directly into `d/generate-dsl` (so generated function names use
+canonical terms), into `w/prototype` (so UI copy uses domain words), and into
+`d/validate :checks [:naming]` (so the model can be checked against its own
+declared language). The language becomes the contract the rest of the
+toolchain enforces.
+
+#### Example 1: Curating a language for a single bounded context
+
+```clojure
+(d/ubiquitous-language insurance-domain
+  :scope        :per-context
+  :for-context  :claims
+  :canonicalise :prefer-authoritative
+  :include      [:definitions :synonyms :forbidden-terms :provenance]
+  :forbid       {"file"   "claim"
+                 "payout" "settlement"
+                 "case"   "claim"}
+  :enforce-in   [:code :api :documentation]
+  :manifest     claims-language)
+
+;; Returns:
+{:context :claims
+ :terms [
+   {:canonical  "claim"
+    :definition "A request for payment under a policy following an insured event"
+    :synonyms-seen ["file" "case" "loss notification"]
+    :forbidden  ["file" "case"]
+    :provenance "Policy Conditions §7; Claims Handling Manual 2024"
+    :confidence :high}
+   {:canonical  "settlement"
+    :definition "The agreed amount paid to resolve a claim, in full or in part"
+    :synonyms-seen ["payout" "disbursement"]
+    :forbidden  ["payout"]
+    :provenance "Claims Handling Manual 2024 §3.2"
+    :confidence :high}
+   {:canonical  "adjuster"
+    :definition "The actor who assesses a claim and determines settlement"
+    :synonyms-seen ["assessor" "loss adjuster"]
+    :note "‘assessor’ is acceptable in locale-specific UI copy; ‘adjuster’ is canonical in code"
+    :confidence :high}]
+
+ :enforcement {
+   :code          :strict       ;; identifiers must use canonical terms
+   :api           :strict       ;; endpoint and field names must use canonical terms
+   :documentation :strict
+   :ui-copy       :advisory}    ;; not in :enforce-in — locale variation tolerated
+
+ :metadata {:context :claims :terms 14 :forbidden-terms 3 :canonicalised-by :prefer-authoritative}}
+;; ✓ Each forbidden word routes to a canonical replacement — the glossary tells
+;;   you what to stop saying, not just what to prefer.
+;; ✓ ‘adjuster’ keeps a tolerated synonym (‘assessor’) for UI copy while staying
+;;   strict in code: enforcement is graduated per surface, not all-or-nothing.
+```
+
+#### Example 2: Feeding the language into generation
+
+```clojure
+;; A curated language becomes the naming contract for everything generated downstream
+(def claims-language
+  (d/ubiquitous-language insurance-domain
+    :scope :per-context :for-context :claims
+    :canonicalise :prefer-authoritative
+    :output :glossary-edn))
+
+(d/generate-dsl claims-domain
+  :target   :clojure
+  :namespace "insurance.claims"
+  :using-language claims-language)   ;; generated fns: register-claim, assess-claim,
+                                     ;; settle-claim — never register-file or pay-out
+
+(d/validate claims-model
+  :checks [:naming]
+  :against-language claims-language)
+;; → Reports any entity, operation, or attribute name that violates the
+;;   declared language, e.g. an operation named "process-payout" flagged
+;;   because "payout" is forbidden in favour of "settlement".
+```
+
+#### Usage patterns
+
+```clojure
+;; Standard DDD pipeline: find the contexts, then give each its own language
+(~> enterprise-domain
+  (d/bounded-context :strategy :infer :manifest contexts)
+  (d/ubiquitous-language :scope :per-context :canonicalise :prefer-authoritative))
+
+;; Eliminate a term entirely (no replacement = stop using it, full stop)
+(d/ubiquitous-language domain
+  :forbid {"synergy" nil "leverage-as-verb" nil}
+  :enforce-in [:documentation])
+```
+
+---
+
+### `d/evolve`
+
+Records and reasons about how a domain model changes over time. Where
+`:compare-to` produces a one-shot diff between two models, `d/evolve` maintains
+a lineage — a versioned history of what was added, changed, and retired, and
+*why* — turning a static model into a living document with an audit trail.
+
+#### Signature
+
+```clojure
+(d/evolve baseline-model
+  :to            revised-model | new-source
+  :from-source   :model | :url | :file        ;; when :to is a fresh source
+  :record        [:additions :changes :removals :rationale]
+  :reason        "natural-language account of why the domain changed"
+  :driver        :regulation-change | :new-source | :practitioner-correction
+                 | :scope-expansion | :error-fix
+  :version       "semver for the resulting model"
+  :on-removal    :archive | :tombstone | :discard
+  :output        :evolved-model | :changelog
+  :manifest      evolved-model)
+```
+
+#### Parameters
+
+**`:to`** — The target state: either an already-built revised model, or a fresh
+source (a new regulation, an updated requirements document) to explore and
+diff against the baseline in one step.
+
+**`:driver`** — Why the model is changing. This is not bookkeeping — the driver
+determines how much epistemic weight the change carries. A
+`:regulation-change` rewrites stated fact and is authoritative; a
+`:practitioner-correction` adjusts the model against tacit knowledge; an
+`:error-fix` repairs a prior extraction mistake. The driver is recorded against
+every changed element so future readers know whether a difference reflects the
+domain changing or our understanding of it changing.
+
+**`:on-removal`** — What happens to retired elements: `:archive` (keep them in
+a versioned history, retrievable), `:tombstone` (leave a marker recording that
+the concept once existed and when it was removed — important in regulated
+domains where "this rule used to apply" is itself a fact), or `:discard`
+(remove without trace; rarely appropriate).
+
+**`:record`** — Which dimensions of change to capture. `:rationale` is the
+distinguishing one: it captures not just *what* changed but the reasoning, so
+the lineage explains itself.
+
+#### Design rationale
+
+The grimoire's philosophy insists that "initial models are sketches; refined
+models are working documents; annotated models are institutional knowledge" —
+that a domain model is a living artefact. Yet the only tool for handling change
+was `:compare-to`, which diffs two models and forgets. A diff answers "what is
+different now"; it cannot answer "how did we get here" or "when did this rule
+stop applying and why". In regulated domains — exactly the domains this
+grimoire targets — that second question is often the one that matters in an
+audit.
+
+`d/evolve` makes change first-class. The decisive design choice is the
+`:driver`, which encodes the *kind* of change. A model whose constraint changed
+because the law changed is in a completely different epistemic position from a
+model whose constraint changed because we finally read the source correctly.
+Collapsing those into an undifferentiated "diff" destroys exactly the
+information an auditor, a successor, or a future version of the practitioner
+needs. By recording the driver and rationale against every change, the lineage
+becomes self-explaining: a reader can reconstruct not just the model's current
+state but the history of reasoning that produced it.
+
+`:on-removal :tombstone` reflects a hard-won lesson from regulated domains: a
+rule that no longer applies is not the same as a rule that never existed. "The
+short-term plan exemption for this category was removed in 2024" is a fact a
+compliance system may need long after the rule is gone. Tombstoning preserves
+the model's memory of its own past.
+
+#### Example 1: Absorbing a regulatory change with full lineage
+
+```clojure
+(def aca-2024 (d/explore "aca-benefit-regs-2024.pdf" :depth 3 :focus [:constraints]))
+
+(d/evolve aca-2024
+  :to          "aca-benefit-regs-2025.pdf"
+  :from-source :file
+  :driver      :regulation-change
+  :record      [:additions :changes :removals :rationale]
+  :reason      "Annual ACA benefit parameter update for 2025: deductible and
+                out-of-pocket limits re-indexed; new requirement for over-the-counter
+                contraceptive coverage added"
+  :version     "2025.0.0"
+  :on-removal  :tombstone
+  :manifest    aca-2025)
+
+;; Returns:
+{:domain  "US Health Insurance (ACA)"
+ :version "2025.0.0"
+ :evolved-from {:version "2024.x" :at "2025-11-02T10:00:00Z"}
+
+ :changes [
+   {:element "deductible.individual-maximum"
+    :kind    :changed
+    :from    9450 :to 9800
+    :driver  :regulation-change
+    :reason  "Annual CPI indexing per 45 CFR §156.130(a)(2); Federal Register 2024"
+    :confidence :high}
+   {:element "essential-benefit.otc-contraceptives"
+    :kind    :added
+    :driver  :regulation-change
+    :reason  "Final rule requires coverage of OTC contraceptives without
+              cost-sharing effective plan years starting Jan 1 2025"
+    :confidence :high}
+   {:element "cost-sharing.short-term-plan-exemption-2024"
+    :kind    :removed
+    :driver  :regulation-change
+    :on-removal :tombstone
+    :tombstone {:existed-until "2024-12-31"
+                :reason "Short-term plan exemption from ACA cost-sharing rules
+                         rescinded; replaced by stricter durability limits"}
+    :confidence :high}]
+
+ :metadata {:additions 1 :changes 1 :removals 1 :driver :regulation-change}}
+;; ✓ Every change carries its :driver and :reason — a future reader can tell
+;;   this is the regulation changing, not a re-reading of the same rule.
+;; ✓ The removed exemption is tombstoned, not discarded: the model retains
+;;   the fact it existed until 2024-12-31, which a compliance audit may need.
+```
+
+#### Example 2: Distinguishing a correction from a domain change
+
+```clojure
+;; A practitioner discovers an earlier extraction was simply wrong —
+;; the domain did not change, our model of it did.
+(d/evolve ccpa-model
+  :to       corrected-ccpa-model
+  :driver   :error-fix
+  :record   [:changes :rationale]
+  :reason   "Earlier extraction read the CCPA opt-out right as applying to all
+             personal information; correct scope is sale and sharing of PI only.
+             No statutory change — extraction error corrected."
+  :version  "1.0.1"
+  :manifest ccpa-corrected)
+
+;; Returns a changelog where the single change is marked :driver :error-fix:
+;; ✓ The version bump is a patch (1.0.0 → 1.0.1), not a minor or major —
+;;   the model was wrong, not out of date. :driver :error-fix records this so
+;;   the change is never mistaken for the regulation having changed.
+```
+
+#### Usage patterns
+
+```clojure
+;; Track a domain across a series of document versions, accumulating lineage
+(~> (d/explore "policy-v1.pdf")
+  (d/evolve :to "policy-v2.pdf" :from-source :file :driver :new-source :version "2.0.0")
+  (d/evolve :to "policy-v3.pdf" :from-source :file :driver :new-source :version "3.0.0"))
+;; → Each step appends to the lineage; the final model carries its full history.
+
+;; Produce a human-readable changelog for stakeholders
+(d/evolve baseline :to revised :driver :scope-expansion
+  :output :changelog)
 ```
 
 ---
@@ -842,7 +1378,8 @@ constraints, and lifecycle states — from the practitioner's own understanding.
                    :applies-to [:entity ...]}
                   ...]
   :invariants    ["always-true condition" ...]
-  :output        :edn)
+  :output        :edn
+  :manifest      model-binding)
 ```
 
 #### Parameters
@@ -924,7 +1461,7 @@ cancelled order cannot transition to shipped".
 
   :constraints [
     {:type :business :strength :obligation
-     :rule "Orders over €50 qualify for free shipping to NL addresses"
+     :rule "Orders over $75 qualify for free standard shipping to domestic addresses"
      :applies-to [:order]}
     {:type :technical :strength :obligation
      :rule "Inventory decrement must be atomic to prevent overselling"
@@ -960,7 +1497,8 @@ extracted facts.
      :author  "practitioner identifier"
      :confidence :high | :medium | :low}
     ...]
-  :output :annotated-edn)
+  :output :annotated-edn
+  :manifest annotated-model)
 ```
 
 #### Design rationale
@@ -980,27 +1518,31 @@ expert knows.
 #### Example
 
 ```clojure
-(d/annotate zorgverzekering-model
+(d/annotate health-insurance-model
   :annotations [
-    {:target     "eigen-risico.exceptions"
+    {:target     "deductible.exceptions"
      :kind       :tacit-knowledge
-     :note       "In practice, ambulance transport (112) is also eigen-risico-vrij
-                  but this is often missed in documentation. Confirmed by Zvw art. 13."
-     :author     "domain-expert-mjansen"
+     :note       "In practice, all ACA-compliant plans must cover preventive
+                  services at zero cost-sharing even before the deductible is
+                  met — this is frequently absent from plan summaries.
+                  Confirmed by ACA §2713 and HRSA preventive care guidelines."
+     :author     "domain-expert-rwalker"
      :confidence :high}
 
-    {:target     "zorgverzekeraar.acceptatieplicht"
+    {:target     "insurer.guaranteed-issue"
      :kind       :caveat
-     :note       "Acceptatieplicht applies to basisverzekering only.
-                  Aanvullende verzekering may be refused — common gotcha."
-     :author     "domain-expert-mjansen"
+     :note       "Guaranteed issue applies only during open and special
+                  enrollment periods. Outside those windows an insurer may
+                  refuse a new applicant — a common compliance misconception."
+     :author     "domain-expert-rwalker"
      :confidence :high}
 
-    {:target     "zorgverlener.declareren"
+    {:target     "provider.out-of-network-billing"
      :kind       :open-question
-     :note       "Unclear whether e-health platforms without BIG-registration
-                  can declareren directly. Needs legal confirmation."
-     :author     "domain-expert-mjansen"
+     :note       "Unclear how No Surprises Act §2799B-1 interacts with
+                  self-funded ERISA plans — federal floor applies but state
+                  surprise-billing laws may not. Needs legal confirmation."
+     :author     "domain-expert-rwalker"
      :confidence :low}])
 ```
 
@@ -1018,8 +1560,10 @@ adherence to known patterns.
   :checks  [:completeness :consistency :naming :relationship-integrity
             :constraint-coverage :lifecycle-reachability]
   :against :ddd | :rest-conventions | :openapi | :custom-standard
+  :against-language language-binding   ;; optional: check naming against a glossary
   :strict  false
-  :output  :validation-report)
+  :output  :validation-report
+  :manifest validation-result)
 ```
 
 #### Parameters
@@ -1036,6 +1580,10 @@ adherence to known patterns.
 - `:ddd` — Domain-Driven Design (aggregate roots, value objects, bounded contexts)
 - `:rest-conventions` — REST API design principles (resource naming, operation mapping)
 - `:openapi` — OpenAPI 3.1 specification compatibility
+
+When `:against-language` is supplied (a glossary from `d/ubiquitous-language`),
+the `:naming` check additionally flags any entity, operation, or attribute name
+that uses a forbidden term instead of its canonical replacement.
 
 #### Example
 
@@ -1090,7 +1638,9 @@ programming vocabulary.
   :includes  [:entities :operations :queries :constraints]
   :namespace "domain.namespace"
   :target    :clojure | :conjurer-extension | :natural-language
-  :output    :dsl-definition)
+  :using-language language-binding   ;; optional: a d/ubiquitous-language glossary
+  :output    :dsl-definition
+  :manifest  dsl-binding)
 ```
 
 #### Parameters
@@ -1101,6 +1651,11 @@ programming vocabulary.
   language itself with domain-specific invocations
 - `:natural-language` — A structured vocabulary guide for consistent
   communication across the team
+
+**`:using-language`** — An optional glossary produced by `d/ubiquitous-language`.
+When supplied, every generated identifier uses the glossary's canonical terms
+and avoids its forbidden ones — the DSL inherits the domain's vocabulary by
+construction rather than by convention.
 
 #### Design rationale
 
@@ -1122,22 +1677,22 @@ domain-specific invocations. The modelled domain becomes executable Conjurer.
   (d/generate-dsl clinical-domain
     :style     :declarative
     :includes  [:entities :operations :constraints]
-    :namespace "healthcare.nl"
+    :namespace "healthcare.us"
     :target    :clojure))
 
 ;; Generated DSL enables domain-fluent code:
-(require '[healthcare.nl :as h])
+(require '[healthcare.us :as h])
 
 (h/prescribe-medication
   :prescriber  physician-007
   :patient     patient-12345
-  :medication  "Metformine 500mg"
+  :medication  "Metformin 500mg"
   :dosage      {:frequency :twice-daily :duration :90-days}
-  :indication  "DM type 2 — HbA1c onvoldoende gereguleerd")
+  :indication  "Type 2 diabetes — HbA1c above target on lifestyle intervention alone")
 
 (h/check-interactions
-  :patient    patient-12345
-  :new-medication "Metformine 500mg"
+  :patient             patient-12345
+  :new-medication      "Metformin 500mg"
   :current-medications current-prescription-list)
 ```
 
@@ -1153,7 +1708,7 @@ domain-specific invocations. The modelled domain becomes executable Conjurer.
 ;; Generates a new grimoire that extends Conjurer:
 ;; (i/accept-claim claim-data :assess [:coverage :liability :fraud-signals])
 ;; (i/calculate-premium profile :factors [:age :risk-class :history])
-;; (i/validate-policy policy :against [:zvw-requirements :internal-rules])
+;; (i/validate-policy policy :against [:state-requirements :internal-rules])
 ```
 
 ---
@@ -1211,7 +1766,8 @@ returning targeted results.
   :find   "natural-language question or pattern"
   :return :concepts | :relationships | :constraints | :operations | :all
   :limit  n
-  :output :edn | :list)
+  :output :edn | :list
+  :manifest query-result)
 ```
 
 #### Example
@@ -1281,6 +1837,42 @@ suites — scope the model first to the relevant sub-domain. Passing a
 comprehensive 200-entity domain model to `w/prototype` produces output
 calibrated to the wrong level of abstraction. Scoping to the 8 entities
 actually needed produces something immediately useful.
+
+### Anti-patterns
+
+**Imposing technology structure onto the domain.** The most damaging mistake
+in domain modelling is letting the implementation shape the model rather than
+the reverse. Flattening a rich legal domain into a handful of CRUD tables
+because the ORM is comfortable with tables produces a model that is internally
+tidy and semantically false. The philosophy section names this *imposition*,
+the opposite of discovery. Symptom: every entity has the same shape (id,
+created-at, updated-at, a bag of columns) and no entity has a lifecycle, an
+invariant, or a constraint that the technology did not suggest. Remedy: model
+the domain as the domain expert describes it, then let `target` declarations
+decide what materialises as code — selective materialisation, not wholesale
+flattening.
+
+**Treating inferred elements as stated fact.** Dropping the `:inferred true`
+marker because "we're fairly sure anyway" collapses the single most important
+distinction the grimoire maintains. An inferred constraint presented as a
+quoted regulation is not a small inaccuracy — in a compliance context it is a
+fabricated citation. If confidence is high enough that the marker feels
+unnecessary, the right move is to find the source that states it and cite that,
+not to silently promote the inference.
+
+**One ubiquitous language for a domain that has bounded contexts.** Forcing a
+single canonical meaning on a term that legitimately means different things in
+different contexts ("policy", "order", "account") creates a model that is wrong
+in every context at once. When `d/bounded-context` reveals a shared term across
+contexts, the usual answer is to split it, not to pick one winner. Reaching for
+`d/ubiquitous-language :scope :whole-domain` on a multi-context domain is the
+tell.
+
+**Diffing without recording the driver.** Using `:compare-to` to absorb a new
+document version and then discarding the comparison throws away the one fact an
+auditor will ask for: *why* did the model change — did the law change, or did
+we re-read it? Prefer `d/evolve` with an explicit `:driver` whenever the change
+matters beyond the current session.
 
 ---
 
@@ -1352,13 +1944,15 @@ into the session's interpretive frame.
 ```clojure
 {:grimoire    "domain"
  :namespace   "d/"
- :version     "2.0.0"
+ :version     "2.1.0"
  :description "Domain knowledge discovery, modelling, synthesis,
                and operationalisation"
 
  :constructs {
    :discovery    [d/explore d/extract d/refine]
    :synthesis    [d/merge d/compare d/scope]
+   :structure    [d/bounded-context d/ubiquitous-language]
+   :evolution    [d/evolve]
    :modeling     [d/model d/annotate d/validate]
    :operations   [d/generate-dsl d/export d/query]}
 
@@ -1366,6 +1960,9 @@ into the session's interpretive frame.
    "Domain-driven design and knowledge extraction"
    "Regulatory compliance modelling and gap analysis"
    "Multi-source knowledge synthesis with conflict preservation"
+   "Bounded-context discovery and context-map cartography for large domains"
+   "Curating an enforceable ubiquitous language per bounded context"
+   "Tracking model evolution across regulation and document versions with audit lineage"
    "DSL generation from domain models"
    "Living documentation that evolves with understanding"
    "Comparative analysis between model versions or perspectives"
@@ -1386,6 +1983,26 @@ into the session's interpretive frame.
    {:term "Aggregate root"
     :definition "The entity through which a cluster of related entities is accessed;
                  the transactional consistency boundary in DDD"}
+   {:term "Bounded context"
+    :definition "A region of a domain within which a term has one unambiguous meaning.
+                 The same word may mean different things in different contexts; the
+                 context map governs translation at the seams."}
+   {:term "Context map"
+    :definition "The description of how bounded contexts relate — which is upstream,
+                 which downstream, and by which integration pattern (shared-kernel,
+                 customer-supplier, anticorruption-layer, published-language, etc.)"}
+   {:term "Ubiquitous language"
+    :definition "A curated, enforceable vocabulary for a domain or context: canonical
+                 terms with definitions and provenance, plus the forbidden terms that
+                 route to them. A commitment, not merely a description of usage."}
+   {:term "Lineage"
+    :definition "The versioned history of a domain model — what was added, changed,
+                 and retired across versions, each change carrying the driver and
+                 rationale that produced it"}
+   {:term "Tombstone"
+    :definition "A marker left when an element is removed, recording that the concept
+                 once existed and when it ceased to apply — preserved because in
+                 regulated domains a retired rule remains a historical fact"}
    {:term "Actor"
     :definition "An agent — human, system, or organisation — that performs
                  operations or bears obligations within the domain"}
@@ -1513,6 +2130,61 @@ Every extracted element should carry a confidence estimate:
 The model's overall `:confidence` is the weighted mean of its elements.
 `:completeness` is an estimate of how much of the domain has been captured,
 expressed as a fraction 0.0–1.0.
+
+### Bounded-context inference
+
+When `:strategy :infer`, do not invent boundaries to be tidy. A bounded context
+is justified by evidence: a term that demonstrably shifts meaning, a cluster
+that changes together, a documented team seam. Report `:confidence :medium` or
+lower for inferred contexts unless the linguistic evidence is unambiguous —
+boundary inference is genuinely uncertain and the model should say so.
+
+Never auto-resolve a shared term by merging. The default `:on-shared-term`
+behaviour is `:flag`. A term appearing in two contexts is more often a
+boundary marker than a synonym; merging it silently destroys the very
+distinction the construct exists to surface. Only `:split` or `:alias` when
+explicitly instructed, and always record what was done and why.
+
+When `:strategy :declare`, validate rather than rewrite: report orphan entities
+(assigned to no context), coverage gaps, and shared terms — but treat the
+practitioner's `:contexts` map as authoritative. Declaration is an act of
+architectural intent; the processor's job is to check it, not to second-guess it.
+
+### Ubiquitous-language canonicalisation
+
+`d/ubiquitous-language` decides usage; it does not merely observe it. This is
+the opposite discipline from `d/extract :what :terminology`, which reports terms
+as they appear. When canonicalising:
+- A `:forbid` entry with a replacement (`"payout" "settlement"`) means: the
+  banned term maps to the canonical one. A `:forbid` entry mapping to `nil`
+  means: eliminate the term entirely, no replacement.
+- Preserve every observed synonym under `:synonyms-seen` even after choosing a
+  canonical term — the record of what people actually said is itself useful.
+- Enforcement is per-surface and graduated. A surface listed in `:enforce-in`
+  is `:strict`; a surface omitted is `:advisory`. Never report a single global
+  enforcement level for a language that declares per-surface reach.
+- On a multi-context domain, `:scope :per-context` is correct. If asked for
+  `:scope :whole-domain` where bounded contexts exist, produce the whole-domain
+  glossary but warn that cross-context homonyms have been collapsed.
+
+### Evolution and the driver distinction
+
+The `:driver` is the load-bearing field of `d/evolve`. It records whether a
+change reflects the *domain* changing or our *understanding* of it changing —
+an epistemic distinction as important here as the inferred/stated boundary is
+in `d/explore`. Apply it strictly:
+- `:regulation-change`, `:new-source`, `:scope-expansion` → the domain (or our
+  view of it) genuinely moved; typically a minor or major version bump.
+- `:practitioner-correction`, `:error-fix` → the domain did not change; we did.
+  Typically a patch version bump. An `:error-fix` must never be presented as
+  the domain having changed.
+
+When `:on-removal :tombstone`, never delete the element's memory. Record
+`:existed-until` and the reason. A retired regulation is still a historical
+fact that downstream compliance tooling may need to assert ("this rule applied
+until 2024-12-31"). `:discard` is the only mode that erases, and it should be
+used only for genuine extraction noise, never for elements that were ever
+believed to be real.
 
 ### Metadata richness
 
