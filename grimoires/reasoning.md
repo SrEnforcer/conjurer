@@ -104,6 +104,10 @@ is known to what follows.
 **`r/derive`** — From Latin *derivare*, to lead away from, to draw from a
 source. The primary act: drawing conclusions from their sources.
 
+**`r/model`** — A structured representation of what is known. Not a metaphor —
+a model in the logician's sense: the facts, definitions, axioms, and constraints
+that fix what is true within a frame of reasoning.
+
 **`r/rules`** — Explicit conditional knowledge: if these conditions hold,
 then this follows. The encoded knowledge that drives inference.
 
@@ -113,8 +117,26 @@ conclusion through a declared decision model.
 **`r/hypothesise`** — From Greek *hypotithenai*, to put under, to suppose.
 Abductive generation of candidate explanations for observations.
 
+**`r/analogise`** — From Greek *analogia*, proportion, correspondence. Reasoning
+by correspondence between cases: this case stands to its conclusion as that
+similar case stood to its known outcome.
+
+**`r/check`** — Plain and deliberate: to check is to test a claim against what
+is known, returning a verdict on whether it holds. The verification counterpart
+to derivation's generation.
+
+**`r/contradict`** — From Latin *contra* + *dicere*, to speak against. The
+search for claims that speak against one another — that cannot all be true at once.
+
+**`r/revise`** — From Latin *revisere*, to look at again. When a premise
+changes, the conclusions that rested on it must be looked at again: revision is
+the chain of custody run backward.
+
 **`r/trace`** — The derivation chain made visible. Not the conclusion but
 the path to it.
+
+**`r/argue`** — From Latin *arguere*, to make clear, to prove. The construction
+of a case for a position, addressed to a reader who may not yet be persuaded.
 
 ---
 
@@ -213,28 +235,28 @@ correlation does not imply causation is an axiom.
   :manifest  gdpr-model)
 ```
 
-#### Example 2: Eligibility model for social benefit
+#### Example 2: Eligibility model for an income-support benefit
 
 ```clojure
-(r/model bijstand-eligibility
+(r/model income-support-eligibility
   :definitions {
-    "aanvrager"        "The person applying for the benefit"
-    "verblijfsstatus"  "The legal residence status in the Netherlands"
-    "vermogensgrens"   "The asset threshold above which the benefit is denied"}
+    "applicant"        "The person applying for the benefit"
+    "residence-status" "The applicant's lawful right to reside in the jurisdiction"
+    "asset-limit"      "The asset threshold above which the benefit is denied"}
 
   :axioms [
-    "Participation Act (Participatiewet) governs entitlement to bijstand"
+    "The Income Support Act governs entitlement to this benefit"
     "Entitlement requires: lawful residence + age 18-67 + assets below threshold + insufficient income"
-    "Partner's income and assets are included in the assessment"]
+    "A partner's income and assets are included in the assessment"]
 
   :facts [
-    {:claim "Asset threshold 2025: €7,605 single / €15,210 couple"
-     :source "Participatiewet art. 34, as amended 2025"
+    {:claim "Asset threshold 2025: 7,605 single / 15,210 per couple"
+     :source "Income Support Act §34, as amended 2025"
      :confidence :high}]
 
   :constraints [
-    "A person cannot simultaneously receive bijstand and WW"
-    "Self-employment income must be assessed over 3 months before granting benefit"]
+    "A person cannot simultaneously receive income support and unemployment insurance"
+    "Self-employment income must be assessed over 3 months before granting the benefit"]
 
   :manifest eligibility-model)
 ```
@@ -286,42 +308,70 @@ even if its `:if` condition is met, provided the `:unless` condition also holds.
 This encodes defeasibility explicitly rather than requiring a separate override
 rule.
 
+#### Design rationale
+
+`r/rules` separates the *encoding* of conditional knowledge from its
+*application* (`r/derive`, `r/decide`), and the separation is deliberate: the
+same rule set is applied in many derivations, audited independently of any one
+conclusion, and versioned against the authority it derives from. A rule set is
+a reusable artefact, not an inline conditional, which is why it carries a name,
+a `:source` per rule, and its own conflict-resolution policy.
+
+The load-bearing design decision is `:strength`, which refuses the fiction that
+all rules are absolute. Real inferential knowledge ranges from the exceptionless
+(a tax rate fixed by statute) through the rebuttable (a legal presumption that
+shifts a burden) to the defeasible (a business default that a more specific rule
+overrides). Collapsing these into "if-then" loses exactly the information a
+reasoner needs to handle conflict and exception correctly: a `:definitive` rule
+that conflicts with another signals a contradiction in the rule set, whereas a
+`:defeasible` rule yielding to a `:specificity`-preferred one is normal
+operation. By making strength explicit, the rule set tells `r/derive` how
+seriously to take each inference and how to resolve clashes — and `:unless` lets
+defeasibility be written where the rule is, rather than scattered across
+override rules that must be read together to be understood.
+
 #### Example 1: VAT rules
 
 ```clojure
 (r/rules vat-classification
   :rules [
     {:name     :standard-rate
-     :if       "supply of goods or services in the Netherlands"
-     :then     "VAT rate is 21%"
+     :if       "supply of goods or services within the domestic territory"
+     :then     "VAT rate is the standard rate (21%)"
      :strength :definitive
-     :source   "Wet OB 1968 art. 9"
+     :source   "VAT Act §9"
      :priority 10}
 
     {:name     :reduced-rate-food
      :if       "supply is food or non-alcoholic beverage for human consumption"
-     :then     "VAT rate is 9%"
-     :unless   "supply is restaurant or catering service"
+     :then     "VAT rate is the reduced rate (9%)"
+     :unless   "supply is a restaurant or catering service"
      :strength :definitive
-     :source   "Wet OB 1968 Tabel I post a.1"
+     :source   "VAT Act Schedule I item a.1"
      :priority 20}
 
     {:name     :zero-rate-export
-     :if       "supply is export to country outside EU"
+     :if       "supply is an export to a country outside the customs union"
      :then     "VAT rate is 0%"
      :strength :definitive
-     :source   "Wet OB 1968 art. 9 lid 2 sub b"
+     :source   "VAT Act §9(2)(b)"
      :priority 30}
 
     {:name     :exempt-healthcare
-     :if       "supply is medical or healthcare service by licensed provider"
+     :if       "supply is a medical or healthcare service by a licensed provider"
      :then     "supply is VAT exempt"
      :strength :definitive
-     :source   "Wet OB 1968 art. 11 lid 1 sub g"
+     :source   "VAT Act §11(1)(g)"
      :priority 30}]
 
   :conflict-resolution :priority
   :manifest vat-rules)
+;; ✓ :reduced-rate-food carries an :unless clause rather than a separate
+;;   override rule: catering is the standing exception to the food reduced rate,
+;;   and encoding it inline keeps the exception attached to the rule it defeats.
+;; ✓ All four rules are :definitive (statute admits no discretion), but they
+;;   still conflict — food (9%) vs catering (21%) vs healthcare (exempt) can all
+;;   match one supply — so :conflict-resolution :priority is required to decide.
 ```
 
 #### Example 2: Credit decision rules
@@ -466,17 +516,27 @@ In any context where the conclusion matters, the chain matters equally.
    {:question    "Is legitimate interest available as a basis?"
     :missing-fact "Result of legitimate interest balancing test"
     :impact      "Determines whether consent collection is required or LI basis can be relied upon"}]}
+;; ✓ The two conclusions carry different :strength even at the same :high
+;;   confidence: the first is :definitive (no-lawful-basis-unlawful admits no
+;;   exception), the second :presumptive (the marketing-basis rule shifts a
+;;   burden but a balancing test could rebut it). Strength and confidence are
+;;   tracked separately — how certain we are of the facts vs. how forceful the
+;;   rule is — and collapsing them would misrepresent the second conclusion.
+;; ✓ :underdetermined is distinct from :open-questions: an open question is
+;;   worth investigating; an underdetermined item names the *specific* missing
+;;   fact and the conclusion it gates. The LI balancing test is not curiosity —
+;;   it is the hinge the whole consent-vs-LI path turns on.
 ```
 
 #### Example 2: Eligibility determination
 
 ```clojure
-(r/derive "Is this applicant eligible for bijstand?"
+(r/derive "Is this applicant eligible for income support?"
   :from {:applicant {:age 34
-                     :verblijfsstatus :permanent-resident
-                     :maandinkomen   0
-                     :vermogen       4200
-                     :partner        nil}}
+                     :residence-status :permanent-resident
+                     :monthly-income   0
+                     :assets           4200
+                     :partner          nil}}
   :using eligibility-model
   :mode  :deductive
   :depth 1
@@ -484,19 +544,28 @@ In any context where the conclusion matters, the chain matters equally.
 
 ;; Returns:
 {:conclusions [
-   {:conclusion "Applicant meets the eligibility conditions for bijstand"
+   {:conclusion "Applicant meets the eligibility conditions for income support"
     :confidence :high
     :derivation [
       "Condition 1: Age 18-67 → age 34 ✓"
       "Condition 2: Lawful residence → permanent resident ✓"
-      "Condition 3: Assets below threshold → €4,200 < €7,605 (single) ✓"
-      "Condition 4: Insufficient income → monthly income €0 ✓"
+      "Condition 3: Assets below threshold → 4,200 < 7,605 (single) ✓"
+      "Condition 4: Insufficient income → monthly income 0 ✓"
       "Condition 5: No partner → single threshold applies ✓"
       "→ All eligibility conditions met"]}]
 
  :open-questions [
    "Has the applicant been self-employed in the past 6 months? (3-month income assessment may apply)"
-   "Has the applicant received WW in the past 12 months? (Cannot combine with bijstand)"]}
+   "Has the applicant received unemployment insurance in the past 12 months? (Cannot combine with income support)"]}
+;; ✓ The derivation is condition-by-condition, each citing the model element it
+;;   tests — a deductive conclusion that can be audited line by line, not a bare
+;;   "eligible: yes".
+;; ✓ The conclusion is :high confidence, yet the derivation still surfaces two
+;;   :open-questions. These are not doubts about the conclusion as derived; they
+;;   are facts not in evidence that could change it — the self-employment and
+;;   benefit-overlap rules in the model fire on facts the input did not supply.
+;;   Surfacing them is the difference between "eligible on what you told me" and
+;;   "eligible, full stop".
 ```
 
 ---
@@ -528,6 +597,28 @@ was to a different outcome.
 a different decision. "If credit score had been 755 instead of 745, the
 outcome would have been automatic approval." Essential for fairness auditing
 and applicant communication.
+
+#### Design rationale
+
+`r/decide` is distinguished from `r/derive` by what it produces and why.
+`r/derive` answers an open question — "what follows?" — and may return several
+conclusions, open questions, and underdetermined items. `r/decide` evaluates a
+*structured decision model* against inputs to reach a *single applicable
+outcome*, and its job is to make that outcome's path auditable. The difference
+matters operationally: a decision is something acted upon and often something an
+affected person can contest, so the construct's value is concentrated in the
+`:path` and `:sensitivity` it exposes, not merely in the verdict.
+
+The `:sensitivity` surface is the construct's most consequential feature and the
+reason it is more than a rule-runner. A decision that affects a person owes that
+person not just the outcome but how close it was and on which input it turned —
+"approved" and "approved, but a single point lower on one input would have
+declined you" are different facts, and only the second supports a meaningful
+appeal or a fairness audit. By computing the minimum change to each input that
+would flip the outcome, `r/decide` turns an opaque verdict into an explainable
+one. This is the same chain-of-custody discipline the grimoire applies to
+derivation, carried into the place where it matters most legally: the decision
+that lands on someone.
 
 #### Example: Credit application decision
 
@@ -564,6 +655,13 @@ and applicant communication.
    {:input     :debt-to-income
     :change    "Increase to 0.31+"
     :effect    "Referral condition would still hold; no decision change at this threshold"}]}
+;; ✓ The :path shows every rule and whether it fired, with the reason — so the
+;;   referral is explained by what did NOT trigger (score below the auto-approve
+;;   threshold) as much as by what did. A bare ":refer-to-underwriter" hides the
+;;   near-miss; the path reveals the applicant was 6 points from auto-approval.
+;; ✓ :sensitivity names the minimum change that flips the outcome (score → 751).
+;;   This is what an applicant is owed and a fairness audit requires: not just
+;;   the decision, but how close it was and on which input it turned.
 ```
 
 ---
@@ -584,7 +682,8 @@ account of what *could* have produced the observed facts.
   :rank-by        :plausibility | :simplicity | :explanatory-power | :testability
   :must-explain   [:observation ...]
   :may-not-assume [:excluded-hypothesis ...]
-  :output         :ranked-hypotheses)
+  :output         :ranked-hypotheses
+  :manifest       hypotheses-binding)
 ```
 
 #### Parameters
@@ -619,7 +718,8 @@ An engineer doesn't prove a bug's cause; they hypothesise the most likely one.
              "Deployment occurred at 14:20 UTC"
              "Error type: NullPointerException in PaymentProcessor.validate()"]}
   :rank-by    :plausibility
-  :candidates 3)
+  :candidates 3
+  :manifest   incident-hypotheses)
 
 ;; Returns:
 {:hypotheses [
@@ -649,6 +749,14 @@ An engineer doesn't prove a bug's cause; they hypothesise the most likely one.
     :evidence-against ["Error rate jumped sharply rather than gradually — suggests code change, not data change"
                        "Would expect errors to cluster on specific customers, not uniformly"]
     :testable-via "Sample erroring requests and check for structural differences"}]}
+;; ✓ Every hypothesis carries :evidence-against as well as :evidence-for — even
+;;   the rank-1 explanation lists the fact that cuts against it (the deploy was
+;;   described as config-only). Abduction that reports only confirming evidence
+;;   is how investigations anchor on a wrong first guess; surfacing the
+;;   disconfirming evidence keeps the ranking honest.
+;; ✓ Each hypothesis is paired with how to test it (:testable-via), so the
+;;   output is an investigation plan, not a verdict. The rank orders where to
+;;   look first; it does not claim to have found the cause.
 ```
 
 #### Example 2: Diagnostic reasoning
@@ -664,6 +772,174 @@ An engineer doesn't prove a bug's cause; they hypothesise the most likely one.
 
 ;; Returns ranked differential diagnoses with explanatory coverage
 ;; and recommended confirmatory investigations for each
+```
+
+---
+
+### `r/analogise`
+
+Analogical reasoning: given a new case and a body of prior cases, finds the
+precedents most structurally similar to the new case and derives the conclusion
+their similarity supports — together with the points of difference that might
+defeat the analogy. The reasoning of precedent, differential diagnosis, and
+"we've seen this before."
+
+#### Signature
+
+```clojure
+(r/analogise target-case
+  :against     [prior-case ...] | case-base
+  :similarity  [:dimension ...]          ;; which features make cases comparable
+  :weight      {:dimension importance}    ;; relative weight of each dimension
+  :infer       :outcome | :treatment | :classification
+  :surface     [:nearest-cases :shared-features :distinguishing-features :confidence]
+  :min-similarity threshold
+  :manifest    analogy-binding)
+```
+
+#### Parameters
+
+**`:target-case`** — The new case to reason about, described by the same
+features the prior cases are described by. Analogy needs commensurability: the
+target and the precedents must be expressible in shared dimensions.
+
+**`:against`** — The precedents: an explicit list of prior cases, or a
+`case-base` (a maintained collection). Each prior case carries its features
+*and its known outcome* — the outcome is what the analogy transfers to the
+target.
+
+**`:similarity`** — Which dimensions make two cases comparable. This is the
+crux of analogical reasoning: cases are never identical, so the practitioner
+must declare which features matter for the inference. Two contracts are
+analogous *on the dimension of indemnity structure* even if they differ in
+parties, value, and date.
+
+**`:weight`** — The relative importance of each similarity dimension. Not all
+shared features count equally: in legal precedent, similarity on the *material
+facts* outweighs similarity on incidental ones. Weighting is what prevents a
+superficially-similar but materially-different case from dominating.
+
+**`:surface [:distinguishing-features]`** — The points where the target differs
+from its nearest precedents. In analogical reasoning these are as important as
+the similarities: a *distinguishing* feature is exactly what an adversary uses
+to argue the precedent does not apply ("that case turned on a fact absent
+here"). Surfacing them is what makes the analogy defeasible and honest.
+
+#### Design rationale
+
+`r/analogise` fills a genuine gap in the grimoire's account of inference. The
+philosophy names three modes — deductive, inductive, abductive — but analogical
+reasoning fits none of them cleanly: it does not derive necessarily from rules
+(deduction), generalise from a population (induction), or explain an observation
+(abduction). It reasons *case-to-case*, transferring a conclusion from a similar
+prior situation to the present one. And it is not a marginal mode: it is the
+dominant form of reasoning in common-law adjudication (precedent), in clinical
+medicine (this presentation resembles cases that turned out to be X), and in
+engineering (this failure looks like the incident we had last year). A reasoning
+grimoire that targets legal and clinical domains, as this one explicitly does,
+is incomplete without it.
+
+The construct's design centres on the truth that **analogies are defeated by
+differences, not confirmed by similarities**. A naive case-matcher returns the
+nearest neighbour and stops; real analogical reasoning asks whether the
+*differences* between the target and the precedent are material enough to break
+the inference. This is why `:distinguishing-features` is a first-class output
+and why `:weight` exists: the strength of an analogy is not how many features
+match but whether the features that matter match and the features that differ
+are immaterial. A precedent that agrees on incidentals and differs on the
+material fact is not support — it is a distinguishable case, and the construct
+must say so.
+
+`r/analogise` pairs naturally with `r/hypothesise`: abduction generates
+candidate explanations from scratch, analogy retrieves them from experience, and
+the two are complementary routes to the same kind of provisional, defeasible
+conclusion. It also feeds `r/argue`: an argument from precedent is an analogy
+made persuasive, with the distinguishing features pre-empted as rebuttals.
+
+#### Example 1: Reasoning from contract precedent
+
+```clojure
+(r/analogise
+  {:case "Vendor SaaS agreement under review"
+   :features {:indemnity-cap :uncapped
+              :data-processing :vendor-as-processor
+              :termination-notice "30 days"
+              :liability-carve-outs [:data-breach :ip-infringement]
+              :governing-law :domestic}}
+  :against    contract-precedent-base
+  :similarity [:indemnity-cap :liability-carve-outs :data-processing]
+  :weight     {:indemnity-cap 0.5 :liability-carve-outs 0.3 :data-processing 0.2}
+  :infer      :outcome
+  :surface    [:nearest-cases :shared-features :distinguishing-features :confidence]
+  :manifest   contract-analogy)
+
+;; Returns:
+{:nearest-cases [
+   {:case "Precedent A — 2023 vendor agreement, renegotiated"
+    :similarity 0.88
+    :shared-features ["uncapped indemnity" "data-breach carve-out" "vendor-as-processor"]
+    :outcome "Uncapped indemnity was renegotiated to 12× annual fees after legal review
+              flagged unbounded exposure"
+    :distinguishing-features ["Precedent A had a mutual cap; target's is one-directional"]
+    :weight-on-material-dimension :high}
+   {:case "Precedent B — 2024 agreement, signed as-is"
+    :similarity 0.71
+    :shared-features ["vendor-as-processor" "30-day termination"]
+    :outcome "Signed without indemnity change"
+    :distinguishing-features ["Precedent B had a CAPPED indemnity — differs on the
+                               highest-weighted dimension, so its outcome transfers weakly"]
+    :weight-on-material-dimension :low}]
+ :inferred-outcome {
+   :conclusion "The uncapped indemnity should be renegotiated, following Precedent A"
+   :confidence :medium-high
+   :basis "Target matches Precedent A on the highest-weighted dimension (indemnity-cap)
+           and shares the data-breach carve-out; Precedent B's contrary outcome is
+           discounted because it differs precisely on that dimension"}}
+;; ✓ Precedent B is MORE recent and shares features, but the analogy discounts it
+;;   because it differs on the highest-weighted dimension (it was capped). This is
+;;   the whole discipline: the analogy is governed by similarity on what matters
+;;   (:weight), not by raw feature overlap or recency.
+;; ✓ :distinguishing-features is populated for every nearest case — the inference
+;;   carries its own defeaters, so a reviewer can see exactly what would break each
+;;   analogy rather than trusting a bare similarity score.
+```
+
+#### Example 2: Differential diagnosis by case similarity
+
+```clojure
+(r/analogise
+  {:case "Current patient presentation"
+   :features {:symptoms [:fatigue :joint-pain :photosensitive-rash]
+              :age 29 :sex :female
+              :labs {:ana :positive :anti-dsdna :elevated}}}
+  :against    clinical-case-base
+  :similarity [:symptoms :labs]
+  :weight     {:labs 0.6 :symptoms 0.4}   ;; serology weighted above symptom overlap
+  :infer      :classification
+  :surface    [:nearest-cases :distinguishing-features :confidence]
+  :min-similarity 0.5
+  :manifest   differential)
+
+;; Returns nearest prior cases ranked by weighted similarity, the classification
+;; their outcomes support, and — crucially — the features of the current case that
+;; distinguish it from each precedent and might point elsewhere.
+;; ✓ :min-similarity 0.5 suppresses cases too dissimilar to inform the inference,
+;;   rather than padding the ranking with weak matches. Analogy from a remote case
+;;   is worse than no analogy — it manufactures false confidence.
+```
+
+#### Usage patterns
+
+```clojure
+;; Analogy as the retrieval half, abduction as the generation half
+(~> incident-observations
+  (r/analogise :against past-incident-base :similarity [:symptom-pattern :affected-component]
+               :infer :outcome)
+  (r/hypothesise :using domain-knowledge))   ;; generate fresh hypotheses the case base lacks
+
+;; Turn a precedent analogy into a persuasive argument, distinguishing features as rebuttals
+(~> (r/analogise target-case :against precedent-base :surface [:distinguishing-features])
+  (r/argue :format :legal-brief :qualifier :presumptively))
 ```
 
 ---
@@ -686,7 +962,8 @@ claim contradict established facts in the model?
   :for        :entailment | :consistency | :contradiction | :independence
   :using      rules-or-axioms
   :explain    boolean
-  :output     :check-result)
+  :output     :check-result
+  :manifest   check-binding)
 ```
 
 #### Parameters
@@ -696,6 +973,27 @@ claim contradict established facts in the model?
 - `:consistency` — is the target *compatible* with the given facts/rules?
 - `:contradiction` — does the target *conflict* with the given facts/rules?
 - `:independence` — is the target *neither entailed nor contradicted* by the given facts?
+
+#### Design rationale
+
+`r/check` is the verification counterpart to `r/derive`'s generation: where
+`r/derive` produces conclusions, `r/check` interrogates a conclusion someone
+already holds. The distinction matters because the two failure modes are
+different. A derivation can fail by reaching a wrong conclusion; a check fails
+by accepting a claim that does not actually follow — and in audit, compliance,
+and review contexts, the claim is usually already asserted and the question is
+whether it survives scrutiny.
+
+The four `:for` relationships exist because "is this claim OK?" is ambiguous in
+a way that causes real errors. Entailment (does it *follow*?) is a far stronger
+demand than consistency (is it *compatible*?), and conflating them is how an
+organisation convinces itself that "our processing is lawful" is established
+when the premises merely fail to contradict it. `:independence` is the subtlest
+and most useful for catching overreach: a claim that is neither entailed nor
+contradicted by the model is one the model simply cannot speak to — and saying
+so is more honest than forcing a verdict. By making the practitioner name which
+relationship they are checking, the construct prevents the silent slide from
+"not contradicted" to "proven".
 
 #### Example 1: Policy consistency check
 
@@ -708,7 +1006,8 @@ claim contradict established facts in the model?
                       :if   "retention period exceeds what is necessary for the stated purpose"
                       :then "retention violates storage limitation principle (Art. 5(1)(e))"
                       :strength :definitive}])
-  :explain true)
+  :explain true
+  :manifest retention-check)
 
 ;; Returns:
 {:verdict  :check-fails
@@ -717,10 +1016,15 @@ claim contradict established facts in the model?
    "GDPR Art. 5(1)(e) requires data be kept no longer than necessary for the purpose"
    "Transaction data purpose: fraud prevention and accounting"
    "Fraud prevention: typically 3-5 years per industry practice"
-   "Accounting: 7 years under Dutch Burgerlijk Wetboek art. 3:15i"
+   "Accounting: 7 years under applicable commercial-law bookkeeping requirements"
    "10 years exceeds the maximum justified by either purpose"
    "→ Retention period is not consistent with proportionality requirement"]
  :implication "Retention policy must be reduced to ≤7 years or purpose must be re-specified with justification"}
+;; ✓ :for :consistency was the right relationship to test: the claim asserts
+;;   proportionality, and the check shows the claim is *incompatible* with the
+;;   storage-limitation rule — stronger and more useful than merely failing to
+;;   entail it. The reasoning bounds the claim against each stated purpose and
+;;   shows 10 years exceeds both, so the verdict is grounded, not asserted.
 ```
 
 #### Example 2: Argument validity check
@@ -731,7 +1035,8 @@ claim contradict established facts in the model?
              "We have documented consent for newsletter processing"
              "We have documented legitimate interest for analytics"]}
   :for     :entailment
-  :explain true)
+  :explain true
+  :manifest lawfulness-check)
 
 ;; Returns:
 {:verdict   :entailment-fails
@@ -758,15 +1063,52 @@ contradictions — pairs or groups of claims that cannot all be true simultaneou
   :using   rules-or-axioms
   :severity :all | :significant-only
   :explain boolean
-  :output  :contradiction-report)
+  :output  :contradiction-report
+  :manifest contradiction-binding)
 ```
+
+#### Parameters
+
+**`:belief-set`** — The body of claims to audit: a list of assertions, a policy
+document's claims, or an accumulated `r/model`. The construct searches *within*
+this set for joint impossibility; it does not test against an external standard
+(that is `r/check`).
+
+**`:using`** — The rule set that supplies the inferential bridges. Most
+contradictions are not word-for-word negations; they emerge only when a rule
+connects two independently-plausible claims. Without rules, `r/contradict`
+catches only direct contradictions.
+
+**`:severity`** — `:all` reports every contradiction found, including peripheral
+ones; `:significant-only` reports just those that affect a derived conclusion or
+compliance claim. Use `:significant-only` when auditing a large model where
+minor peripheral inconsistencies would drown the findings that matter.
+
+#### Design rationale
+
+`r/contradict` differs from `r/check :for :contradiction` in direction and
+intent. `r/check` tests a *specific* claim against a model; `r/contradict`
+*searches* a whole belief set for pairs or groups that cannot all be true,
+without being told where to look. It is the construct for auditing a body of
+claims — a policy document, a set of filings, an accumulated model — for latent
+inconsistency that no one asserted but everyone is relying on.
+
+The design reflects that contradictions are rarely surface-level. Two claims
+seldom contradict word-for-word; they contradict *given a rule* — "this service
+is exempt" and "all our food services are reduced-rate" only conflict once the
+rule that catering is excluded from the food rate is brought to bear. That is
+why `:using` takes a rule set: the construct needs the inferential bridge to see
+that two independently-plausible claims are jointly impossible. A contradiction
+finder without rules catches only direct negations; with rules it catches the
+inconsistencies that actually cause trouble.
 
 #### Example
 
 ```clojure
 (r/contradict policy-document-claims
   :using   vat-rules
-  :explain true)
+  :explain true
+  :manifest vat-contradictions)
 
 ;; Returns:
 {:contradictions [
@@ -774,12 +1116,149 @@ contradictions — pairs or groups of claims that cannot all be true simultaneou
      "Our catering service is VAT exempt"
      "All our food services qualify for the 9% reduced rate"]
     :contradiction "Catering and restaurant services are explicitly excluded from the
-                    food reduced-rate provision (Wet OB 1968 Tabel I). The first
+                    food reduced-rate provision (VAT Act Schedule I). The first
                     claim (VAT exempt) and the second (9% reduced rate) cannot
                     both be correct. Catering is standard-rated at 21%."
     :severity :significant
-    :resolution "Catering services should be classified at 21% standard rate.
+    :resolution "Catering services should be classified at the 21% standard rate.
                  Verify whether any exemption claim has been relied upon in past filings."}]}
+;; ✓ Neither claim is false on its face, and they do not contradict word-for-word
+;;   — they are jointly impossible only once vat-rules supplies the bridging fact
+;;   that catering is excluded from the food rate. This is why :using takes a
+;;   rule set: the contradiction lives in the inference, not the surface text.
+```
+
+---
+
+### `r/revise`
+
+Belief revision: given a model and a change to its facts — a premise retracted,
+corrected, or newly added — determines which previously-derived conclusions
+still hold, which must be withdrawn, and which newly follow. The chain of
+custody run backward: if conclusions trace to premises, then changing a premise
+must propagate to its conclusions.
+
+#### Signature
+
+```clojure
+(r/revise model
+  :change    {:retract [fact ...] :add [fact ...] :correct {fact new-value}}
+  :using     rules-or-rule-set
+  :affected  derivation-result        ;; prior conclusions to re-evaluate
+  :surface   [:withdrawn :still-holds :newly-follows :now-undetermined]
+  :explain   boolean
+  :manifest  revised-model)
+```
+
+#### Parameters
+
+**`:change`** — The revision to apply:
+- `:retract` — remove a fact now believed false or unsupported
+- `:add` — introduce a newly-established fact
+- `:correct` — replace a fact's value (a retract-and-add in one step, preserving
+  the fact's identity and provenance)
+
+**`:affected`** — The prior derivation whose conclusions must be re-evaluated
+against the changed model. Supplying it lets `r/revise` report precisely which
+existing conclusions the change touches, rather than re-deriving from scratch.
+
+**`:surface`** — The four outcomes of a revision, which are the whole point:
+- `:withdrawn` — conclusions that depended on a retracted/corrected fact and no
+  longer hold
+- `:still-holds` — conclusions with independent support that survive the change
+- `:newly-follows` — conclusions the added/corrected fact now makes derivable
+- `:now-undetermined` — conclusions that were settled but the change has reopened
+
+#### Design rationale
+
+`r/revise` is the exact inverse of the grimoire's founding principle, and that
+is why it belongs here. The whole grimoire insists that every conclusion trace
+to its premises through an explicit chain of custody. But a chain of custody is
+not only for *building* conclusions — it is what makes it possible to *unbuild*
+them safely. If a fact turns out false, the question "what did we conclude that
+now falls?" is answerable *only* because the derivations recorded what they
+depended on. `r/revise` cashes in the provenance the rest of the grimoire so
+carefully maintains. Without it, the chain of custody is write-only — diligently
+recorded and never used for the one thing it uniquely enables.
+
+The discipline the construct enforces is that **retraction must propagate, and
+propagation is rarely total**. The naive response to a falsified premise is to
+discard everything downstream; the correct response is to ask, conclusion by
+conclusion, whether *this* conclusion had independent support. A compliance
+finding derived from three facts does not collapse because one was corrected if
+the other two still entail it. Surfacing `:still-holds` separately from
+`:withdrawn` is what distinguishes belief revision from panic: the model gives
+up exactly the conclusions that lost their support and no more.
+
+`:now-undetermined` is the subtlest and most valuable outcome. A change does
+not only add and remove conclusions; it can return a settled question to open.
+A retracted fact that had foreclosed an alternative may reopen it — and a system
+that reported only withdrawals would leave the practitioner believing a question
+was still answered when it has in fact become live again. This is the truth-
+maintenance discipline that mature reasoning systems require and that ad-hoc
+re-derivation silently gets wrong.
+
+#### Example: A corrected fact propagates through a compliance model
+
+```clojure
+;; The earlier GDPR derivation concluded newsletter processing was unlawful.
+;; A late finding: a legitimate-interest assessment DID exist, just unfiled.
+(r/revise gdpr-compliance-model
+  :change   {:correct {"Organisation has no legal basis documented for newsletter emails"
+                       "Organisation has a legitimate-interest assessment for newsletter
+                        emails, completed 2025-06-01 but not previously located"}}
+  :using    gdpr-obligations
+  :affected gdpr-derivation        ;; the prior r/derive result
+  :surface  [:withdrawn :still-holds :newly-follows :now-undetermined]
+  :explain  true
+  :manifest gdpr-revised)
+
+;; Returns:
+{:change-applied {:type :correct :fact "newsletter lawful basis"}
+ :withdrawn [
+   {:conclusion "Newsletter email processing is currently unlawful"
+    :why "Depended on the now-corrected fact that no lawful basis was documented;
+          a legitimate-interest basis now exists, so the premise is gone"}]
+ :still-holds [
+   {:conclusion "Retention of historical newsletter engagement data needs a basis"
+    :why "Derived independently from the storage-limitation axiom, not from the
+          corrected fact — survives the revision untouched"}]
+ :newly-follows [
+   {:conclusion "Newsletter processing is lawful PROVIDED the legitimate-interest
+                 balancing test in the assessment is sound"
+    :strength :presumptive
+    :why "The corrected fact supplies the basis the consent-for-marketing rule required"}]
+ :now-undetermined [
+   {:question "Is the legitimate-interest balancing test in the 2025-06-01 assessment
+               actually adequate?"
+    :why "The change reopens this: lawfulness now turns on the quality of an
+          assessment we have not yet evaluated — a question that did not arise
+          while the processing was simply unlawful"}]}
+;; ✓ The change did NOT collapse the whole model. "Newsletter unlawful" was
+;;   withdrawn because it rested on the corrected fact; but "retention needs a
+;;   basis" still holds because it traced to a different premise. Revision gives
+;;   up exactly what lost support and no more — which is only possible because the
+;;   original derivations recorded what each conclusion depended on.
+;; ✓ :now-undetermined surfaces the subtle consequence: fixing one fact reopened
+;;   a question (is the LI assessment adequate?) that was moot while processing
+;;   was unlawful. A system reporting only :withdrawn would have left the
+;;   practitioner thinking lawfulness was now settled. It is not — it has moved.
+```
+
+#### Usage patterns
+
+```clojure
+;; Audit trail: when a fact is corrected, propagate and record what changed
+(~> (r/derive compliance-question :from model :using rules :explain true)
+  (r/revise :change {:correct corrected-fact} :affected *1 :surface [:withdrawn :newly-follows]))
+
+;; Test the fragility of a conclusion: retract each premise, see what survives
+(r/revise model
+  :change   {:retract [load-bearing-fact]}
+  :affected key-derivation
+  :surface  [:withdrawn :still-holds])
+;; If a high-stakes conclusion is :withdrawn by retracting a single low-confidence
+;; fact, it is fragile and should not be relied on without corroboration.
 ```
 
 ---
@@ -803,7 +1282,8 @@ dedicated tool for making a specific derivation maximally transparent.
   :format    :step-by-step | :tree | :natural-language
   :audience  :technical | :legal | :general
   :annotate  [:rule-citations :confidence-at-each-step :alternatives-considered]
-  :output    :derivation-document)
+  :output    :derivation-document
+  :manifest  trace-binding)
 ```
 
 #### Parameters
@@ -819,22 +1299,44 @@ dedicated tool for making a specific derivation maximally transparent.
 output with rule citations in standard citation format. `:general` produces
 plain language explanation of the reasoning without citations.
 
-#### Example: Explanation to applicant
+#### Design rationale
+
+`r/trace` exists because the same derivation must be told to different readers,
+and a single rendering serves none of them well. `r/derive` already embeds a
+derivation chain — but that chain is structured for machine consumption and
+expert audit, and handing it unchanged to an affected person (an applicant, a
+patient, a customer) is a failure of explanation, not a fulfilment of it.
+`r/trace` takes one fixed derivation and re-expresses it for a chosen audience
+without changing what was concluded or why.
+
+The discipline the construct enforces is that the *reasoning is invariant
+across renderings*. The applicant's plain-language explanation and the
+auditor's cited step-by-step must describe the same inference — the same rules,
+the same facts, the same conclusion — differing only in vocabulary and
+formality. This is what separates `r/trace` from `e/compose` writing a fresh
+summary: `r/trace` is not free to simplify by omitting an inferential step, only
+to translate the language in which the step is expressed. An explanation that
+drops a load-bearing step for readability has misrepresented the decision, and
+in regulated contexts that is the difference between an explanation and a
+liability.
+
+#### Example: Explanation to an applicant
 
 ```clojure
-(r/trace bijstand-decision
+(r/trace income-support-decision
   :format   :natural-language
   :audience :general
-  :annotate [:alternatives-considered])
+  :annotate [:alternatives-considered]
+  :manifest applicant-explanation)
 
 ;; Returns plain-language explanation suitable for providing to the applicant:
-;; "We reviewed your application for income support (bijstand) on [date].
-;;  We looked at four things required by the Participation Act:
+;; "We reviewed your application for income support on [date].
+;;  We looked at four things required by the Income Support Act:
 ;;
 ;;  1. Age: You are 34 years old, which is within the eligible range of 18 to 67. ✓
 ;;  2. Residence status: Your permanent residence permit means you have lawful
-;;     residence in the Netherlands. ✓
-;;  3. Assets: Your total assets of €4,200 are below the threshold of €7,605
+;;     residence. ✓
+;;  3. Assets: Your total assets of 4,200 are below the threshold of 7,605
 ;;     for a single person. ✓
 ;;  4. Income: You currently have no monthly income. ✓
 ;;
@@ -843,6 +1345,11 @@ plain language explanation of the reasoning without citations.
 ;;  We also checked whether you have been self-employed recently. If you have
 ;;  been self-employed in the past six months, we may need to assess your
 ;;  income over a three-month period first. Please let us know if this applies."
+;;
+;; ✓ Every step of the underlying derivation survives the translation — all four
+;;   conditions, plus the self-employment open question. Nothing load-bearing was
+;;   dropped for readability; only the vocabulary changed from model terms to
+;;   plain language. The applicant reads the same decision the auditor would.
 ```
 
 ---
@@ -862,7 +1369,8 @@ or structured debate.
   :backing   [authority-or-evidence ...]
   :qualifier :necessarily | :probably | :plausibly | :presumptively
   :format    :toulmin | :classical | :legal-brief
-  :output    :argument-document)
+  :output    :argument-document
+  :manifest  argument-binding)
 ```
 
 #### Parameters
@@ -873,6 +1381,26 @@ or structured debate.
 - `:classical` — Aristotelian: premises, inference, conclusion.
 - `:legal-brief` — Legal brief format: question presented, short answer,
   statement of facts, argument.
+
+#### Design rationale
+
+`r/argue` is the persuasive counterpart to the grimoire's analytical
+constructs, and the boundary is deliberate. `r/derive` and `r/check` establish
+what follows; `r/argue` *advocates* for a position to a reader who may resist
+it. The difference is the audience's stance: derivation addresses a neutral
+auditor, argument addresses a sceptic or an adversary. An argument must
+therefore do something derivation need not — anticipate and answer objections —
+which is why `:rebuttals` is first-class rather than optional polish.
+
+The construct's defining honesty is the `:qualifier`. An argument that
+overclaims its own force is weak precisely where it sounds strongest: asserting
+`:necessarily` for a conclusion that is only `:probably` warranted invites the
+one rebuttal that collapses it. By making the qualifier explicit and matching it
+to the actual strength of the grounds, `r/argue` produces arguments calibrated
+to what they can defend — `:presumptively` when the burden merely shifts,
+`:probably` when the evidence is strong but defeasible. This is the same
+epistemic discipline `r/derive` applies to mode, carried into advocacy: claim no
+more force than the reasoning supports, because an adversary will find the gap.
 
 #### Example: Regulatory submission argument
 
@@ -890,7 +1418,15 @@ or structured debate.
     "WP29 Guidelines on Consent (WP259 rev.01)"
     "EDPB Guidelines 05/2020 on consent"]
   :qualifier :probably
-  :format    :legal-brief)
+  :format    :legal-brief
+  :manifest  cookie-consent-argument)
+;; ✓ :qualifier :probably, not :necessarily — the grounds are strong but consent
+;;   adequacy is ultimately a regulator's judgement, and claiming necessity would
+;;   invite the rebuttal that no mechanism is beyond challenge. The argument
+;;   claims exactly the force its grounds support.
+;; ✓ The one anticipated :rebuttal is answered inline with evidence (the removed
+;;   pre-ticked boxes), pre-empting the objection an adversary would raise rather
+;;   than leaving it for them to land.
 ```
 
 ---
@@ -934,6 +1470,40 @@ eligibility determinations, compliance findings, risk assessments — the
 derivation chain is not optional documentation. It is the substance of the
 decision. Produce it. Store it. Make it available to those affected.
 
+### Anti-patterns
+
+**Asserting confidently instead of reasoning traceably.** The grimoire's
+sharpest distinction is between a conclusion that traces to its premises and an
+assertion dressed as one. Producing a bare verdict — "this is non-compliant",
+"the applicant is ineligible" — without the derivation chain is not reasoning,
+however correct the verdict happens to be. It cannot be audited, challenged, or
+revised. If the chain is not produced, the conclusion has not been reasoned.
+
+**Overstating the inference mode.** Labelling an inductive or abductive
+conclusion as deductive manufactures false certainty. A risk score is not a
+proof; a diagnosis is not a deduction. When `:mode :deductive` is claimed but
+the inference is actually probabilistic, the mismatch must be flagged, not
+smoothed over — the epistemic status of the conclusion depends on it.
+
+**Treating "not contradicted" as "proven".** Checking a claim for
+`:consistency` and concluding it is established confuses compatibility with
+entailment. A model that fails to contradict a claim has not endorsed it. Use
+`:entailment` when the question is whether the claim *follows*, and report
+`:independence` honestly when the model simply cannot speak to it.
+
+**Revising a model by re-deriving from scratch.** When a fact changes, silently
+re-running the whole derivation discards the information about *what depended on
+what*. Use `r/revise` so the change propagates through the chain of custody:
+conclusions that lost their support are withdrawn, conclusions with independent
+support are kept, and reopened questions are surfaced. Wholesale re-derivation
+hides which conclusions actually moved and why.
+
+**Letting an analogy rest on similarity alone.** A precedent that matches on
+many incidental features but differs on the material one is a distinguishable
+case, not support. Always surface `:distinguishing-features`; an analogy that
+reports only what is shared is the case-based equivalent of asserting without
+tracing.
+
 ---
 
 ## Integration patterns
@@ -968,7 +1538,7 @@ for `r/model`. The domain's entities, constraints, and relationships are
 facts about the world; the reasoning grimoire draws conclusions from them.
 
 ```clojure
-(def regulation   (d/explore "participatiewet.pdf" :focus [:constraints :rules]))
+(def regulation   (d/explore "income-support-act.pdf" :focus [:constraints :rules]))
 (def applicant    (d/model "Applicant" :entities {:applicant applicant-data}))
 
 (r/model eligibility-context
@@ -1024,14 +1594,15 @@ into audience-appropriate communication.
 ```clojure
 {:grimoire    "reasoning"
  :namespace   "r/"
- :version     "1.0.0"
- :description "Explicit logical inference: deductive, inductive, and abductive
-               reasoning with full derivation tracing and chain-of-custody provenance"
+ :version     "1.1.0"
+ :description "Explicit logical inference: deductive, inductive, abductive, and
+               analogical reasoning with full derivation tracing, belief revision,
+               and chain-of-custody provenance"
 
  :constructs {
    :foundations  [r/model r/rules]
-   :inference    [r/derive r/decide r/hypothesise]
-   :verification [r/check r/contradict]
+   :inference    [r/derive r/decide r/hypothesise r/analogise]
+   :verification [r/check r/contradict r/revise]
    :explanation  [r/trace r/argue]}
 
  :best-for [
@@ -1039,6 +1610,8 @@ into audience-appropriate communication.
    "Eligibility and entitlement decisions with auditable derivation chains"
    "Business rule evaluation and decision table execution"
    "Incident investigation and root-cause hypothesis generation"
+   "Reasoning from precedent and prior cases (legal, clinical, engineering)"
+   "Belief revision: propagating a corrected or retracted fact through its conclusions"
    "Policy consistency checking and contradiction detection"
    "Argument construction for legal and regulatory submissions"
    "Decision explainability for affected parties and regulators"]
@@ -1057,6 +1630,16 @@ into audience-appropriate communication.
     :definition "Inference to the best explanation. Given observations, what hypothesis
                  most plausibly accounts for them? The conclusion is a candidate, not
                  a certainty."}
+   {:term "Analogical reasoning"
+    :definition "Inference case-to-case: transferring a conclusion from a similar prior
+                 case to the present one. Governed by similarity on the dimensions that
+                 matter and defeated by material differences, not by raw feature overlap.
+                 The reasoning of precedent and differential diagnosis."}
+   {:term "Belief revision"
+    :definition "Propagating a change in the facts — a premise retracted, corrected, or
+                 added — through the conclusions that depended on it: withdrawing those
+                 that lost support, keeping those independently supported, and reopening
+                 questions the change makes undetermined. The chain of custody run backward."}
    {:term "Derivation chain"
     :definition "The explicit path from premises and rules to conclusion. The reasoning
                  itself — not just the result. Every high-stakes conclusion requires one."}
@@ -1154,3 +1737,43 @@ break ties between equally plausible hypotheses:
 Always surface the evidence against each hypothesis alongside the evidence for
 it. A hypothesis with strong evidence for it and strong evidence against it is
 less reliable than one with moderate evidence for and no evidence against.
+
+### Analogical similarity and distinction
+
+When processing `r/analogise`, weight similarity by the declared `:weight` map,
+not by raw feature count. A precedent that matches on three incidental features
+and differs on the one high-weighted dimension is a *weaker* analogy than one
+that matches on the high-weighted dimension alone — and the output must rank
+them accordingly, even when this contradicts surface similarity or recency.
+
+Always populate `:distinguishing-features` for every nearest case, even when not
+explicitly requested for high-stakes inferences. An analogy is defeasible by its
+differences, and a case-match that reports only shared features misrepresents
+the inference's strength. When the target differs from a precedent on a
+high-weighted dimension, say so explicitly and discount that precedent's
+contribution — never let a materially-distinguishable case drive the conclusion
+on the strength of incidental overlap.
+
+Respect `:min-similarity`: a case below the threshold must be excluded entirely,
+not included with a low score. Analogy from a remote case is worse than no
+analogy, because it lends the false authority of precedent to what is really a
+guess.
+
+### Belief revision must propagate, not re-derive
+
+When processing `r/revise`, evaluate each prior conclusion in `:affected`
+individually against the changed model. Do not discard all downstream
+conclusions because one premise changed, and do not re-derive the model from
+scratch — both destroy the dependency information the revision exists to use. A
+conclusion goes in `:withdrawn` only if it depended on the changed fact and has
+no independent support; it goes in `:still-holds` if other premises still entail
+it; it goes in `:newly-follows` if the change supplies a premise a rule now
+fires on.
+
+Always compute `:now-undetermined`. A change can return a settled question to
+open — most often when a retracted fact had foreclosed an alternative that is
+now live again. Omitting this outcome is a correctness failure, not a
+simplification: it leaves the practitioner believing a question is answered when
+the revision has reopened it. Treat `:correct` as a paired retract-and-add that
+preserves the fact's identity and provenance, so the audit trail shows the fact
+was revised rather than deleted and recreated.
