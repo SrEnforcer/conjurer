@@ -28,7 +28,7 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 | agent | `a/` | `grimoires/agent.md` |
 
 **Symbol lookup:** `index.edn` — every symbol with grimoire, synopsis, and key params.
-**Compact cheat sheet:** `quick-reference.md` — all 107 symbols at a glance.
+**Compact cheat sheet:** `quick-reference.md` — all 119 symbols at a glance.
 **Full philosophy:** `conjurer.md`
 **File structure spec:** `template.md`
 
@@ -39,10 +39,11 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 1. **Declarative supremacy** — specify outcomes, not implementations
 2. **Semantic richness over syntactic rigidity** — `:validates`, `:ensures`, `:checks` are all equivalent; the system understands intent
 3. **Semantic gravity** — context accumulates mass; later invocations can be terser
-4. **Intent topology** — `:requires` > `:prefers` > `:style`; `:deferred` is noted but not implemented
-5. **Productive ambiguity** — deliberate openness invites creative judgment; do not force resolution
-6. **Progressive refinement** — first manifestations are sketches; `refine` is a discovery tool
-7. **Collaborative discovery** — surface tensions, propose improvements, make reasoning visible
+4. **Productive ambiguity** — deliberate openness invites creative judgment; do not force resolution
+5. **Progressive refinement** — first manifestations are sketches; `refine` is a discovery tool
+6. **Intent topology** — `:requires` > `:prefers` > `:style`; `:deferred` is noted but not implemented
+7. **Calibrated certainty** — use `certain` · `prefer` · `allow` and `given` / `ensure` to declare commitment and contracts explicitly
+8. **Collaborative discovery** — surface tensions, propose improvements, make reasoning visible
 
 ---
 
@@ -237,7 +238,7 @@ ambiguities that would change the entire direction of the output.
 ```
 SKILL.md                ← this file (entrypoint)
 index.edn               ← machine-readable symbol catalog (routing layer)
-quick-reference.md      ← all 107 symbols at a glance
+quick-reference.md      ← all 119 symbols at a glance
 conjurer.md             ← language philosophy and principles
 template.md             ← grimoire and .cnj file structure specification
 grimoires/

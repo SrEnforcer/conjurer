@@ -136,11 +136,11 @@ Conjurer's standard library is organized into **grimoires** — thematic spellbo
 |---|---|---|
 | [core](grimoires/core.md) | _(none)_ | The language itself: invocations, composition, execution, certainty contracts, reflection, and ecosystem connectives (`charter` · `target` · `asset` · `handover`) |
 | [domain](grimoires/domain.md) | `d/` | Knowledge extraction, domain modeling, DSL generation |
-| [data](grimoires/data.md) | `data/` | Synthetic data generation, transformation, validation pipelines |
+| [data](grimoires/data.md) | `data/` | Schema-driven data lifecycle: generation, transformation, validation, expectation testing, contracts, lineage, and privacy |
 | [web](grimoires/web.md) | `w/` | Web analysis, component generation, full-stack prototyping |
 | [semantics](grimoires/semantics.md) | `s/` | Deep textual analysis, multi-model interpretation, synthesis |
-| [reasoning](grimoires/reasoning.md) | `r/` | Inference, rule-based derivation, decision logic, traceable conclusions |
-| [taxonomy](grimoires/taxonomy.md) | `t/` | Classification systems, hierarchical organization, controlled vocabularies |
+| [reasoning](grimoires/reasoning.md) | `r/` | Inference, analogical reasoning, belief revision, decision logic, and traceable conclusions |
+| [taxonomy](grimoires/taxonomy.md) | `t/` | Enumerative and faceted classification, taxonomy alignment, validation, browsing, and evolution |
 | [orchestrate](grimoires/orchestrate.md) | `o/` | Workflow coordination, saga patterns, human-in-the-loop |
 | [eloquence](grimoires/eloquence.md) | `e/` | Tone, audience targeting, rhetorical structure |
 | [agent](grimoires/agent.md) | `a/` | Autonomous action: agent definition, invocation, delegation, multi-agent coordination |

@@ -3,7 +3,7 @@
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces
 
-{:version    "1.1.0"
+{:version    "1.2.0"
  :grimoires  [
    {:name "core"       :file "grimoires/core.md"       :namespace nil}
    {:name "domain"     :file "grimoires/domain.md"     :namespace "d/"}
@@ -396,7 +396,7 @@
    :synopsis  "Defines a formal schema: fields, types, constraints, relationships, compliance"
    :accepts   [:entity-name]
    :produces  [:schema-definition]
-   :key-params [:fields :required :unique :indexes :constraints :relationships :compliance :phi-fields :output]}
+    :key-params [:fields :required :unique :indexes :constraints :relationships :compliance :phi-fields :pci-fields :immutable :output :manifest]}
 
   data/generate
   {:grimoire  "data"
@@ -404,7 +404,7 @@
    :synopsis  "Manifests complete realistic datasets from a schema with correct distributions and locale"
    :accepts   [:entity-type]
    :produces  [:dataset]
-   :key-params [:count :schema :locale :quality :constraints :relationships :distributions :anomalies :seed :output]}
+    :key-params [:count :schema :locale :quality :constraints :relationships :distributions :anomalies :seed :output :manifest]}
 
   data/transform
   {:grimoire  "data"
@@ -420,7 +420,7 @@
    :synopsis  "Translates data between formats (CSV, JSON, Parquet, Avro, etc.) preserving semantics"
    :accepts   [:source]
    :produces  [:converted-dataset]
-   :key-params [:from :to :schema :preserve :options :validate-output :output]}
+    :key-params [:from :to :schema :preserve :options :validate-output :output :manifest]}
 
   data/pipeline
   {:grimoire  "data"
@@ -436,7 +436,7 @@
    :synopsis  "Validates data against a schema; collects all violations; returns quality report"
    :accepts   [:data]
    :produces  [:validation-report]
-   :key-params [:against :on-failure :include :sample-invalid :output]}
+    :key-params [:against :on-failure :include :sample-invalid :output :manifest]}
 
   data/profile
   {:grimoire  "data"
@@ -444,7 +444,7 @@
    :synopsis  "Generates statistical profile of a dataset: distributions, cardinalities, drift detection"
    :accepts   [:dataset]
    :produces  [:profile-report]
-   :key-params [:fields :statistics :sample-size :compare-to :output]}
+    :key-params [:fields :statistics :sample-size :compare-to :output :manifest]}
 
   data/generate-tests
   {:grimoire  "data"
@@ -454,13 +454,29 @@
    :produces  [:test-suite]
    :key-params [:coverage :include :custom-cases :performance :output :manifest]}
 
+  data/expect
+  {:grimoire  "data"
+   :namespace "data/"
+   :synopsis  "Asserts dataset-level expectations on distribution, freshness, and cross-field integrity"
+   :accepts   [:dataset]
+   :produces  [:expectation-report]
+   :key-params [:expectations :baseline :on-failure :sample-failures :output :manifest]}
+
+  data/contract
+  {:grimoire  "data"
+   :namespace "data/"
+   :synopsis  "Defines enforceable producer-consumer data contracts with guarantees and schema-evolution policy"
+   :accepts   [:name]
+   :produces  [:contract-definition]
+   :key-params [:schema :producer :consumers :guarantees :sla :schema-evolution :on-breach :version :output :manifest]}
+
   data/lineage
   {:grimoire  "data"
    :namespace "data/"
    :synopsis  "Tracks data provenance through transformations; produces non-invasive audit trail"
    :accepts   [:pipeline-or-transformation]
    :produces  [:lineage-record]
-   :key-params [:track :record-to :include-samples :output]}
+    :key-params [:track :record-to :include-samples :output :manifest]}
 
   data/mask
   {:grimoire  "data"
@@ -468,7 +484,7 @@
    :synopsis  "Privacy-preserving transformation: anonymise, pseudonymise, redact, or substitute data"
    :accepts   [:dataset]
    :produces  [:masked-dataset]
-   :key-params [:strategy :fields :preserve :seed :reversible :output]}
+    :key-params [:strategy :fields :preserve :seed :reversible :output :manifest]}
 
   data/reconcile
   {:grimoire  "data"
@@ -476,7 +492,7 @@
    :synopsis  "Compares two datasets that should match; surfaces discrepancies and patterns"
    :accepts   [:dataset-a :dataset-b]
    :produces  [:reconciliation-report]
-   :key-params [:on :compare :tolerance :identify :output]}
+    :key-params [:on :compare :tolerance :identify :output :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; WEB — Web development
@@ -806,7 +822,15 @@
    :synopsis  "Abductive reasoning: generates candidate explanations for observations ranked by plausibility"
    :accepts   [:observation]
    :produces  [:ranked-hypotheses]
-   :key-params [:from :using :candidates :rank-by :must-explain :may-not-assume :output]}
+    :key-params [:from :using :candidates :rank-by :must-explain :may-not-assume :output :manifest]}
+
+    r/analogise
+    {:grimoire  "reasoning"
+    :namespace "r/"
+    :synopsis  "Analogical reasoning from prior cases, with weighted similarity and distinguishing features"
+    :accepts   [:target-case]
+    :produces  [:analogy-result]
+    :key-params [:against :similarity :weight :infer :surface :min-similarity :manifest]}
 
   r/check
   {:grimoire  "reasoning"
@@ -814,7 +838,7 @@
    :synopsis  "Verifies logical relationship between claims: entailment, consistency, or contradiction"
    :accepts   [:target]
    :produces  [:check-result]
-   :key-params [:against :for :using :explain :output]}
+    :key-params [:against :for :using :explain :output :manifest]}
 
   r/contradict
   {:grimoire  "reasoning"
@@ -822,7 +846,15 @@
    :synopsis  "Searches a belief set for internal contradictions — pairs that cannot both be true"
    :accepts   [:belief-set]
    :produces  [:contradiction-report]
-   :key-params [:using :severity :explain :output]}
+    :key-params [:using :severity :explain :output :manifest]}
+
+    r/revise
+    {:grimoire  "reasoning"
+    :namespace "r/"
+    :synopsis  "Belief revision: propagates premise changes to withdrawn, retained, and newly-supported conclusions"
+    :accepts   [:model]
+    :produces  [:revised-model]
+    :key-params [:change :using :affected :surface :explain :manifest]}
 
   r/trace
   {:grimoire  "reasoning"
@@ -830,7 +862,7 @@
    :synopsis  "Produces a complete readable derivation chain for a conclusion in step-by-step or prose form"
    :accepts   [:conclusion]
    :produces  [:derivation-document]
-   :key-params [:from :format :audience :annotate :output]}
+    :key-params [:from :format :audience :annotate :output :manifest]}
 
   r/argue
   {:grimoire  "reasoning"
@@ -838,7 +870,7 @@
    :synopsis  "Constructs a formal argument for a position in Toulmin, classical, or legal-brief format"
    :accepts   [:position]
    :produces  [:argument-document]
-   :key-params [:grounds :rebuttals :backing :qualifier :format :output]}
+    :key-params [:grounds :rebuttals :backing :qualifier :format :output :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; TAXONOMY — Classification
@@ -906,7 +938,7 @@
    :synopsis  "Manages taxonomy change: add, split, merge, rename, deprecate — with crosswalk preservation"
    :accepts   [:taxonomy]
    :produces  [:evolved-taxonomy]
-   :key-params [:changes :produce-crosswalk :notify-affected :manifest]}
+    :key-params [:changes :produce-crosswalk :notify-affected :version :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; AGENT — Autonomous action and multi-agent coordination

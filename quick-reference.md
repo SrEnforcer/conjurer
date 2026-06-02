@@ -1,6 +1,6 @@
 # Conjurer — Quick Reference
 
-All 112 symbols across 10 grimoires. For full signatures and examples,
+All 119 symbols across 10 grimoires. For full signatures and examples,
 see the individual grimoire files.
 
 ---
@@ -78,6 +78,9 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | `d/merge` | Combine models; align concepts; make conflicts explicit |
 | `d/compare` | Structured comparison: alignments, divergences, gaps |
 | `d/scope` | Derive a focused sub-domain view from a larger model |
+| `d/bounded-context` | Partition a model into bounded contexts and context-map relationships |
+| `d/ubiquitous-language` | Curate enforceable canonical terminology for domain language |
+| `d/evolve` | Versioned domain-model evolution with explicit change drivers |
 | `d/model` | Manually define a domain model from practitioner knowledge |
 | `d/annotate` | Add tacit knowledge without altering extracted facts |
 | `d/validate` | Check model for completeness, consistency, pattern conformance |
@@ -106,6 +109,8 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | `data/validate` | Validate data against schema; collect all violations |
 | `data/profile` | Statistical profile: distributions, cardinalities, drift detection |
 | `data/generate-tests` | Auto-generate test suites from schema constraints |
+| `data/expect` | Dataset-level expectation checks: distribution, freshness, aggregates, drift |
+| `data/contract` | Producer-consumer data contract: guarantees, evolution rules, breach policy |
 | `data/lineage` | Non-invasive provenance tracking through transformations |
 | `data/mask` | Privacy: anonymise, pseudonymise, redact, or substitute |
 | `data/reconcile` | Compare two datasets that should match; surface discrepancies |
@@ -210,8 +215,10 @@ runs in reverse order automatically on failure.
 | `r/derive` | Primary inference: deductive, inductive, or abductive; full derivation chain |
 | `r/decide` | Decision table / tree / rule-set evaluation with path and sensitivity |
 | `r/hypothesise` | Abductive: ranked candidate explanations for observations |
+| `r/analogise` | Case-based analogical reasoning from precedents with distinguishing features |
 | `r/check` | Verify: does this follow from these premises? Are these consistent? |
 | `r/contradict` | Find internal contradictions in a belief set |
+| `r/revise` | Belief revision: propagate premise changes to withdrawn/new conclusions |
 | `r/trace` | Complete readable derivation chain in step-by-step, tree, or prose form |
 | `r/argue` | Construct formal argument in Toulmin, classical, or legal-brief format |
 
