@@ -72,9 +72,11 @@ Describe what transformed data should look like; the system determines how.
 Generate data that satisfies constraints by design. Validate during
 transformation to catch issues before propagation.
 
-**Locale and cultural awareness** — Data has cultural context. Dutch postal
-codes, IBAN formats, BSN check digits, name conventions — the grimoire
-understands these natively.
+**Locale and cultural awareness** — Data has cultural context. National ID
+schemes and their checksums, postal-code structures, IBAN formats, phone
+formats, and name-frequency distributions differ by locale — the grimoire
+treats locale as a first-class generation and validation parameter rather than
+assuming one region's conventions are universal.
 
 **Lineage and provenance** — Data's history matters. Where did it come from?
 What transformations were applied? What was masked and why? These questions
@@ -97,6 +99,26 @@ stage's output. Data flows through the pipeline as water through pipes.
 
 **Lineage** — The data's ancestry: where it came from, how it was transformed,
 what decisions it informed. Lineage makes provenance traceable.
+
+**Profile** — As in a profile of a person: a characterisation of essential
+features. A data profile describes a dataset's shape — its distributions,
+ranges, and irregularities — without judging it against a standard.
+
+**Mask** — To cover what should not be seen while leaving the form visible. A
+masked dataset keeps its structure and statistics; only the identifying content
+is hidden behind substitutes.
+
+**Reconcile** — From the accounting tradition: to bring two records of what
+should be the same thing into agreement, accounting for every difference. Data
+reconciliation asks whether two datasets that ought to match in fact do.
+
+**Expect** — A statement of what the data *ought* to look like in aggregate,
+asserted and checked. Borrowed from the expectation-testing tradition in data
+engineering: not "is this record valid" but "does this dataset meet expectation."
+
+**Contract** — A binding agreement between a data producer and its consumers.
+The term is literal: a contract states obligations, names the parties, and
+specifies what happens when it is breached.
 
 ---
 
@@ -130,7 +152,8 @@ what it means.
   :phi-fields   [:field ...]
   :pci-fields   [:field ...]
   :immutable    [:field ...]
-  :output       :edn | :json-schema | :sql-ddl | :graphql-schema | :openapi)
+  :output       :edn | :json-schema | :sql-ddl | :graphql-schema | :openapi
+  :manifest     schema-binding)
 ```
 
 #### Parameters
@@ -142,8 +165,10 @@ throughout the data lifecycle.
 format, constraints, and semantic markers:
 - Type: `:uuid`, `:string`, `:integer`, `:decimal`, `:boolean`, `:date`,
   `:timestamp`, `:array`, `:map`, `:enum`
-- Format: `:email`, `:phone`, `:dutch-postal-code`, `:dutch-bsn`, `:iban`,
-  `:iso-4217`, `:iso-3166`, `:url`
+- Format: `:email`, `:phone`, `:postal-code`, `:national-id`, `:iban`,
+  `:iso-4217`, `:iso-3166`, `:url` (locale-sensitive formats such as
+  `:postal-code`, `:national-id`, and `:phone` resolve against the active
+  `:locale`)
 - Constraints: `:min`, `:max`, `:min-length`, `:max-length`, `:pattern`,
   `:unique`, `:optional`, `:immutable`
 - Semantics: `:phi true`, `:pci true`, `:encrypted true`, `:generated true`
@@ -159,6 +184,37 @@ HIPAA-appropriate handling regardless of whether `:hipaa` is in `:compliance`.
 **`:immutable`** — Fields that must never change after initial creation.
 `:created-at`, `:id`, and audit fields are common candidates.
 
+#### Design rationale
+
+`data/schema` is the grimoire's flagship because every other construct depends
+on it. Generation needs a schema to know what to produce; validation needs one
+to know what is valid; test generation reads one to know what to test;
+conversion consults one to preserve types. The schema is the single artefact
+from which the rest of the data lifecycle is derived, and its design reflects
+three commitments.
+
+First, **a schema is a specification of knowledge, not a description of
+storage**. The fields are not columns-in-waiting; they are claims about what
+the system can know and under what conditions. A `:required` field is an
+assertion that the system cannot meaningfully reason about this entity without
+that knowledge. A `:constraint` is an invariant the system's beliefs must
+satisfy to remain coherent. This is why constraints carry `:message` and
+`:severity` — a violated constraint is a false belief, and the schema must say
+how serious that falsehood is.
+
+Second, **compliance is structural, not bolted on**. The `:compliance`,
+`:phi-fields`, and `:pci-fields` parameters make regulatory obligations part of
+the schema rather than scattered through application code. When a field is
+marked `:phi true`, every construct that touches it — generation, masking,
+validation, lineage — inherits the obligation to handle it appropriately. The
+schema is where "this data is regulated" is stated once and honoured everywhere.
+
+Third, **one schema, many manifestations**. The `:output` parameter renders the
+same specification as EDN, JSON Schema, SQL DDL, GraphQL, or OpenAPI. This is
+the practical payoff of treating schema as a first-class artefact: the team
+maintains one source of truth and projects it into whatever form each consumer
+needs, rather than hand-maintaining five drifting copies.
+
 #### Example 1: Order schema with compliance
 
 ```clojure
@@ -171,13 +227,13 @@ HIPAA-appropriate handling regardless of whether `:hipaa` is in `:compliance`.
     :subtotal     {:type :decimal :precision 2 :min 0}
     :vat-amount   {:type :decimal :precision 2 :min 0}
     :total        {:type :decimal :precision 2 :min 0}
-    :currency     {:type :string :format :iso-4217 :default "EUR"}
+    :currency     {:type :string :format :iso-4217 :default "USD"}
     :status       {:type :enum
                    :values [:cart :submitted :confirmed :shipped :delivered
                             :cancelled :refunded]
                    :default :cart}
     :payment-method {:type :enum
-                     :values [:ideal :credit-card :bank-transfer :paypal]
+                     :values [:credit-card :debit-card :bank-transfer :paypal]
                      :required-when (fn [o] (#{:confirmed :shipped :delivered} (:status o)))}
     :tracking-number {:type :string :optional true
                       :pattern "^[A-Z]{2}[0-9]{9}[A-Z]{2}$"
@@ -202,7 +258,14 @@ HIPAA-appropriate handling regardless of whether `:hipaa` is in `:compliance`.
     {:field :items       :target :order-item :type :one-to-many :cascade :delete}]
 
   :compliance [:gdpr]
-  :output :edn)
+  :output :edn
+  :manifest order-schema)
+;; ✓ :payment-method and :tracking-number use :required-when rather than a flat
+;;   :required — a field's obligation depends on the order's lifecycle state. A
+;;   cart needs no payment method; a shipped order does. The schema encodes the
+;;   state-dependence rather than forcing every order through one rigid shape.
+;; ✓ The total = subtotal + vat constraint is :severity :error: a violated sum
+;;   is not a warning, it is a false belief about money that must block the record.
 ```
 
 #### Example 2: Patient schema with HIPAA compliance
@@ -234,6 +297,7 @@ HIPAA-appropriate handling regardless of whether `:hipaa` is in `:compliance`.
      :severity :error}]
 
   :compliance [:hipaa :hitech]
+  :manifest patient-schema
 
   ;; HIPAA compliance activates automatically:
   ;; ✓ Audit logging on every phi-field access or mutation
@@ -264,7 +328,8 @@ statistically realistic distributions.
   :distributions {:field :normal | :uniform | :zipf | :pareto | :log-normal | :poisson}
   :anomalies     {:rate 0.02 :types [:missing-required :out-of-range :wrong-type]}
   :seed          n
-  :output        :edn | :json | :csv | :sql)
+  :output        :edn | :json | :csv | :sql
+  :manifest      dataset-binding)
 ```
 
 #### Parameters
@@ -282,26 +347,55 @@ for testing validation and error handling. `:types` specifies what kinds of
 anomalies to introduce: missing required fields, values outside valid ranges,
 wrong types, duplicate unique keys.
 
-**`:locale`** — Activates locale-specific generation: Dutch customers get valid
-BSN numbers (11-proof check digit), postal codes in `#### AA` format, Dutch
-mobile numbers (`+316...`), Dutch street names and province names. German
-customers get valid Steuernummer formats, German postal codes and city names.
+**`:locale`** — Activates locale-specific generation. Generated identifiers,
+addresses, names, and phone numbers conform to the conventions and validation
+rules of the chosen locale, so that locale-specific format checks (national
+ID checksums, postal-code patterns, phone formats, IBAN check digits) pass
+against the generated data rather than failing it.
 
-#### Example 1: Dutch e-commerce customers with realistic distributions
+#### Design rationale
+
+The purpose of `data/generate` is to produce data the system can hold *false
+beliefs about safely* — realistic enough to exercise every code path, but
+containing no real person's information. Two design commitments follow.
+
+First, **realism is a spectrum, chosen deliberately**. The `:quality` parameter
+exists because the right level of realism depends on the job. A unit test needs
+only structural validity (`:basic`); a demo needs values that read as plausible
+(`:realistic`); a load test or an analytics-pipeline rehearsal needs the
+statistical pathologies of real data — the heavy tails, the rare edge cases,
+the cross-field correlations — that naive generators smooth away (`:production`).
+Generating production-grade realism when basic suffices is waste; generating
+basic data to test a system that will meet heavy-tailed reality is negligence.
+
+Second, **locale is a feature, not decoration**. Real systems serve real
+populations, and those populations have national ID schemes with checksums,
+postal codes with structure, phone numbers with formats, and name distributions
+that are not uniform. A generator that ignores this produces data that passes
+nothing but the loosest validation. By making `:locale` first-class, the
+construct generates data that exercises the locale-specific validation the
+system will actually run — a Dutch BSN that passes the eleven-proof check, a
+German Steuernummer in valid form — so the test is a real test.
+
+Generation is also the foundation of privacy-preserving work: `data/mask` with
+`:synthetic-substitute` leans on the same machinery to replace real values with
+generated ones that preserve distribution and format without preserving identity.
+
+#### Example 1: Locale-aware customers with realistic distributions
 
 ```clojure
 (data/generate :customer
   :count  500
-  :locale :nl
+  :locale :nl                 ;; any supported locale; see locale-aware generation
   :quality :realistic
   :schema {
     :id           {:type :uuid}
-    :bsn          {:type :string :format :dutch-bsn :unique true}
+    :national-id  {:type :string :format :locale-national-id :unique true}
     :first-name   :string
     :last-name    :string
     :email        {:type :email :unique true}
-    :phone        {:type :phone :format :dutch-mobile}
-    :postal-code  {:type :string :format :dutch-postal-code}
+    :phone        {:type :phone :format :locale-mobile}
+    :postal-code  {:type :string :format :locale-postal-code}
     :city         :string
     :dob          {:type :date :min "1940-01-01" :max "2005-12-31"}
     :since        {:type :date :min "2018-01-01" :max "2025-11-01"}
@@ -314,20 +408,24 @@ customers get valid Steuernummer formats, German postal codes and city names.
     :order-count :zipf       ;; Few heavy buyers, many light buyers
     :ltv         :pareto}    ;; 80/20 — few customers drive most revenue
   :seed 42
-  :output :edn)
+  :output :edn
+  :manifest sample-customers)
 
-;; ✓ BSN numbers pass 11-proof algorithm
-;; ✓ Postal codes match Dutch #### AA format with real city-code pairings
-;; ✓ Mobile numbers are valid Dutch +316 numbers
-;; ✓ :since is always after :dob
-;; ✓ order-count and ltv follow realistic heavy-tail distributions
-;; ✓ Reproducible across runs with :seed 42
+;; ✓ Locale-specific formats validate: the national ID passes its checksum,
+;;   postal codes and mobile numbers match the locale's pattern, names are drawn
+;;   from the locale's actual frequency distribution
+;; ✓ :since is always after :dob (a customer cannot register before being born)
+;; ✓ order-count and ltv follow realistic heavy-tail distributions, not uniform
+;;   noise — the generated data has the same shape as production, so a query
+;;   tuned against it behaves the same against real data
+;; ✓ :seed 42 makes the whole dataset reproducible across runs
 ```
 
 #### Example 2: Relational generation with referential integrity
 
 ```clojure
-(def customers (data/generate :customer :count 100 :locale :nl :schema customer-schema :seed 42))
+(def customers (data/generate :customer :count 100 :locale :nl :schema customer-schema :seed 42
+                              :manifest customers))
 
 (data/generate :order
   :count  500
@@ -337,11 +435,14 @@ customers get valid Steuernummer formats, German postal codes and city names.
   :distributions {:total :log-normal :item-count :poisson}
   :constraints   [{:field :placed-at :after-referenced-field [:customer-id :since]}]
   :seed 43
-  :output :edn)
+  :output :edn
+  :manifest sample-orders)
 
-;; ✓ Every :customer-id references an actual customer
+;; ✓ Every :customer-id references an actual generated customer
 ;; ✓ :placed-at is always after the referenced customer's :since date
-;; ✓ :distribution :zipf — some customers have many orders, most have few
+;;   (an order cannot precede the customer's registration)
+;; ✓ :distribution :zipf — some customers have many orders, most have few,
+;;   matching how order volume actually concentrates in real populations
 ```
 
 #### Example 3: Anomaly injection for validation testing
@@ -354,15 +455,18 @@ customers get valid Steuernummer formats, German postal codes and city names.
   :anomalies {:rate 0.05    ;; 5% of records contain anomalies
               :types [:missing-required :out-of-range :duplicate-unique]}
   :seed 99
-  :output :edn)
+  :output :edn
+  :manifest customers-with-defects)
 
 ;; Returns 1000 records, ~50 of which contain intentional defects:
-;; - Some records missing :email (required field)
+;; - Some records missing a required field
 ;; - Some records with :dob in the future
-;; - Some records with duplicate :bsn values
-;; 
-;; Ideal for testing that validation pipelines catch all defect types.
-;; The defect rate and types are controlled and reproducible.
+;; - Some records with duplicate values in a :unique field
+;;
+;; ✓ Ideal for testing that validation pipelines catch all defect types.
+;;   The defect rate and types are controlled and reproducible — exactly
+;;   rate × count records carry defects, only of the requested types, in
+;;   positions fixed by :seed. A test can assert the validator found all 50.
 ```
 
 ---
@@ -617,7 +721,8 @@ structured quality report.
   :on-failure :stop | :collect | :warn
   :include    [:schema-violations :constraint-violations :referential-integrity]
   :sample-invalid n
-  :output     :validation-report)
+  :output     :validation-report
+  :manifest   validation-binding)
 ```
 
 #### Parameters
@@ -630,6 +735,29 @@ anyway, for non-critical paths.
 report, with specific violation details. Essential for diagnosing systematic
 data quality issues.
 
+#### Design rationale
+
+`data/validate` is where the grimoire's epistemic stance becomes operational:
+to validate is to ask whether the system's incoming beliefs are coherent before
+it acts on them. The construct's design turns on a single decision — what to do
+when a belief is false — which is why `:on-failure` is its most consequential
+parameter rather than an afterthought.
+
+The three modes encode three different relationships to risk. `:stop` is for
+pipelines where one bad record means the whole batch is suspect — financial
+postings, regulatory submissions — and proceeding past a violation would
+compound the error. `:collect` is for triage: gather every violation so the
+operator sees the full shape of the problem rather than fixing one error only to
+hit the next on re-run. `:warn` is for paths where imperfect data is better than
+no data and the violation is a signal to investigate, not a reason to halt.
+
+The construct is also built to *explain*, not merely to reject. `:sample-invalid`
+and the `:recommendations` in the report exist because "153 records failed" is
+not actionable, whereas "89 amounts are strings with a currency symbol — strip
+it before coercion" is a fix. A validator that says only yes-or-no forces the
+operator to re-derive what the validator already knew. The grimoire's validator
+hands that knowledge over.
+
 #### Example
 
 ```clojure
@@ -637,7 +765,8 @@ data quality issues.
   :against    order-schema
   :on-failure :collect
   :sample-invalid 10
-  :output :validation-report)
+  :output :validation-report
+  :manifest order-validation)
 
 ;; Returns:
 {:status           :partial-pass
@@ -649,12 +778,16 @@ data quality issues.
    :type-mismatch      [{:field :amount :expected :decimal :found :string :count 89}]
    :constraint-failure [{:rule "total = subtotal + vat" :count 52}]}
  :sample-invalid [
-   {:record  {:order-id "..." :amount "€127.50" :total nil}
+   {:record  {:order-id "..." :amount "$127.50" :total nil}
     :violations ["amount: expected decimal, found string"
                  "total: required field is nil"]}]
  :recommendations [
-   "The 89 string amounts appear to have currency symbols — strip '€' before coercion"
+   "The 89 string amounts carry a currency symbol — strip '$' before coercion"
    "The 52 total mismatches are clustered on orders from supplier-id 'SUP-009'"]}
+;; ✓ The report does not stop at counts. Each violation class names the field,
+;;   the expected and found types, and the count; the recommendations turn the
+;;   diagnosis into a fix and even localise the constraint failures to one
+;;   supplier — the operator leaves knowing what to do, not just that something broke.
 ```
 
 ---
@@ -672,7 +805,8 @@ null rates, value ranges, and quality indicators — without modifying the data.
   :statistics   [:distribution :cardinality :nulls :ranges :patterns :outliers]
   :sample-size  n | :full
   :compare-to   baseline-profile
-  :output       :profile-report)
+  :output       :profile-report
+  :manifest     profile-binding)
 ```
 
 #### Design rationale
@@ -767,13 +901,14 @@ domain.
   :coverage     :comprehensive
   :include      [:valid-cases :boundary-cases :invalid-cases :performance-tests]
   :custom-cases [
-    {:name     "international-customer-no-dutch-bsn"
-     :input    {:id (uuid) :email "user@example.de" :locale :de :bsn nil}
+    {:name     "international-customer-no-national-id"
+     :input    {:id (uuid) :email "user@example.com" :locale :other :national-id nil}
      :expected :valid
-     :note     "BSN is not required for non-Dutch customers"}]
+     :note     "National ID is not required for customers outside its issuing locale"}]
   :performance  {:generate {:count 1000 :max-ms 1000}
                  :validate {:count 10000 :max-ms 5000}}
-  :output :clojure-test)
+  :output :clojure-test
+  :manifest customer-test-suite)
 
 ;; Returns test suite with:
 ;; ✓ valid-customer-minimal (required fields only)
@@ -784,12 +919,333 @@ domain.
 ;; ✓ boundary-balance-zero (0.00, valid)
 ;; ✓ boundary-balance-negative (-0.01, invalid)
 ;; ✓ invalid-missing-email
-;; ✓ invalid-bsn-fails-11-check
-;; ✓ invalid-dutch-postal-code-no-space
+;; ✓ invalid-national-id-fails-checksum
+;; ✓ invalid-postal-code-malformed
 ;; ✓ constraint-violation-no-contact-method
 ;; ✓ performance-generate-1000-records (<1000ms)
-;; ✓ custom-international-customer-no-bsn
+;; ✓ custom-international-customer-no-national-id
 ;; → 94 tests total, covering 100% of schema constraints
+```
+
+---
+
+### `data/expect`
+
+Asserts expectations about a dataset that go beyond what a schema can express —
+statistical properties, cross-field relationships, distributional shape, and
+comparisons to historical baselines. Where `data/validate` asks "is each record
+well-formed?", `data/expect` asks "is this dataset, taken as a whole, behaving
+the way it should?"
+
+#### Signature
+
+```clojure
+(data/expect dataset
+  :expectations [{:expect  expectation-keyword
+                  :field   :field | :fields [...]
+                  :params  {expectation-specific}
+                  :severity :error | :warning | :info} ...]
+  :baseline     prior-profile-or-dataset
+  :on-failure   :stop | :collect | :warn
+  :sample-failures n
+  :output       :expectation-report
+  :manifest     expectation-binding)
+```
+
+#### Expectation vocabulary
+
+```clojure
+;; Distributional
+{:expect :value-distribution :field :status
+ :params {:expected {:active 0.75 :inactive 0.20 :pending 0.05} :tolerance 0.05}}
+{:expect :within-range :field :age :params {:min 18 :max 120}}
+{:expect :mean-near :field :order-total :params {:value 84.50 :tolerance-pct 10}}
+
+;; Volume and freshness
+{:expect :row-count-near :params {:value :baseline :tolerance-pct 15}}
+{:expect :not-empty}
+{:expect :freshness :field :updated-at :params {:max-age-hours 24}}
+
+;; Cross-field and cross-table
+{:expect :field-relationship
+ :params {:rule (fn [r] (<= (:discount r) (:subtotal r)))
+          :description "discount never exceeds subtotal"}}
+{:expect :aggregate-matches
+ :params {:measure {:field :line-total :fn :sum}
+          :equals  {:dataset orders :field :total :fn :sum}
+          :tolerance 0.01
+          :description "line items sum to the order total"}}
+{:expect :referential :field :customer-id :params {:exists-in customers :on :id}}
+
+;; Uniqueness and completeness
+{:expect :unique :field :email}
+{:expect :null-rate-below :field :phone :params {:threshold 0.10}}
+```
+
+#### Design rationale
+
+A schema describes what a *record* must be; it cannot describe what a *dataset*
+must be. "Every age is an integer between 0 and 120" is a schema constraint.
+"The average order value should be within 10% of last month's, and roughly 75%
+of customers should be active, and the line items should sum to the order total"
+are statements about the dataset in aggregate — and they are exactly the
+statements that catch the failures schemas miss. A pipeline can emit ten million
+perfectly well-formed records that are collectively wrong: a join silently
+dropped half the rows, an upstream bug flipped a sign, a currency was double-
+converted. Every record passes `data/validate`; the dataset is garbage.
+
+`data/expect` exists to make those aggregate claims first-class, testable
+assertions. The design borrows the hard-won lesson of expectation frameworks in
+modern data engineering: the most valuable data tests are not "is this a valid
+email" but "does this dataset look like the datasets that came before it." That
+is why `:baseline` is central — most expectations are most powerful when phrased
+as continuity with history ("row count within 15% of yesterday") rather than as
+absolute bounds someone has to guess and maintain.
+
+The construct is deliberately distinct from `data/validate` rather than folded
+into it, because the two answer different questions and fail for different
+reasons. Schema validation failing means *a record is malformed* — fix the
+record or reject it. An expectation failing means *something happened to the
+dataset as a whole* — a pipeline bug, an upstream change, a bad deploy — and the
+response is to investigate the process, not to clean the row. Keeping them
+separate keeps the diagnosis clear.
+
+#### Example 1: Catching a silently broken pipeline
+
+```clojure
+(data/expect daily-orders-export
+  :expectations [
+    {:expect :row-count-near :params {:value :baseline :tolerance-pct 15}
+     :severity :error}
+    {:expect :aggregate-matches
+     :params {:measure {:field :line-total :fn :sum}
+              :equals  {:dataset daily-orders-export :field :total :fn :sum}
+              :tolerance 0.01
+              :description "line items must sum to order totals"}
+     :severity :error}
+    {:expect :value-distribution :field :status
+     :params {:expected {:confirmed 0.80 :cancelled 0.15 :refunded 0.05}
+              :tolerance 0.05}
+     :severity :warning}
+    {:expect :freshness :field :exported-at :params {:max-age-hours 24}
+     :severity :error}]
+  :baseline   yesterdays-export
+  :on-failure :collect
+  :manifest   export-expectations)
+
+;; Returns:
+{:status :failed
+ :passed 2
+ :failed 2
+ :results [
+   {:expect :row-count-near :status :pass
+    :detail "48,210 rows vs baseline 47,980 — within 15% tolerance"}
+   {:expect :aggregate-matches :status :fail :severity :error
+    :detail "Σ line-total = 4,012,884.50 but Σ total = 8,025,769.00 — off by 2×"
+    :diagnosis "Order totals appear doubled relative to their line items;
+                consistent 2× factor suggests a double-applied tax or merge"}
+   {:expect :value-distribution :status :pass
+    :detail "status distribution within tolerance of expected"}
+   {:expect :freshness :status :fail :severity :error
+    :detail "Newest :exported-at is 31h old; export job did not run last night"}]}
+;; ✓ Every record in this export is schema-valid — data/validate would pass it.
+;;   data/expect catches what validation cannot: the totals are internally
+;;   inconsistent (a process bug) and the data is stale (a scheduling failure).
+;;   The unit of failure is the dataset and the pipeline, not any single record.
+```
+
+#### Example 2: Expectations as a generation quality gate
+
+```clojure
+;; Verify that synthetic data is actually realistic before trusting a load test
+(~> (data/generate :customer :count 100000 :quality :production :schema customer-schema)
+  (data/expect
+    :expectations [
+      {:expect :value-distribution :field :order-count
+       :params {:shape :zipf :description "order counts must be heavy-tailed, not uniform"}}
+      {:expect :field-relationship
+       :params {:rule (fn [r] (>= (:tenure-days r) 0))
+                :description "tenure is never negative"}}
+      {:expect :mean-near :field :ltv :params {:value 850 :tolerance-pct 20}}]
+    :on-failure :stop))
+;; ✓ Generation and expectation compose: generate production-grade data, then
+;;   assert it has the statistical shape a load test needs before relying on it.
+;;   A generator bug that produced uniform order-counts would fail here, before
+;;   it could quietly invalidate the load test's conclusions.
+```
+
+#### Usage patterns
+
+```clojure
+;; Run as the last stage of every production pipeline — the dataset-level gate
+;; that schema validation cannot provide
+(~> raw-feed
+  (data/transform :operations etl-ops)
+  (data/validate  :against feed-schema :on-failure :collect)   ;; records well-formed?
+  (data/expect    :expectations feed-expectations               ;; dataset sane?
+                  :baseline last-good-run :on-failure :stop))
+```
+
+---
+
+### `data/contract`
+
+Defines a data contract: a formal, enforceable agreement between a data producer
+and its consumers covering not just structure (the schema) but the guarantees a
+consumer may depend on — freshness, completeness, distribution stability, and
+the rules governing how the producer may change the data over time.
+
+#### Signature
+
+```clojure
+(data/contract name
+  :schema           schema-definition
+  :producer         "team or system that owns and emits this data"
+  :consumers        ["downstream systems that depend on it" ...]
+  :guarantees       {:freshness     {:max-age duration}
+                     :completeness  {:required-fields [...] :max-null-rate {field rate}}
+                     :volume        {:min-rows n :expected-range [low high]}
+                     :distribution  [expectation ...]}
+  :sla              {:availability percentage :update-frequency duration}
+  :schema-evolution :backward-compatible | :forward-compatible | :full | :none
+  :on-breach        {:notify [consumer ...] :action :alert | :block | :quarantine}
+  :version          "semver"
+  :output           :contract-definition
+  :manifest         contract-binding)
+```
+
+#### Parameters
+
+**`:guarantees`** — The promises the producer makes about the data, expressed in
+the same vocabulary as `data/expect`. These are not the producer's internal
+hopes; they are the commitments a consumer is entitled to build on. A consumer
+that reads data within its contracted guarantees should never be surprised.
+
+**`:schema-evolution`** — The rule governing how the schema may change without
+breaking the contract. This is the heart of the construct:
+- `:backward-compatible` — the producer may add optional fields; it may not
+  remove fields, narrow types, or add required fields (existing consumers keep working)
+- `:forward-compatible` — consumers must tolerate unknown fields; the producer
+  may evolve more freely (new consumers keep working against old data)
+- `:full` — both must hold; the safest and most restrictive
+- `:none` — any change is permitted; the contract guarantees only the current shape
+
+**`:on-breach`** — What happens when the producer violates the contract — late
+data, a forbidden schema change, a guarantee missed. `:alert` notifies the named
+consumers; `:block` stops the data from propagating; `:quarantine` diverts it for
+inspection. The breach policy is part of the agreement, decided in advance rather
+than improvised during an incident.
+
+#### Design rationale
+
+The grimoire's founding metaphor is "schema as contract," and until now that has
+been a metaphor: a schema describes structure, and structure is *part* of an
+agreement, but a real contract between a data producer and its consumers promises
+much more than shape. It promises the data will be *there* (availability), will
+be *recent* (freshness), will be *complete* (no surprise nulls), will *keep its
+shape* (distribution stability), and — most consequentially — that it will not
+*change out from under the consumer* without warning (schema evolution rules).
+`data/contract` turns the metaphor into the artefact it always implied.
+
+The decisive commitment is `:schema-evolution`, because the most common way
+data systems break is not bad records but a producer changing the data's shape
+and silently breaking every consumer downstream. A team renames a field, drops
+one they think is unused, or tightens a type — and three teams' pipelines fail
+in production with no warning, because nothing ever stated which changes were
+allowed. By making the evolution rule explicit and enforceable, the contract
+converts a class of production incidents into a class of contract violations
+caught at publish time. This is the same discipline that API versioning brought
+to service interfaces, applied to data interfaces, which have long lacked it.
+
+A contract composes the rest of the grimoire rather than replacing it. Its
+`:schema` is a `data/schema`; its `:guarantees` are `data/expect` expectations;
+enforcing it at runtime runs `data/validate` and `data/expect` against the
+producer's output and applies `:on-breach`. The contract is the *agreement*; the
+other constructs are how it is *kept*. This is why it lives in `data` and not in
+`orchestrate` — it is a statement about what data means and what may be believed
+about it, which is precisely this grimoire's concern.
+
+#### Example 1: A contract for an upstream customer feed
+
+```clojure
+(data/contract "customer-master-feed"
+  :schema    customer-schema
+  :producer  "Customer Platform team"
+  :consumers ["Marketing Analytics" "Billing" "Fraud Detection"]
+  :guarantees {
+    :freshness    {:max-age "PT2H"}              ;; never more than 2 hours stale
+    :completeness {:required-fields [:id :email :status]
+                   :max-null-rate {:phone 0.15 :address 0.20}}
+    :volume       {:min-rows 100000 :expected-range [100000 500000]}
+    :distribution [{:expect :value-distribution :field :status
+                    :params {:expected {:active 0.78 :inactive 0.22} :tolerance 0.08}}]}
+  :sla       {:availability 0.999 :update-frequency "PT1H"}
+  :schema-evolution :backward-compatible
+  :on-breach {:notify ["Marketing Analytics" "Billing" "Fraud Detection"]
+              :action :quarantine}
+  :version   "2.1.0"
+  :output    :contract-definition
+  :manifest  customer-feed-contract)
+
+;; Returns a contract artefact that can be enforced at every publish:
+{:contract "customer-master-feed"
+ :version  "2.1.0"
+ :producer "Customer Platform team"
+ :consumers 3
+ :enforcement {
+   :on-publish [:validate-schema :check-guarantees :check-evolution-rule]
+   :on-breach  :quarantine}
+ :evolution-rule {
+   :policy :backward-compatible
+   :permitted   ["add optional field" "widen a type" "add enum value"]
+   :forbidden   ["remove field" "add required field" "narrow a type"
+                 "remove enum value" "rename field"]}}
+;; ✓ The contract makes the consumers' dependencies explicit and the producer's
+;;   freedoms bounded. The Customer Platform team can add an optional field
+;;   without coordination; it cannot drop :email without breaking the contract —
+;;   and the contract names exactly which three teams to notify if it tries.
+```
+
+#### Example 2: An evolution check catching a breaking change
+
+```clojure
+;; The producer proposes a new schema version; the contract checks it BEFORE publish
+(data/contract "customer-master-feed"
+  :check-evolution {:from customer-schema-v2 :to customer-schema-v3}
+  :manifest evolution-check)
+
+;; Returns:
+{:contract "customer-master-feed"
+ :evolution-policy :backward-compatible
+ :verdict :breach
+ :changes [
+   {:change "added optional field :loyalty-tier" :verdict :permitted}
+   {:change "removed field :fax" :verdict :breach
+    :why "Removing a field breaks consumers that read it; :backward-compatible
+          forbids removal even of a seemingly-unused field"}
+   {:change "narrowed :status enum (dropped :pending)" :verdict :breach
+    :why "Narrowing an enum can orphan existing values held by consumers"}]
+ :affected-consumers ["Billing reads :fax for legacy invoicing"]
+ :recommendation "Deprecate :fax with a sunset window rather than removing it;
+                  add :pending back or coordinate a major version bump (3.0.0)"}
+;; ✓ The breaking change is caught at design time, against the contract, naming
+;;   the consumer that would have broken — instead of in production three teams
+;;   later. This is the entire point of making schema evolution a contract term.
+```
+
+#### Usage patterns
+
+```clojure
+;; Enforce a contract as the gate on a producer's output
+(~> producer-output
+  (data/validate :against (:schema customer-feed-contract) :on-failure :collect)
+  (data/expect   :expectations (:guarantees customer-feed-contract))
+  (data/contract "customer-master-feed" :enforce true :on-breach :quarantine))
+
+;; Generate a consumer-side compatibility test suite from the contract
+(data/generate-tests (:schema customer-feed-contract)
+  :coverage :comprehensive
+  :include  [:valid-cases :boundary-cases])
 ```
 
 ---
@@ -810,7 +1266,8 @@ provenance record that makes the data's history inspectable and auditable.
   :track        [:transformations :enrichments :drops :schema-changes]
   :record-to    destination
   :include-samples boolean
-  :output       :lineage-graph | :lineage-report)
+  :output       :lineage-graph | :lineage-report
+  :manifest     lineage-binding)
 ```
 
 #### Design rationale
@@ -836,7 +1293,8 @@ every record dropped and why, and every schema change encountered.
     (data/validate  :against customer-schema))
   :track   [:transformations :enrichments :drops]
   :record-to lineage-store
-  :include-samples true)
+  :include-samples true
+  :manifest import-lineage)
 
 ;; Lineage record:
 {:pipeline-run "run-2025-11-03-08:00"
@@ -906,26 +1364,31 @@ managed separately from the masked data.
 (data/mask production-customer-snapshot
   :strategy   :pseudonymise
   :fields     {
-    :bsn        {:rule :replace-with-valid-bsn}
-    :first-name {:rule :replace-with-realistic-name :locale :nl}
-    :last-name  {:rule :replace-with-realistic-name :locale :nl}
-    :email      {:rule :replace-with-valid-email}
-    :phone      {:rule :replace-with-valid-dutch-mobile}
-    :iban       {:rule :replace-with-valid-iban :country :nl}
-    :street     {:rule :replace-with-realistic-dutch-street}
+    :national-id {:rule :replace-with-valid-national-id :locale :nl}
+    :first-name  {:rule :replace-with-realistic-name :locale :nl}
+    :last-name   {:rule :replace-with-realistic-name :locale :nl}
+    :email       {:rule :replace-with-valid-email}
+    :phone       {:rule :replace-with-valid-mobile :locale :nl}
+    :iban        {:rule :replace-with-valid-iban :locale :nl}
+    :street      {:rule :replace-with-realistic-street :locale :nl}
     :postal-code {:rule :replace-format-preserving}}
   :preserve   [:distributions :referential-integrity :format-validity]
   :seed       42
   :reversible false
-  :output     :masked-edn)
+  :output     :masked-edn
+  :manifest   masked-customers)
 
 ;; Returns dataset suitable for use in test/staging environments:
 ;; ✓ No real personal data — safe to share with developers
-;; ✓ BSN numbers pass 11-proof check
+;; ✓ National IDs still pass their locale's checksum (a masked value is still
+;;   a structurally valid value, so format validation behaves the same)
 ;; ✓ Emails are format-valid (but at non-real domains)
 ;; ✓ IBANs pass checksum validation
-;; ✓ Distributions preserved — name frequency follows Dutch name distribution
-;; ✓ Customer-orders referential integrity maintained across both masked datasets
+;; ✓ Distributions preserved — name frequency still follows the locale's
+;;   actual name distribution, so analytics over masked data stay representative
+;; ✓ Referential integrity maintained: a customer-id masked one way in the
+;;   customer table is masked the same way in the orders table, because the
+;;   same :seed maps each input to one stable pseudonym
 ```
 
 ---
@@ -944,7 +1407,8 @@ in the differences.
   :compare     [:all-fields | field-list]
   :tolerance   {:field {:type :absolute | :relative :value n} ...}
   :identify    [:missing-in-a :missing-in-b :field-mismatches :duplicates]
-  :output      :reconciliation-report)
+  :output      :reconciliation-report
+  :manifest    reconciliation-binding)
 ```
 
 #### Design rationale
@@ -965,7 +1429,8 @@ systematic, field-level comparison of two datasets that should agree.
   :on      :customer-id
   :compare [:email :address :credit-limit :status]
   :tolerance {:credit-limit {:type :absolute :value 0.01}}
-  :identify  [:missing-in-a :missing-in-b :field-mismatches])
+  :identify  [:missing-in-a :missing-in-b :field-mismatches]
+  :manifest  erp-reconciliation)
 
 ;; Returns:
 {:status :discrepancies-found
@@ -978,7 +1443,7 @@ systematic, field-level comparison of two datasets that should agree.
 
  :mismatch-detail {
    :email          {:count 12  :sample [{:id "..." :in-a "old@" :in-b "new@"}]}
-   :credit-limit   {:count 380 :note "380 within €0.01 tolerance — ignored"
+   :credit-limit   {:count 380 :note "380 within 0.01 tolerance — ignored"
                     :exceeding-tolerance 32}
    :status         {:count 400
                     :pattern "All mismatches have status :active in DB, :inactive in ERP
@@ -987,6 +1452,10 @@ systematic, field-level comparison of two datasets that should agree.
  :recommendations [
    "88 ERP records not in database: investigate if these are recent additions"
    "Status mismatch pattern suggests a sync job has fallen behind"]}
+;; ✓ The :tolerance kept 380 trivial credit-limit differences from drowning the
+;;   32 that actually exceed tolerance — reconciliation without tolerance reports
+;;   noise as signal. And the :status mismatches are not listed 400 times; the
+;;   report finds the *pattern* (DB active / ERP inactive) and names the likely cause.
 ```
 
 ---
@@ -1031,6 +1500,35 @@ finding) are not worth it. Use `data/mask` with `:synthetic-substitute` to
 create test data that is statistically realistic without containing real
 personal information.
 
+### Anti-patterns
+
+**Trusting schema validation to mean the data is correct.** A dataset where
+every record passes `data/validate` can still be collectively wrong — half the
+rows silently dropped by a bad join, every total doubled by a double-applied
+tax, a stale export that never refreshed. Schema validation checks records;
+it cannot check the dataset. Pair it with `data/expect` for any pipeline whose
+output a decision depends on. Treating a green validation as proof of
+correctness is the most common way bad data reaches production looking healthy.
+
+**Changing a producer's schema without a contract.** Renaming or removing a
+field "that nobody uses" is the canonical cause of a downstream outage —
+because *someone* used it, and nothing said they couldn't. Where data crosses a
+team or system boundary, govern its evolution with `data/contract` rather than
+discovering consumers by breaking them.
+
+**Generating only valid test data.** A test suite built entirely from
+well-formed records tests only the happy path. The code that matters most is
+the code that handles bad input, and it is never exercised. Use `:anomalies` to
+inject known-bad records and assert the validator catches them; a pipeline never
+tested against malformed data will meet it first in production.
+
+**Masking without preserving format validity.** Replacing a real national ID
+with a random string produces test data that fails the very format checks the
+system runs, so the masked data exercises a different code path than real data
+would. Mask with `:preserve [:format-validity]` so a masked value is still a
+*structurally valid* value — otherwise the test environment and production
+diverge in exactly the place validation lives.
+
 ---
 
 ## Integration patterns
@@ -1049,6 +1547,22 @@ in the domain grimoire for model alignment.
 (def test-orders      (data/generate :order :schema order-schema :count 1000))
 (def validation-suite (data/generate-tests order-schema :coverage :comprehensive))
 (def quality-report   (data/validate imported-orders :against order-schema))
+```
+
+When the data crosses a team or system boundary, the schema graduates from a
+shared artefact to a governed one: `data/contract` wraps the schema with the
+guarantees consumers depend on and the rules for how it may change, while
+`data/expect` asserts the dataset-level properties the contract promises.
+
+```clojure
+(def order-contract
+  (data/contract "orders-feed"
+    :schema     order-schema
+    :producer   "Order Platform"
+    :consumers  ["Analytics" "Finance"]
+    :guarantees {:freshness {:max-age "PT1H"}}
+    :schema-evolution :backward-compatible
+    :on-breach  {:notify ["Analytics" "Finance"] :action :quarantine}))
 ```
 
 ### Threading data through pipelines
@@ -1086,25 +1600,29 @@ definition in a domain model should map directly to a `data/schema`.
 ```clojure
 {:grimoire    "data"
  :namespace   "data/"
- :version     "2.0.0"
+ :version     "2.1.0"
  :description "Complete data lifecycle: schema definition, generation,
-               transformation, validation, profiling, lineage, and privacy"
+               transformation, validation, expectations, contracts,
+               profiling, lineage, and privacy"
 
  :constructs {
    :definition    [data/schema]
    :generation    [data/generate]
    :transformation [data/transform data/convert-format data/pipeline]
-   :quality       [data/validate data/profile data/generate-tests]
+   :quality       [data/validate data/expect data/profile data/generate-tests]
+   :governance    [data/contract]
    :provenance    [data/lineage data/mask data/reconcile]}
 
  :best-for [
    "Synthetic data generation for testing without real personal data"
    "Schema-driven validation and test generation"
+   "Dataset-level expectations and aggregate quality assertions beyond schema"
+   "Data contracts governing producer-consumer guarantees and schema evolution"
    "ETL pipeline construction with resilience and monitoring"
    "Data quality profiling and drift detection"
    "Privacy-preserving data masking for test environments"
    "Data reconciliation for migrations and audits"
-   "Locale-aware data generation (Dutch, German, English, French)"]
+   "Locale-aware data generation and validation"]
 
  :works-with [:core :domain :orchestrate]
 
@@ -1134,7 +1652,22 @@ definition in a domain model should map directly to a `data/schema`.
                  identifiability. Reversible with a key."}
    {:term "Anomaly injection"
     :definition "Intentionally introducing known-bad records into test datasets
-                 at a controlled rate, to verify validation and error handling"}]}
+                 at a controlled rate, to verify validation and error handling"}
+   {:term "Expectation"
+    :definition "An assertion about a dataset in aggregate — its distribution,
+                 volume, freshness, or cross-field relationships — that a schema
+                 cannot express. Answers 'is the dataset as a whole behaving
+                 correctly?' rather than 'is each record well-formed?'"}
+   {:term "Data contract"
+    :definition "A formal, enforceable agreement between a data producer and its
+                 consumers covering schema, guarantees (freshness, completeness,
+                 distribution), SLA, and — critically — the rules governing how
+                 the schema may evolve without breaking consumers."}
+   {:term "Schema evolution"
+    :definition "The governed change of a schema over time. A contract's
+                 evolution policy (backward-compatible, forward-compatible, full)
+                 determines which changes are permitted, converting a class of
+                 production outages into contract violations caught at publish."}]}
 ```
 
 ---
@@ -1152,15 +1685,21 @@ and have a documented legal basis for processing.
 
 ### Locale-aware generation
 
-When generating with `:locale :nl`:
-- BSN: generate using the 11-proof (elfproef) algorithm; all generated BSNs
-  must pass `sum(d_i × (9-i)) mod 11 == 0`
-- Postal codes: format `#### AA` where the digit prefix maps to a real Dutch
+Each supported locale defines the formats and checksums its generated values
+must satisfy, so that locale-specific validation passes against generated data.
+The processor applies the rules of whichever locale is requested. As a worked
+example, `:locale :nl`:
+- National ID (BSN): generate using the eleven-proof (elfproef) algorithm; all
+  generated values must satisfy `sum(d_i × (9-i)) mod 11 == 0`
+- Postal codes: format `#### AA` where the digit prefix maps to a real
   municipality; the letter suffix is any valid two-letter combination
-- Phone numbers: +31 6xx xxx xxxx for mobile; +31 (0)x for landlines
-- IBAN: `NL##BANK#########` where the check digits are computed correctly
-- Names: draw from Dutch name frequency distributions (de Jong, Jansen,
-  van den Berg, etc.)
+- Phone numbers: `+31 6xx xxx xxxx` for mobile; `+31 (0)x...` for landlines
+- IBAN: `NL##BANK#########` with correctly computed check digits
+- Names: drawn from the locale's name-frequency distribution
+
+Other locales define their own equivalents (e.g. a national tax-number format,
+postal-code pattern, phone format, and name distribution). The mechanism is the
+same; only the rules differ.
 
 ### Distribution fidelity
 
@@ -1198,3 +1737,53 @@ drifts using these severity thresholds (adjustable per use case):
 - `:warning` — change > 15% in a metric or null rate increase > 2 percentage points
 - `:critical` — cardinality drops to 0 for a non-empty field, or null rate
   exceeds 50% for a required field
+
+### Expectation evaluation
+
+`data/expect` evaluates dataset-level assertions, and its discipline is the
+mirror image of schema validation. Where validation reports per-record
+violations, an expectation reports a single dataset-level verdict per
+expectation, with the aggregate evidence that produced it (the observed
+distribution, the computed sum, the row count vs baseline). Never reduce an
+expectation to a count of bad records — its unit of judgment is the whole
+dataset.
+
+When an expectation references `:baseline`, evaluate it as continuity rather
+than absolute bound: "within 15% of baseline" is computed against the supplied
+prior profile or dataset, not a hardcoded number. If no baseline is available
+(first run), report the expectation as `:unevaluable` with the current value
+recorded, so the next run has a baseline — do not silently pass it.
+
+Diagnose, do not just fail. When an expectation fails, the report should
+attempt a cause where the evidence supports one (a consistent 2× factor on a
+sum suggests a double-application; a uniform distribution where a heavy tail
+was expected suggests a generator or sampling bug). A bare failure forces the
+operator to re-investigate what the check already revealed.
+
+### Contract enforcement and evolution
+
+`data/contract` is enforced by composing the other constructs, and the
+processor should treat it as such: enforcing a contract runs `data/validate`
+against `:schema`, runs `data/expect` against `:guarantees`, checks freshness
+and volume against the SLA, and applies `:on-breach` on any failure. The
+contract does not re-implement these checks; it orchestrates them and assigns
+consequences.
+
+The evolution check is the high-value path and must be applied at design time,
+before a new schema version is published. Given a `:from` and `:to` schema and
+an evolution policy, classify every structural change as permitted or breaching
+under that policy:
+- `:backward-compatible` forbids removing fields, adding required fields,
+  narrowing types, removing enum values, and renaming; permits adding optional
+  fields, widening types, and adding enum values.
+- `:forward-compatible` requires consumers tolerate unknown fields; permits the
+  producer to add and (with care) remove fields, provided consumers were built
+  to ignore unknowns.
+- `:full` requires both sets of constraints to hold simultaneously.
+- `:none` permits any change; the check always passes.
+
+When a change breaches the policy, name the affected consumers where the
+contract's `:consumers` and field-level usage allow it, and recommend a
+non-breaking path (deprecation window, additive alternative, coordinated major
+version bump). The purpose is to catch the breaking change against the contract
+rather than in a downstream consumer's production incident.
