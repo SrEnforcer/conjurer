@@ -53,7 +53,7 @@ This works because LLMs are not finite automata. They are probability distributi
 **Establish context that accumulates across invocations:**
 
 ```clojure
-(context establish
+(context healthcare
   :domain :healthcare
   :regulations [:hipaa :hitech]
   :entities {:patient [:id :mrn :dob] :encounter [:id :timestamp :codes]})
@@ -106,6 +106,26 @@ This works because LLMs are not finite automata. They are probability distributi
   :escalate :when (> consecutive-model-failures 50))
 ```
 
+**Declare certainty explicitly:**
+
+```clojure
+(conjure transaction-screening
+  :thresholds {
+    :daily-limit       (certain (eur 10000))   ;; binding — compliance threshold
+    :velocity-window   (prefer  (minutes 5))   ;; reasonable default, tunable
+    :anomaly-score-cut (allow   0.75)}         ;; illustrative — system may recalibrate
+
+  :within (ensure
+    :structural [(<= :daily-limit (eur 10000))]
+    :semantic   ["alerts are actionable, not alarming"]
+    :verify-via [:mcp :tests :llm]
+    :on-violation :halt))
+
+;; certain · prefer · allow declare how strongly each value binds.
+;; ensure declares postconditions and which enforcement layer verifies what.
+;; Honest about the boundary between mechanical and semantic guarantees.
+```
+
 ---
 
 ## Grimoires
@@ -114,7 +134,7 @@ Conjurer's standard library is organized into **grimoires** — thematic spellbo
 
 | Grimoire | Namespace | Purpose |
 |---|---|---|
-| [core](grimoires/core.md) | _(none)_ | Foundational constructs: `conjure`, `refine`, `context`, `weave`, `ward`, `witness`, `~>` and more |
+| [core](grimoires/core.md) | _(none)_ | The language itself: invocations, composition, execution, certainty contracts, reflection, and ecosystem connectives (`charter` · `target` · `asset` · `handover`) |
 | [domain](grimoires/domain.md) | `d/` | Knowledge extraction, domain modeling, DSL generation |
 | [data](grimoires/data.md) | `data/` | Synthetic data generation, transformation, validation pipelines |
 | [web](grimoires/web.md) | `w/` | Web analysis, component generation, full-stack prototyping |
@@ -123,8 +143,7 @@ Conjurer's standard library is organized into **grimoires** — thematic spellbo
 | [taxonomy](grimoires/taxonomy.md) | `t/` | Classification systems, hierarchical organization, controlled vocabularies |
 | [orchestrate](grimoires/orchestrate.md) | `o/` | Workflow coordination, saga patterns, human-in-the-loop |
 | [eloquence](grimoires/eloquence.md) | `e/` | Tone, audience targeting, rhetorical structure |
-
-
+| [agent](grimoires/agent.md) | `a/` | Autonomous action: agent definition, invocation, delegation, multi-agent coordination |
 
 ---
 
@@ -149,10 +168,11 @@ Seven terms cover the language:
 1. **Declarative supremacy** — specify outcomes, not implementations
 2. **Semantic richness over syntactic rigidity** — meaning matters more than form; multiple expressions of the same intent are all valid
 3. **Semantic gravity** — context accumulates mass; the heavier it grows, the shorter and more precise your invocations become
-4. **Intent topology** — not all requirements are equally central; `conjure` distinguishes `:requires`, `:prefers`, `:style`, and `:deferred`
-5. **Productive ambiguity** — some vagueness is an invitation for creative manifestation, not an error to be corrected
-6. **Progressive refinement** — complexity accretes; `refine` is a discovery tool as much as an enhancement mechanism
-7. **Collaborative discovery** — the LLM co-authors, surfaces tensions, and proposes improvements; it does not merely execute
+4. **Productive ambiguity** — some vagueness is an invitation for creative manifestation, not an error to be corrected
+5. **Progressive refinement** — complexity accretes; `refine` is a discovery tool as much as an enhancement mechanism
+6. **Intent topology** — not all requirements are equally central; `conjure` distinguishes `:requires`, `:prefers`, `:style`, and `:deferred`
+7. **Calibrated certainty** — values carry graded commitment (`certain` · `prefer` · `allow`); invocations carry contracts (`given` / `ensure`); the language is honest about which enforcement layer verifies what
+8. **Collaborative discovery** — the LLM co-authors, surfaces tensions, and proposes improvements; it does not merely execute
 
 ---
 
@@ -164,15 +184,17 @@ conjurer/
 ├── CHANGELOG.md           ← design history and decisions
 ├── conjurer.md            ← philosophy, naming rationale, full principles
 └── grimoires/
+    ├── template.md        ← canonical structure for grimoires and .cnj files
     ├── core.md            ← the language's foundational constructs
-    ├── taxonomy.md
-    ├── reasoning.md
     ├── domain.md
     ├── data.md
     ├── web.md
     ├── semantics.md
+    ├── reasoning.md
+    ├── taxonomy.md
     ├── orchestrate.md
-    └── eloquence.md
+    ├── eloquence.md
+    └── agent.md
 ```
 
 Start with [`conjurer.md`](conjurer.md) for the philosophical foundation, then [`grimoires/core.md`](grimoires/core.md) for the language itself.

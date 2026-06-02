@@ -1,39 +1,48 @@
 # Conjurer — Quick Reference
 
-All 107 symbols across 10 grimoires. For full signatures and examples,
+All 112 symbols across 10 grimoires. For full signatures and examples,
 see the individual grimoire files.
 
 ---
 
-## core — Foundational constructs
+## core — The language itself
 
-| Symbol | Synopsis |
-|---|---|
-| `conjure` | Primary manifestation: describe what should exist |
-| `refine` | Iteratively enhance an existing manifestation |
-| `context` | Establish semantic context for subsequent invocations |
-| `using` | Scope a context or namespace to a block |
-| `assume` | Declare operative constraints: team, infrastructure, non-negotiables |
-| `ritual` | Multi-phase invocation with named stages and intermediate artefacts |
-| `explain` | Transparent account of how a manifestation was produced |
-| `meta-query` | Interrogate a manifestation — assumptions, trade-offs, failure modes |
-| `witness` | Observe without modifying; produces out-of-band reasoning record |
-| `as` | Apply a perspectival role — security auditor, new engineer, regulator |
-| `~>` | Threading: compose transformations left-to-right |
-| `transmute` | Change form while preserving semantic essence |
-| `weave` | Integrate independent artefacts into a system with explicit contracts |
-| `lore` | Register domain patterns and anti-patterns for session-wide application |
-| `sequence` | Execute operations in order; saga compensation on failure |
-| `parallel` | Execute operations concurrently; combine by merge, quorum, or first-wins |
-| `branch` | Conditional execution on predicate or structural pattern |
-| `retry` | Automatic retry with backoff for transient failures |
-| `intercept` | Apply cross-cutting concerns without touching the operation |
-| `ward` | Structured error containment with explicit degradation ladder |
-| `shape` | Semantic type contract — what data means, not just its structure |
-| `charter` | Session anchor for `.cnj` files: goals, decisions, open questions |
-| `target` | Declare implementation form: language, standard, artefact types |
-| `asset` | Register external standard or capability (coding standard, design system) |
-| `handover` | Package session context; transfer to specialist agent |
+Organised into seven thematic parts: fundamentals, composition, execution,
+certainty contracts, typing, reflection, and ecosystem connectives. See
+`core.md` for the full construct map and signatures.
+
+| Symbol | Part | Synopsis |
+|---|---|---|
+| `conjure` | I | Primary manifestation: describe what should exist |
+| `refine` | I | Iteratively enhance an existing manifestation |
+| `context` | I | Declare semantic context for subsequent invocations |
+| `using` | I | Scope a context or namespace to a block |
+| `assume` | I | Declare operative constraints: team, infrastructure, non-negotiables |
+| `ritual` | II | Multi-phase invocation with named stages and intermediate artefacts |
+| `~>` | II | Threading: compose transformations left-to-right |
+| `transmute` | II | Change form while preserving semantic essence |
+| `weave` | II | Integrate independent artefacts into a system with explicit contracts |
+| `lore` | II | Register domain patterns and anti-patterns for session-wide application |
+| `sequence` | III | Execute operations in order; saga compensation on failure |
+| `parallel` | III | Execute operations concurrently; combine by merge, quorum, or first-wins |
+| `branch` | III | Conditional execution on predicate or structural pattern |
+| `retry` | III | Automatic retry with backoff for transient failures |
+| `intercept` | III | Apply cross-cutting concerns without touching the operation |
+| `ward` | III | Structured error containment with explicit degradation ladder |
+| `certain` | IV | Inline qualifier: value is bound, no substitution permitted |
+| `prefer` | IV | Inline qualifier: value is a lean; default for unmarked entries |
+| `allow` | IV | Inline qualifier: value is illustrative; system may substitute |
+| `given` | IV | Declare preconditions; treat MCP results as ground truth |
+| `ensure` | IV | Declare postconditions; name which layer verifies what |
+| `shape` | V | Semantic type contract — what data means, not just its structure |
+| `explain` | VI | Transparent account of how a manifestation was produced |
+| `meta-query` | VI | Interrogate a manifestation — assumptions, trade-offs, failure modes |
+| `witness` | VI | Observe without modifying; produces out-of-band reasoning record |
+| `as` | VI | Apply a perspectival role — security auditor, new engineer, regulator |
+| `charter` | VII | Session anchor for `.cnj` files: goals, decisions, open questions |
+| `target` | VII | Declare implementation form: language, standard, artefact types |
+| `asset` | VII | Register external standard or capability (coding standard, design system) |
+| `handover` | VII | Package session context; transfer to specialist agent |
 
 ### Key parameters
 
@@ -46,6 +55,16 @@ see the individual grimoire files.
 | `:manifest` | Bind the result to a name |
 | `:when` | Conditional refinement — activates when predicate holds |
 | `:inherits` | Context hierarchy — extends parent, does not replace |
+
+### Certainty markers
+
+| Form | Meaning |
+|---|---|
+| `(certain v)` | Value is bound — no substitution permitted at any layer |
+| `(prefer v)` | Value is a lean — honoured unless overridden (default for unmarked map entries) |
+| `(allow v)` | Value is illustrative — system may substitute freely |
+| `(given ...)` | Preconditions: `:facts`, `:state`, `:from-mcp` treated as ground truth; `:scope` controls reach |
+| `(ensure ...)` | Postconditions: `:structural` (mechanical), `:semantic` (LLM-enforced), `:behavioural` (scenarios); `:verify-via [:mcp :llm :tests :lint]`; `:on-violation :halt \| :warn \| :document` |
 
 ---
 
@@ -260,7 +279,7 @@ runs in reverse order automatically on failure.
 1. (charter ...)           ← always first; goals, decisions, open questions
 2. (asset ...)             ← external standards and capabilities
 3. (assume ...)            ← operative constraints
-4. (context establish ...) ← domain semantic frame
+4. (context ...)           ← domain semantic frame
 5. domain work             ← d/explore, r/rules, t/define, etc.
 6. (target ...)            ← implementation declarations
 7. (handover ...)          ← when ready to materialise (issued, not always present)
