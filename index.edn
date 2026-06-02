@@ -3,7 +3,7 @@
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces
 
-{:version    "1.0.0"
+{:version    "1.1.0"
  :grimoires  [
    {:name "core"       :file "grimoires/core.md"       :namespace nil}
    {:name "domain"     :file "grimoires/domain.md"     :namespace "d/"}
@@ -182,6 +182,46 @@
    :produces  [:guarded-result]
    :key-params [:protect :from :recover :degrade-gracefully :escalate :manifest]}
 
+  certain
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Inline qualifier marking a value as bound; no substitution permitted"
+   :accepts   [:value]
+   :produces  [:certain-value]
+   :key-params []}
+
+  prefer
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Inline qualifier marking a value as preferred when compatible with binding constraints"
+   :accepts   [:value]
+   :produces  [:preferred-value]
+   :key-params []}
+
+  allow
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Inline qualifier marking a value as illustrative and freely substitutable"
+   :accepts   [:value]
+   :produces  [:allowed-value]
+   :key-params []}
+
+  given
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Declares invocation preconditions, including MCP tool results as ground truth"
+   :accepts   []
+   :produces  [:precondition-context]
+   :key-params [:facts :state :from-mcp :unverified? :scope]}
+
+  ensure
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Declares postconditions and enforcement layers for manifested outputs"
+   :accepts   []
+   :produces  [:postcondition-contract]
+   :key-params [:structural :semantic :behavioural :verify-via :on-violation]}
+
   shape
   {:grimoire  "core"
    :namespace nil
@@ -232,7 +272,7 @@
    :synopsis  "Analyses sources to extract comprehensive domain model: entities, relationships, constraints"
    :accepts   [:source-url-file-or-model]
    :produces  [:domain-model]
-   :key-params [:depth :breadth :focus :sources :language :infer :confidence-threshold :compare-to :output]}
+   :key-params [:from :depth :breadth :focus :sources :language :infer :confidence-threshold :compare-to :output :manifest]}
 
   d/extract
   {:grimoire  "domain"
@@ -240,7 +280,7 @@
    :synopsis  "Targeted retrieval of a specific domain facet without a full exploration"
    :accepts   [:source-or-model]
    :produces  [:domain-facet]
-   :key-params [:what :matching :depth :as :output]}
+   :key-params [:what :matching :depth :as :output :manifest]}
 
   d/refine
   {:grimoire  "domain"
@@ -248,7 +288,7 @@
    :synopsis  "Deepens or extends an existing domain model by focusing on specific concepts"
    :accepts   [:existing-model]
    :produces  [:enhanced-domain-model]
-   :key-params [:focus-on :expand :depth :enrich-from :infer]}
+   :key-params [:focus-on :expand :depth :enrich-from :infer :output :manifest]}
 
   d/merge
   {:grimoire  "domain"
@@ -256,7 +296,7 @@
    :synopsis  "Combines multiple domain models into a unified view; makes conflicts explicit"
    :accepts   [:models]
    :produces  [:unified-domain-model]
-   :key-params [:strategy :align-concepts :perspective-map :conflict-resolution :output]}
+   :key-params [:strategy :align-concepts :perspective-map :conflict-resolution :output :manifest]}
 
   d/compare
   {:grimoire  "domain"
@@ -264,7 +304,7 @@
    :synopsis  "Structured comparison of two domain models: alignments, divergences, gaps"
    :accepts   [:model-a :model-b]
    :produces  [:comparison-report]
-   :key-params [:dimensions :highlight :perspective :output]}
+   :key-params [:dimensions :highlight :perspective :output :manifest]}
 
   d/scope
   {:grimoire  "domain"
@@ -272,7 +312,31 @@
    :synopsis  "Derives a focused sub-domain view from a larger model without losing provenance"
    :accepts   [:domain-model]
    :produces  [:scoped-domain-model]
-   :key-params [:to :include :depth :retain-provenance :output]}
+   :key-params [:to :include :depth :retain-provenance :output :manifest]}
+
+  d/bounded-context
+  {:grimoire  "domain"
+   :namespace "d/"
+   :synopsis  "Partitions a domain model into bounded contexts and context-map relationships"
+   :accepts   [:domain-model]
+   :produces  [:context-map]
+   :key-params [:strategy :contexts :detect :relationships :on-shared-term :output :manifest]}
+
+  d/ubiquitous-language
+  {:grimoire  "domain"
+   :namespace "d/"
+   :synopsis  "Builds an enforceable canonical glossary for a domain or bounded context"
+   :accepts   [:domain-model]
+   :produces  [:ubiquitous-language]
+   :key-params [:scope :for-context :canonicalise :include :forbid :enforce-in :output :manifest]}
+
+  d/evolve
+  {:grimoire  "domain"
+   :namespace "d/"
+   :synopsis  "Maintains versioned domain-model lineage with change drivers and rationale"
+   :accepts   [:baseline-model]
+   :produces  [:evolved-model]
+   :key-params [:to :from-source :record :reason :driver :version :on-removal :output :manifest]}
 
   d/model
   {:grimoire  "domain"
@@ -280,7 +344,7 @@
    :synopsis  "Manually defines a domain model from practitioner knowledge"
    :accepts   [:domain-name]
    :produces  [:domain-model]
-   :key-params [:entities :relationships :operations :constraints :invariants :output]}
+   :key-params [:entities :relationships :operations :constraints :invariants :output :manifest]}
 
   d/annotate
   {:grimoire  "domain"
@@ -288,7 +352,7 @@
    :synopsis  "Adds practitioner tacit knowledge to a model without altering extracted facts"
    :accepts   [:model]
    :produces  [:annotated-model]
-   :key-params [:annotations :output]}
+   :key-params [:annotations :output :manifest]}
 
   d/validate
   {:grimoire  "domain"
@@ -296,7 +360,7 @@
    :synopsis  "Checks a domain model for completeness, consistency, and pattern conformance"
    :accepts   [:model]
    :produces  [:validation-report]
-   :key-params [:checks :against :strict :output]}
+   :key-params [:checks :against :against-language :strict :output :manifest]}
 
   d/generate-dsl
   {:grimoire  "domain"
@@ -304,7 +368,7 @@
    :synopsis  "Creates a domain-specific language from a domain model"
    :accepts   [:domain-model]
    :produces  [:dsl-definition]
-   :key-params [:style :includes :namespace :target :output]}
+   :key-params [:style :includes :namespace :target :using-language :output :manifest]}
 
   d/export
   {:grimoire  "domain"
