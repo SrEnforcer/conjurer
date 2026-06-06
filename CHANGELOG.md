@@ -2,14 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+This changelog is intentionally initialized at the current maturity baseline.
+Earlier exploratory evolution is treated as pre-history.
+
+## 1.0.0 - 2026-06-06
 
 ### Added
 
-- Added `grimoires/exhume.md` for reverse-engineering existing codebases back into Conjurer specifications.
-- Added `template.md` at the repository root as the canonical structure for grimoires and `.cnj` project files.
-- Added the `examples/conjurer-mcp/` scaffold and the `Conjurer Project Builder` agent.
+- Mature, internally coherent Conjurer specification baseline.
+- Complete standard grimoire library including `exhume` as reverse-flow complement.
+- Unified symbol catalog and reference set for current language surface.
 
-### Changed
+### Notes
 
-- Refreshed the core specification files, index, quick reference, and supporting grimoire documentation to reflect the expanded language surface.
+- This entry marks the point where the project reached its current detailed and durable form.
