@@ -111,7 +111,7 @@
   :tool-name   "list_grimoire"
   :purpose     "Cheap orientation: constructs and one-line synopses for a grimoire
                 (or all grimoires)"
-  :accepts     {:grimoire "optional string — omit for all ten grimoires"}
+  :accepts     {:grimoire "optional string — omit for all eleven grimoires"}
   :returns     {:format :structured
                 :shape  [{:grimoire :string :symbol :string :synopsis :string}]}
   :backed-by   :symbol-index
@@ -157,6 +157,7 @@
   :purpose     "Check a .cnj file against the spec's structural rules and report
                 violations the agent would otherwise have to know by heart"
   :accepts     {:path   "string — path to a .cnj file"
+                :mode   ":authored | :recovered — defaults to :authored"
                 :strict "optional bool — treat warnings as errors"}
   :returns     {:format :structured
                 :shape  {:valid :boolean
@@ -170,6 +171,14 @@
                 "decisions log is append-only-shaped (each entry has :date :decision)"
                 "referenced symbols exist in index.edn"
                 "every :references target resolves to a readable file"]
+  :mode-note   ":recovered relaxes the rules for a .cnj produced by an exhume
+                workflow: :recovered-marked decisions are valid, a 0.0.0-recovered
+                version is expected (not an error), and speculative intent appearing
+                as :open questions rather than decisions is correct, not a gap.
+                :authored applies the full strictness for a hand-written .cnj.
+                Note: this mode is for validating OTHER recovered codebases after
+                the server is built — it plays no part in this project's own
+                tool-less bootstrap."
   :token-note  "The agent inherits the spec's rules as a service instead of
                 carrying them in context.")
 
@@ -209,9 +218,11 @@
      :est-lines 260}
     {:module "validation.ts"
      :responsibility "Pure rule functions over a CnjDocument; returns a violation
-                      list. No I/O — takes a model, returns a report."
-     :exports ["validateCnj" "ValidationRule" "Violation"]
-     :est-lines 300}
+                      list. Supports :authored and :recovered modes (the latter
+                      tolerates exhume-recovered .cnj shapes). No I/O — takes a
+                      model, returns a report."
+     :exports ["validateCnj" "ValidationRule" "Violation" "ValidationMode"]
+     :est-lines 320}
     {:module "types.ts"
      :responsibility "Shared type definitions exported at the package boundary
                       (SymbolRecord, GrimoireRef, ToolResult shapes)."

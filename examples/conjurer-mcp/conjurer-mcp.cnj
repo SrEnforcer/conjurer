@@ -33,7 +33,12 @@
      deterministic retrieval, parse, and validation service."
     "Ship as a modular TypeScript codebase (TSF++), never again a single
      multi-thousand-line file, with the VS Code extension sharing the server's
-     core logic rather than duplicating it."]
+     core logic rather than duplicating it."
+    "Support the exhume (reverse) workflow as well as the forward one: once built,
+     the server serves exhume-grimoire content for targeted retrieval and validates
+     the .cnj files that exhume recovers from existing code. The server is a
+     two-way tool — it serves spec forward to an authoring agent, and supports a
+     recovering agent in reverse."]
 
   :audience {:primary   :senior-engineer
              :secondary [:engineer]}
@@ -79,7 +84,26 @@
     {:date "2026-06-05"
      :decision "Monorepo with a shared @conjurer/core package (parser, types,
                 spec-reader) consumed by both the server and the extension, so
-                parser and type definitions are never duplicated."}]
+                parser and type definitions are never duplicated."}
+    {:date "2026-06-05"
+     :decision "The server is a TWO-WAY tool, not only a forward spec-server. The
+                addition of the exhume grimoire (code → spec) gives it a reverse
+                role: serving exhume-grimoire content for targeted retrieval, and
+                validating the .cnj files an exhume workflow recovers from existing
+                code. validate_cnj therefore gains a :mode (:authored | :recovered)
+                so it accepts a recovered .cnj — one carrying :recovered-marked
+                decisions, a 0.0.0-recovered version, and speculative intent demoted
+                to :open questions — as valid rather than malformed. This is a
+                property of the BUILT server, for use AFTER the bootstrap."}
+    {:date "2026-06-05"
+     :decision "The bootstrap is manual and tool-less. The .cnj files for this very
+                project are updated by exhuming the prior conjurer-mcp codebase purely
+                through LLM reasoning — no server, no validate_cnj, because those do
+                not exist yet — and validated by hand. The server is built afterwards
+                FROM the updated .cnj. The server never uses itself during its own
+                bootstrap; there is no chicken-and-egg. validate_cnj :mode :recovered
+                exists for recovering OTHER codebases later, not for this project's
+                own creation."}]
 
   :open [
     "Distribution: is npm publication of the server in scope for v1, or is a
@@ -146,16 +170,21 @@
 
 (asset :conjurer-spec
   :type        :domain-vocabulary
-  :description "The Conjurer specification itself — ten grimoire markdown files
+  :description "The Conjurer specification itself — eleven grimoire markdown files
                 plus index.edn (machine-readable symbol catalog), quick-reference.md,
                 conjurer.md (philosophy), and template.md (.cnj structure). This is
                 the DATA the server serves. It is referenced by a local path or
-                symlink, never copied into the project."
+                symlink, never copied into the project. The exhume grimoire (x/) is
+                the one the server supports most actively in reverse workflows: an
+                agent recovering a .cnj from code retrieves exhume content forward
+                and has its recovered output validated."
   :language    :en
   :location    "../conjurer-spec"   ;; relative path or symlink; resolved at runtime
-  :version     "spec catalog 1.2.0"
-  :enforces    ["index.edn is the authoritative symbol catalog and routing layer"
-                "Grimoire files live under grimoires/ (e.g. grimoires/web.md)"
+  :version     "spec catalog 1.3.0"
+  :enforces    ["index.edn is the authoritative symbol catalog and routing layer
+                 (132 symbols across 11 grimoires)"
+                "Grimoire files live under grimoires/ (e.g. grimoires/web.md,
+                 grimoires/exhume.md)"
                 "The server treats the spec as read-only; it never mutates it"]
   :prohibits   ["Embedding spec content in the server build (it must read the
                  live spec so updates require no rebuild)"]
@@ -169,7 +198,7 @@
 (assume conjurer-mcp-constraints
   :environment  :local-developer-workstation
   :scale        {:users :solo
-                 :spec-size "~10 grimoires, ~127 symbols, low-thousands of lines total"
+                 :spec-size "~11 grimoires, 132 symbols, low-thousands of lines total"
                  :call-volume :interactive}   ;; one agent, human-paced; not a service
   :team         {:size 1 :role :solo-maintainer}
   :infrastructure {:runtime :node
