@@ -21,6 +21,8 @@ Traditional programming forces the human downward, to the machine's level of exp
 
 This works because LLMs are not finite automata. They are probability distributions over meaning conditioned on context — which means they can accept semantic *equivalence classes*, not merely syntactic identity. Conjurer is designed around this fact.
 
+And the flow runs both ways. Intent becomes artifact through manifestation — but a codebase that already exists can be read back the other way, its buried intent *exhumed* into a domain model, conventions, decisions, and a continuable specification. Conjurer can bootstrap itself from a project with a past.
+
 ```clojure
 ;; These three invocations are equivalent. Conjurer accepts all of them.
 (conjure user-form :validates [:email-format :age-minimum :password-strength])
@@ -74,7 +76,7 @@ This works because LLMs are not finite automata. They are probability distributi
   (d/explore :depth 3 :focus [:obligations :dates :liability])
   (s/texan :models [:argumentation :risk :legal])
   (conjure risk-report :highlight [:termination-clauses :ip-assignment])
-  (e/format :tone :professional :audience :legal-counsel))
+  (e/compose :audience :legal-counsel :tone :professional))
 
 ;; A PDF becomes a domain model, becomes a semantic analysis,
 ;; becomes a targeted report, becomes a formatted document.
@@ -136,14 +138,15 @@ Conjurer's standard library is organized into **grimoires** — thematic spellbo
 |---|---|---|
 | [core](grimoires/core.md) | _(none)_ | The language itself: invocations, composition, execution, certainty contracts, reflection, and ecosystem connectives (`charter` · `target` · `asset` · `handover`) |
 | [domain](grimoires/domain.md) | `d/` | Knowledge extraction, domain modeling, DSL generation |
-| [data](grimoires/data.md) | `data/` | Schema-driven data lifecycle: generation, transformation, validation, expectation testing, contracts, lineage, and privacy |
+| [data](grimoires/data.md) | `data/` | Synthetic data generation, transformation, validation pipelines |
 | [web](grimoires/web.md) | `w/` | Web analysis, component generation, full-stack prototyping |
 | [semantics](grimoires/semantics.md) | `s/` | Deep textual analysis, multi-model interpretation, synthesis |
-| [reasoning](grimoires/reasoning.md) | `r/` | Inference, analogical reasoning, belief revision, decision logic, and traceable conclusions |
-| [taxonomy](grimoires/taxonomy.md) | `t/` | Enumerative and faceted classification, taxonomy alignment, validation, browsing, and evolution |
+| [reasoning](grimoires/reasoning.md) | `r/` | Inference, rule-based derivation, decision logic, traceable conclusions |
+| [taxonomy](grimoires/taxonomy.md) | `t/` | Classification systems, hierarchical organization, controlled vocabularies |
 | [orchestrate](grimoires/orchestrate.md) | `o/` | Workflow coordination, saga patterns, human-in-the-loop |
 | [eloquence](grimoires/eloquence.md) | `e/` | Tone, audience targeting, rhetorical structure |
 | [agent](grimoires/agent.md) | `a/` | Autonomous action: agent definition, invocation, delegation, multi-agent coordination |
+| [exhume](grimoires/exhume.md) | `x/` | Code archaeology: recover a domain model, conventions, decisions, and a continuable `.cnj` from an existing codebase |
 
 ---
 
@@ -183,8 +186,11 @@ conjurer/
 ├── README.md              ← you are here
 ├── CHANGELOG.md           ← design history and decisions
 ├── conjurer.md            ← philosophy, naming rationale, full principles
+├── template.md            ← canonical structure for grimoires and .cnj files
+├── index.edn              ← machine-readable symbol catalog (132 symbols)
+├── quick-reference.md     ← every symbol at a glance
+├── SKILL.md               ← agent entry point and processing guidance
 └── grimoires/
-    ├── template.md        ← canonical structure for grimoires and .cnj files
     ├── core.md            ← the language's foundational constructs
     ├── domain.md
     ├── data.md
@@ -194,7 +200,8 @@ conjurer/
     ├── taxonomy.md
     ├── orchestrate.md
     ├── eloquence.md
-    └── agent.md
+    ├── agent.md
+    └── exhume.md          ← recover Conjurer spec from existing code
 ```
 
 Start with [`conjurer.md`](conjurer.md) for the philosophical foundation, then [`grimoires/core.md`](grimoires/core.md) for the language itself.

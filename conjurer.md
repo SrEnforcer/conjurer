@@ -318,4 +318,4 @@ These are the skills of a good systems thinker, a good designer, a good product 
 
 ---
 
-*Continue to [`grimoires/core.md`](grimoires/core.md) for the language's foundational constructs, or to [`template.md`](grimoires/template.md) for the canonical structure of grimoires and `.cnj` project files.*
+*Continue to [`grimoires/core.md`](grimoires/core.md) for the language's foundational constructs, or to [`template.md`](template.md) for the canonical structure of grimoires and `.cnj` project files.*

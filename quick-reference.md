@@ -1,6 +1,6 @@
 # Conjurer — Quick Reference
 
-All 119 symbols across 10 grimoires. For full signatures and examples,
+All 132 symbols across 11 grimoires. For full signatures and examples,
 see the individual grimoire files.
 
 ---
@@ -79,8 +79,8 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | `d/compare` | Structured comparison: alignments, divergences, gaps |
 | `d/scope` | Derive a focused sub-domain view from a larger model |
 | `d/bounded-context` | Partition a model into bounded contexts and context-map relationships |
-| `d/ubiquitous-language` | Curate enforceable canonical terminology for domain language |
-| `d/evolve` | Versioned domain-model evolution with explicit change drivers |
+| `d/ubiquitous-language` | Build an enforceable canonical glossary for a domain or context |
+| `d/evolve` | Maintain versioned domain-model lineage with change drivers and rationale |
 | `d/model` | Manually define a domain model from practitioner knowledge |
 | `d/annotate` | Add tacit knowledge without altering extracted facts |
 | `d/validate` | Check model for completeness, consistency, pattern conformance |
@@ -109,8 +109,8 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | `data/validate` | Validate data against schema; collect all violations |
 | `data/profile` | Statistical profile: distributions, cardinalities, drift detection |
 | `data/generate-tests` | Auto-generate test suites from schema constraints |
-| `data/expect` | Dataset-level expectation checks: distribution, freshness, aggregates, drift |
-| `data/contract` | Producer-consumer data contract: guarantees, evolution rules, breach policy |
+| `data/expect` | Dataset-level expectations (volume, distribution, freshness) against a baseline |
+| `data/contract` | Producer-consumer data contract: guarantees, SLA, schema-evolution, breach handling |
 | `data/lineage` | Non-invasive provenance tracking through transformations |
 | `data/mask` | Privacy: anonymise, pseudonymise, redact, or substitute |
 | `data/reconcile` | Compare two datasets that should match; surface discrepancies |
@@ -128,11 +128,14 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | Symbol | Synopsis |
 |---|---|
 | `w/analyze` | Analyse a site: visual design, structure, accessibility, performance |
-| `w/extract-style` | Extract design tokens; normalise to NL Design System or Tailwind |
+| `w/extract-style` | Extract design tokens; normalise to a portable theme (NL Design System, Tailwind, custom) |
 | `w/extract-structure` | Extract page structure, navigation, inferred user journey |
 | `w/prototype` | Complete deployable web project; production-ready from first invocation |
 | `w/component` | UI component with all variants, states, and interaction patterns |
 | `w/tokens` | Design token system: primitives → semantic → component tiers |
+| `w/responsive` | Responsive behaviour as an explicit strategy (incl. deliberate fixed-desktop) |
+| `w/flow` | Interaction and state-machine design for multi-step UI, with error recovery |
+| `w/copy` | Interface microcopy (labels, empty/error states) bound to components and states |
 | `w/audit` | Accessibility, performance, SEO, code quality audit |
 | `w/migrate` | Framework/toolchain migration preserving appearance and behaviour |
 
@@ -142,6 +145,9 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 ### Common `:features` values
 `:responsive` `:dark-mode` `:animations` `:accessibility` `:i18n` `:pwa`
 
+(For responsive behaviour as a designed strategy — breakpoints, transforms,
+deliberate fixed-desktop layouts — use `w/responsive` rather than the flag.)
+
 ---
 
 ## semantics `s/` — Textual analysis
@@ -150,12 +156,13 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 |---|---|
 | `s/texan` | Comprehensive semantic extraction through structured analytical models |
 | `s/viewpoint` | Explicit perspectival interpretation from a stakeholder role |
-| `s/critique` | Systematic weakness identification; constructive mode produces repair suggestions |
+| `s/critique` | Identify logical weaknesses and gaps in an argument (cf. `e/critique` for prose quality) |
 | `s/synthesise` | Multi-perspective integration; preserves genuine tensions |
 | `s/distill` | Compress to argumentative skeleton — different from summarisation |
 | `s/compare` | Compare texts: convergences, divergences, unique claims |
 | `s/chronicle` | Extract temporal structure: timeline, causality, projections |
 | `s/counter-manifest` | Principled alternative interpretation from a different position |
+| `s/detect-manipulation` | Detect manipulation tactics; distinguish from legitimate persuasion |
 | `s/semantic-profile` | Semantic fingerprint: argumentative complexity, rhetorical features |
 
 ### `:models` for `s/texan`
@@ -172,9 +179,11 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | `o/execute-workflow` | Initiate a workflow instance; supports dry-run and resume |
 | `o/workflow-status` | Query current state of a running or completed instance |
 | `o/scatter-gather` | Distribute in parallel; aggregate by merge, quorum, or first-wins |
+| `o/fan-out` | Run one operation per item across a collection, with concurrency control |
 | `o/human-approval` | Human-in-the-loop checkpoint with deadline, escalation, audit trail |
 | `o/circuit-breaker` | Detect systematic failures; fail fast; allow recovery time |
 | `o/schedule` | Recurring trigger with cron, interval, or fixed time; overlap management |
+| `o/react` | Event-driven trigger (message, webhook, state change); dedup, ordering, backpressure |
 | `o/replay` | Re-execute a workflow from a specific stage; preserves prior work |
 | `o/audit-trail` | Complete execution history: decisions, human actions, errors, timing |
 
@@ -191,6 +200,7 @@ runs in reverse order automatically on failure.
 | `e/compose` | Calibrated prose from structured knowledge for audience and purpose |
 | `e/narrate` | Structure via narrative pattern: problem-solution, deliberative, etc. |
 | `e/adapt-register` | Transform content between registers or audiences |
+| `e/critique` | Review prose for clarity, register, and audience fit (cf. `s/critique` for argument validity) |
 | `e/instruct` | Procedural content: tutorials, how-tos, runbooks, reference docs |
 | `e/formalize` | Informal → precise auditable prose for legal or regulatory contexts |
 | `e/simplify` | Technical → plain language for non-specialist audiences |
@@ -215,10 +225,10 @@ runs in reverse order automatically on failure.
 | `r/derive` | Primary inference: deductive, inductive, or abductive; full derivation chain |
 | `r/decide` | Decision table / tree / rule-set evaluation with path and sensitivity |
 | `r/hypothesise` | Abductive: ranked candidate explanations for observations |
-| `r/analogise` | Case-based analogical reasoning from precedents with distinguishing features |
+| `r/analogise` | Analogical/case-based: transfer a conclusion from similar precedents |
 | `r/check` | Verify: does this follow from these premises? Are these consistent? |
 | `r/contradict` | Find internal contradictions in a belief set |
-| `r/revise` | Belief revision: propagate premise changes to withdrawn/new conclusions |
+| `r/revise` | Belief revision: propagate a retracted/corrected fact through its conclusions |
 | `r/trace` | Complete readable derivation chain in step-by-step, tree, or prose form |
 | `r/argue` | Construct formal argument in Toulmin, classical, or legal-brief format |
 
@@ -226,6 +236,7 @@ runs in reverse order automatically on failure.
 - **Deductive** — conclusion necessarily follows; as certain as premises
 - **Inductive** — probable generalisation; new evidence can overturn
 - **Abductive** — best explanation for observations; a candidate, not a certainty
+- **Analogical** — transfer from a similar precedent; defeated by material differences (`r/analogise`)
 
 ### `:surface` values for `r/derive`
 `:conclusions` `:derivation-chain` `:open-questions` `:underdetermined`
@@ -257,6 +268,7 @@ runs in reverse order automatically on failure.
 |---|---|
 | `a/define` | Declare agent identity: specializations, standards, constraints, memory |
 | `a/memory` | Named memory store for operational state across invocations |
+| `a/equip` | Grant scoped tool/resource access (MCP, filesystem, network) with permissions |
 | `a/invoke` | Directed specific task — agent equivalent of a function call |
 | `a/delegate` | Goal assignment with agent autonomy over approach |
 | `a/compose` | Agent pipeline: sequential, parallel, or parallel-then-merge |
@@ -277,6 +289,38 @@ runs in reverse order automatically on failure.
 
 ### `:approve` values for `a/delegate`
 `:each-step` `:major-decisions` `:on-completion` `:never`
+
+---
+
+## Exhume (`x/`) — code & artefact archaeology
+
+The inverse of the forward flow: recovers Conjurer specification from existing
+code. Every recovery is graded `:attested` (read directly) vs `:inferred`
+(reconstructed, probable) — a guess is never dressed as a fact.
+
+| Symbol | Recovers |
+|---|---|
+| `x/survey` | First-pass map: languages, structure, entry points, scale, apparent purpose |
+| `x/recover-model` | Domain model from source (entities, relationships, invariants) — code-facing twin of `d/explore` |
+| `x/infer-conventions` | Actually-practised coding standards → emits an `asset`; separates convention from accident/drift |
+| `x/reconstruct-decisions` | Decision log from git history, comments, structure → charter `:decisions`; *what* vs *why* graded |
+| `x/charter` | **Capstone:** assemble recovered fragments into a continuable `.cnj` — the reverse handover |
+
+### Confidence grades
+- **`:attested`** — read directly from code; reliable
+- **`:strongly-inferred`** — well-supported by evidence; probable
+- **`:speculative`** — a reasonable guess on thin evidence; treat with care
+
+### The recovery arc
+```clojure
+(~> "../old-codebase"
+  (x/survey :note [:reusable])
+  (x/recover-model :emit :d-explore-compatible)
+  (x/infer-conventions :emit :asset)
+  (x/reconstruct-decisions :emit :charter-decisions)
+  (x/charter :title "Project (recovered)" :open-from :gaps))
+;; code → spec; continue forward from the recovered .cnj
+```
 
 ---
 

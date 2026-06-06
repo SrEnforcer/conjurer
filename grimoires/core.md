@@ -48,6 +48,14 @@ session demands them — execution control for production workflows, certainty
 qualifiers for high-stakes specifications, ecosystem constructs when work
 must persist across sessions or be handed off to specialist agents.
 
+Unlike every other grimoire, `core` constructs carry **no namespace prefix**.
+A domain construct is `d/explore`, a web construct is `w/prototype` — but the
+core constructs are simply `conjure`, `refine`, `~>`, `ward`. This is
+deliberate: core is the language itself, not a library within it. Its
+constructs read as keywords of Conjurer rather than as calls into a grimoire,
+and prefixing them would imply they are optional in the way a domain library
+is. They are not.
+
 ---
 
 ## Part I: Fundamental invocations
@@ -151,16 +159,17 @@ nuanced, lead with examples.
   :accepts  raw-address-string
   :returns  {:street string :city string :postcode string :country :iso-3166-alpha-2}
   :examples {
-    "Kerkstraat 12, 5011 Amsterdam"
-    {:street "Kerkstraat 12" :city "Amsterdam" :postcode "5011" :country "NL"}
+    "12 market street, springfield"
+    {:street "12 Market Street" :city "Springfield" :postcode nil :country nil}
 
     "baker street 221b london"
     {:street "221B Baker Street" :city "London" :postcode nil :country "GB"}}
   :style    {:casing :title-case :missing-fields nil})
 
 ;; The examples communicate normalisation behaviour precisely:
-;; title-casing, field extraction, graceful nil for missing postcode,
-;; ISO country codes, handling of unconventional input ordering.
+;; title-casing, field extraction, graceful nil for missing postcode and
+;; unresolvable country, ISO country codes where inferable, and tolerance of
+;; unconventional input ordering ("baker street 221b" → "221B Baker Street").
 ```
 
 #### Example 3: Business process
@@ -2081,9 +2090,41 @@ surfacing non-obvious consequences of design decisions.
 (meta-query payment-processor
   :questions [
     "Which of the current operative assumptions most constrain the architecture?"
-    "What would change if we needed to support USD and GBP alongside EUR?"
+    "What would change if we needed to support multiple currencies?"
     "What are the three most likely failure modes under 10× normal load?"
     "Which compliance requirements are currently underserved by this implementation?"])
+
+;; Returns reasoned answers, not new manifestations — the system reflects on
+;; what it built rather than rebuilding it:
+{:answers [
+   {:question "Which operative assumptions most constrain the architecture?"
+    :answer   "The single-region Postgres assumption is the dominant constraint.
+               It bounds write throughput and makes the zero-downtime-deploy
+               requirement harder than a multi-region design would. The
+               bootstrapped-budget assumption rules out the managed services
+               that would relax it."}
+   {:question "What would change if we needed to support multiple currencies?"
+    :answer   "Amounts are already stored in integer minor units, so the storage
+               model holds. The gaps are: no FX-rate source or rate-pinning at
+               authorisation time, and per-currency rounding rules absent from
+               the settlement logic. Roughly a two-component addition, not a rewrite."}
+   {:question "Three most likely failure modes under 10× load?"
+    :answer   "1) Connection-pool exhaustion at the single Postgres instance.
+               2) Webhook backlog as Stripe events outpace synchronous handling.
+               3) Idempotency-key contention if retries spike during a partial outage."
+    :confidence :medium
+    :note "Untested at this scale — these are reasoned predictions, not measured limits."}
+   {:question "Which compliance requirements are underserved?"
+    :answer   "Audit-trail completeness is partial: payment mutations are logged,
+               but read-access to stored payment data is not — a gap if the
+               compliance scope requires access logging, which the current
+               context does not yet specify."}]}
+;; ✓ meta-query reflects; it does not manifest. Every answer reasons about the
+;;   existing artefact — its constraints, its failure modes, its gaps — and
+;;   crucially marks where the reasoning is prediction rather than fact
+;;   (:confidence :medium on the load question). Contrast with explain, which
+;;   accounts for choices already made; meta-query reasons about consequences
+;;   and counterfactuals the practitioner has not yet acted on.
 ```
 
 ---
@@ -2962,6 +3003,41 @@ Inserting `witness` calls into a `~>` pipeline costs nothing in terms of the
 pipeline's output. It produces an invaluable record of reasoning that can be
 reviewed, audited, and used to improve the specification over time.
 
+### Anti-patterns
+
+**Flattening topology — treating every value as equally binding.** Writing a
+specification where compliance requirements, sensible defaults, and throwaway
+placeholders all look identical forces the system to guess which is which, and
+it will sometimes guess wrong — trading away a `:requires` capability to satisfy
+what was only a `:style` preference. Use the topology keywords and the
+`certain`/`prefer`/`allow` qualifiers to give intent grain. An unqualified
+specification is not a neutral one; it is one where every value silently claims
+the same weight.
+
+**Re-specifying what gravity already carries.** Once `context` and `assume`
+establish the domain and operative reality, repeating those facts on every
+`conjure` is not caution — it is noise that obscures what is actually new in
+each invocation, and it invites drift when the repeated copies fall out of sync
+with the established context. Establish context once; let later invocations stay
+terse. If an invocation needs to override established context, override it
+explicitly rather than restating the whole stack.
+
+**Claiming an enforcement layer the construct cannot reach.** Declaring a value
+`certain` or a postcondition `ensure :structural` does not make it mechanically
+true if no layer can verify it — and presenting it as guaranteed when only
+semantic (LLM-level) enforcement applies is exactly the dishonesty the certainty
+vocabulary exists to prevent. Match the claim to the layer: `:verify-via` should
+name the enforcement that actually applies, and a guarantee that rests on
+semantic enforcement should be described as such, not as a mechanical certainty.
+
+**Reaching for execution primitives before the work needs them.** Wrapping a
+simple manifestation in `retry`, `ward`, `intercept`, and `parallel` because
+they are available adds ceremony without resilience — a single `conjure` that
+cannot fail transiently does not need a retry policy. Layer execution primitives
+in when the work is genuinely a production workflow with the failure modes they
+address, not as a default posture. Most sessions live in Parts I and II; the
+machinery of Part III is summoned, not assumed.
+
 ---
 
 ## Integration patterns
@@ -3007,6 +3083,8 @@ vocabulary on which domain-specific abstractions are built.
 
 ```clojure
 {:grimoire    "core"
+ :namespace   nil   ;; core constructs are unprefixed — conjure, refine, ~>, not c/conjure
+ :version     "2.1.0"
  :description "Foundational constructs, composition machinery, execution
                primitives, and ecosystem connectives for the Conjurer language"
 

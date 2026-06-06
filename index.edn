@@ -3,7 +3,7 @@
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces
 
-{:version    "1.2.0"
+{:version    "1.3.0"
  :grimoires  [
    {:name "core"       :file "grimoires/core.md"       :namespace nil}
    {:name "domain"     :file "grimoires/domain.md"     :namespace "d/"}
@@ -14,7 +14,8 @@
    {:name "eloquence"  :file "grimoires/eloquence.md"  :namespace "e/"}
    {:name "reasoning"  :file "grimoires/reasoning.md"  :namespace "r/"}
    {:name "taxonomy"   :file "grimoires/taxonomy.md"   :namespace "t/"}
-   {:name "agent"      :file "grimoires/agent.md"      :namespace "a/"}]
+   {:name "agent"      :file "grimoires/agent.md"      :namespace "a/"}
+   {:name "exhume"     :file "grimoires/exhume.md"     :namespace "x/"}]
 
  :symbols {
 
@@ -396,7 +397,7 @@
    :synopsis  "Defines a formal schema: fields, types, constraints, relationships, compliance"
    :accepts   [:entity-name]
    :produces  [:schema-definition]
-    :key-params [:fields :required :unique :indexes :constraints :relationships :compliance :phi-fields :pci-fields :immutable :output :manifest]}
+   :key-params [:fields :required :unique :indexes :constraints :relationships :compliance :phi-fields :output]}
 
   data/generate
   {:grimoire  "data"
@@ -404,7 +405,7 @@
    :synopsis  "Manifests complete realistic datasets from a schema with correct distributions and locale"
    :accepts   [:entity-type]
    :produces  [:dataset]
-    :key-params [:count :schema :locale :quality :constraints :relationships :distributions :anomalies :seed :output :manifest]}
+   :key-params [:count :schema :locale :quality :constraints :relationships :distributions :anomalies :seed :output]}
 
   data/transform
   {:grimoire  "data"
@@ -420,7 +421,7 @@
    :synopsis  "Translates data between formats (CSV, JSON, Parquet, Avro, etc.) preserving semantics"
    :accepts   [:source]
    :produces  [:converted-dataset]
-    :key-params [:from :to :schema :preserve :options :validate-output :output :manifest]}
+   :key-params [:from :to :schema :preserve :options :validate-output :output]}
 
   data/pipeline
   {:grimoire  "data"
@@ -436,7 +437,7 @@
    :synopsis  "Validates data against a schema; collects all violations; returns quality report"
    :accepts   [:data]
    :produces  [:validation-report]
-    :key-params [:against :on-failure :include :sample-invalid :output :manifest]}
+   :key-params [:against :on-failure :include :sample-invalid :output]}
 
   data/profile
   {:grimoire  "data"
@@ -444,7 +445,7 @@
    :synopsis  "Generates statistical profile of a dataset: distributions, cardinalities, drift detection"
    :accepts   [:dataset]
    :produces  [:profile-report]
-    :key-params [:fields :statistics :sample-size :compare-to :output :manifest]}
+   :key-params [:fields :statistics :sample-size :compare-to :output]}
 
   data/generate-tests
   {:grimoire  "data"
@@ -457,7 +458,7 @@
   data/expect
   {:grimoire  "data"
    :namespace "data/"
-   :synopsis  "Asserts dataset-level expectations on distribution, freshness, and cross-field integrity"
+   :synopsis  "Asserts dataset-level expectations (volume, distribution, freshness, referential) against baseline"
    :accepts   [:dataset]
    :produces  [:expectation-report]
    :key-params [:expectations :baseline :on-failure :sample-failures :output :manifest]}
@@ -465,7 +466,7 @@
   data/contract
   {:grimoire  "data"
    :namespace "data/"
-   :synopsis  "Defines enforceable producer-consumer data contracts with guarantees and schema-evolution policy"
+   :synopsis  "Defines a producer-consumer data contract: guarantees, SLA, schema-evolution policy, breach handling"
    :accepts   [:name]
    :produces  [:contract-definition]
    :key-params [:schema :producer :consumers :guarantees :sla :schema-evolution :on-breach :version :output :manifest]}
@@ -476,7 +477,7 @@
    :synopsis  "Tracks data provenance through transformations; produces non-invasive audit trail"
    :accepts   [:pipeline-or-transformation]
    :produces  [:lineage-record]
-    :key-params [:track :record-to :include-samples :output :manifest]}
+   :key-params [:track :record-to :include-samples :output]}
 
   data/mask
   {:grimoire  "data"
@@ -484,7 +485,7 @@
    :synopsis  "Privacy-preserving transformation: anonymise, pseudonymise, redact, or substitute data"
    :accepts   [:dataset]
    :produces  [:masked-dataset]
-    :key-params [:strategy :fields :preserve :seed :reversible :output :manifest]}
+   :key-params [:strategy :fields :preserve :seed :reversible :output]}
 
   data/reconcile
   {:grimoire  "data"
@@ -492,7 +493,7 @@
    :synopsis  "Compares two datasets that should match; surfaces discrepancies and patterns"
    :accepts   [:dataset-a :dataset-b]
    :produces  [:reconciliation-report]
-    :key-params [:on :compare :tolerance :identify :output :manifest]}
+   :key-params [:on :compare :tolerance :identify :output]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; WEB — Web development
@@ -504,7 +505,7 @@
    :synopsis  "Analyses a website or design artefact: visual design, structure, patterns, accessibility"
    :accepts   [:url-or-html]
    :produces  [:web-analysis]
-   :key-params [:from :extract :depth :compare-to :output]}
+   :key-params [:from :extract :depth :compare-to :output :manifest]}
 
   w/extract-style
   {:grimoire  "web"
@@ -512,7 +513,7 @@
    :synopsis  "Extracts visual design tokens from a source; normalises to portable theme or NL Design System"
    :accepts   [:url-css-or-figma]
    :produces  [:design-token-set]
-   :key-params [:from :focus :normalise-names :generate-variants :map-to-tokens :output]}
+   :key-params [:from :focus :normalise-names :generate-variants :map-to-tokens :output :manifest]}
 
   w/extract-structure
   {:grimoire  "web"
@@ -520,7 +521,7 @@
    :synopsis  "Extracts page structure, component hierarchy, navigation patterns, and inferred user journey"
    :accepts   [:url-or-html]
    :produces  [:structure-map]
-   :key-params [:from :depth :infer :output]}
+   :key-params [:from :depth :infer :output :manifest]}
 
   w/prototype
   {:grimoire  "web"
@@ -528,7 +529,7 @@
    :synopsis  "Generates a complete deployable web project from a description; production-ready from first invocation"
    :accepts   [:description]
    :produces  [:web-project]
-   :key-params [:type :style :layout :color-scheme :colors :apply-theme :from-domain :components :features :accessibility :framework :css :output]}
+   :key-params [:type :style :layout :color-scheme :colors :apply-theme :from-domain :components :features :accessibility :framework :css :output :manifest]}
 
   w/component
   {:grimoire  "web"
@@ -536,7 +537,7 @@
    :synopsis  "Generates a UI component with all variants, states, and interaction patterns"
    :accepts   [:component-type]
    :produces  [:component-code]
-   :key-params [:variant :size :style :states :props :framework :stories :a11y :output]}
+   :key-params [:variant :size :style :states :props :framework :stories :a11y :output :manifest]}
 
   w/tokens
   {:grimoire  "web"
@@ -544,7 +545,31 @@
    :synopsis  "Defines and manages a design token system: primitives, semantic, component tiers"
    :accepts   [:name]
    :produces  [:token-set]
-   :key-params [:primitives :semantic :components :export-as :output]}
+   :key-params [:primitives :semantic :components :export-as :output :manifest]}
+
+  w/responsive
+  {:grimoire  "web"
+   :namespace "w/"
+   :synopsis  "Designs or audits responsive behaviour as an explicit strategy, including deliberate fixed-desktop layouts"
+   :accepts   [:target]
+   :produces  [:responsive-spec]
+   :key-params [:strategy :breakpoints :contexts :transform :priority :audit :output :manifest]}
+
+  w/flow
+  {:grimoire  "web"
+   :namespace "w/"
+   :synopsis  "Designs the interaction and state machine behind a multi-step or stateful interface, with error recovery"
+   :accepts   [:name]
+   :produces  [:flow-spec]
+   :key-params [:steps :state-model :transitions :persistence :on-error :optimistic :surface :manifest]}
+
+  w/copy
+  {:grimoire  "web"
+   :namespace "w/"
+   :synopsis  "Generates or audits interface microcopy (labels, empty states, errors) bound to components and states"
+   :accepts   [:target]
+   :produces  [:copy-set]
+   :key-params [:surfaces :voice :for-component :audit :principles :locale :output :manifest]}
 
   w/audit
   {:grimoire  "web"
@@ -552,7 +577,7 @@
    :synopsis  "Audits a web project for accessibility, performance, SEO, and code quality"
    :accepts   [:url-html-or-project-path]
    :produces  [:audit-report]
-   :key-params [:from :dimensions :standard :severity :output]}
+   :key-params [:from :dimensions :standard :severity :output :manifest]}
 
   w/migrate
   {:grimoire  "web"
@@ -560,7 +585,7 @@
    :synopsis  "Migrates a web project between frameworks or toolchains preserving appearance and behaviour"
    :accepts   [:source-project]
    :produces  [:migrated-project]
-   :key-params [:from :to :preserve :strategy :output]}
+   :key-params [:from :to :preserve :strategy :output :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; SEMANTICS — Textual analysis and interpretation
@@ -632,6 +657,14 @@
    :produces  [:counter-analysis]
    :key-params [:from-position :grounds :must-acknowledge :output]}
 
+  s/detect-manipulation
+  {:grimoire  "semantics"
+   :namespace "s/"
+   :synopsis  "Detects manipulation tactics in a text; distinguishes manipulation from legitimate persuasion"
+   :accepts   [:source]
+   :produces  [:manipulation-report]
+   :key-params [:scan :context :calibration :explain :distinguish-from-legitimate :output :manifest]}
+
   s/semantic-profile
   {:grimoire  "semantics"
    :namespace "s/"
@@ -666,7 +699,7 @@
    :synopsis  "Queries the current state of a running or completed workflow instance"
    :accepts   [:execution-handle]
    :produces  [:status-report]
-   :key-params [:include]}
+   :key-params [:include :manifest]}
 
   o/scatter-gather
   {:grimoire  "orchestrate"
@@ -676,13 +709,21 @@
    :produces  [:gathered-result]
    :key-params [:scatter :gather :timeout :min-responses :on-timeout :manifest]}
 
+  o/fan-out
+  {:grimoire  "orchestrate"
+   :namespace "o/"
+   :synopsis  "Runs one operation once per item across a runtime-sized collection with concurrency control"
+   :accepts   [:name]
+   :produces  [:fan-out-result]
+   :key-params [:over :operation :concurrency :on-item-error :gather :reduce-fn :progress :timeout :manifest]}
+
   o/human-approval
   {:grimoire  "orchestrate"
    :namespace "o/"
    :synopsis  "Human-in-the-loop checkpoint with configurable deadline action, escalation, and audit trail"
    :accepts   []
    :produces  [:approval-decision]
-   :key-params [:reviewers :data :options :timeout :deadline-action :escalate-to :notification :audit-trail]}
+   :key-params [:reviewers :data :options :timeout :deadline-action :escalate-to :notification :audit-trail :manifest]}
 
   o/circuit-breaker
   {:grimoire  "orchestrate"
@@ -698,7 +739,15 @@
    :synopsis  "Declares a recurring workflow trigger with cron, interval, or fixed time; manages overlap"
    :accepts   [:name]
    :produces  [:scheduled-job]
-   :key-params [:trigger :timezone :workflow :inputs :overlap :on-failure :monitoring :active]}
+   :key-params [:trigger :timezone :workflow :inputs :overlap :on-failure :monitoring :active :manifest]}
+
+  o/react
+  {:grimoire  "orchestrate"
+   :namespace "o/"
+   :synopsis  "Triggers a workflow in response to an event (message, webhook, state change) with dedup and ordering"
+   :accepts   [:name]
+   :produces  [:reaction-binding]
+   :key-params [:on :workflow :map-event :dedup :ordering :on-failure :concurrency :backpressure :active :manifest]}
 
   o/replay
   {:grimoire  "orchestrate"
@@ -714,7 +763,7 @@
    :synopsis  "Produces complete execution history: every decision, state transition, human action, error"
    :accepts   [:execution-handle]
    :produces  [:audit-report]
-   :key-params [:include :format :output]}
+   :key-params [:include :format :output :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; ELOQUENCE — Audience-aware communication
@@ -726,7 +775,7 @@
    :synopsis  "Generates calibrated prose from structured knowledge for a specified audience and purpose"
    :accepts   [:subject]
    :produces  [:document]
-   :key-params [:from :audience :purpose :tone :length :structure :emphasise :omit :format :output]}
+   :key-params [:from :audience :purpose :tone :length :structure :emphasise :omit :format :output :manifest]}
 
   e/narrate
   {:grimoire  "eloquence"
@@ -734,7 +783,7 @@
    :synopsis  "Structures information using an established narrative pattern suited to audience and purpose"
    :accepts   [:subject]
    :produces  [:narrative-document]
-   :key-params [:from :pattern :audience :arc :format :output]
+   :key-params [:from :pattern :audience :arc :format :output :manifest]
    :patterns  [:problem-solution :situation-complication-resolution :chronological
                :deliberative :comparison-contrast :hero-transformation]}
 
@@ -744,7 +793,15 @@
    :synopsis  "Transforms existing content into a different register, audience, or formality level"
    :accepts   [:source-content]
    :produces  [:adapted-document]
-   :key-params [:from :to :preserve :language :output]}
+   :key-params [:from :to :preserve :language :output :manifest]}
+
+  e/critique
+  {:grimoire  "eloquence"
+   :namespace "e/"
+   :synopsis  "Reviews prose for communication quality (clarity, register, audience fit) relative to a named audience"
+   :accepts   [:source-content]
+   :produces  [:critique-report]
+   :key-params [:for :against :purpose :severity :suggest :output :manifest]}
 
   e/instruct
   {:grimoire  "eloquence"
@@ -752,7 +809,7 @@
    :synopsis  "Generates procedural instructional content: tutorials, how-tos, runbooks, reference docs"
    :accepts   [:task]
    :produces  [:instructional-document]
-   :key-params [:for :assumes :outcome :format :include :code-examples :language :output]
+   :key-params [:for :assumes :outcome :format :include :code-examples :language :output :manifest]
    :formats   [:tutorial :how-to :runbook :reference]}
 
   e/formalize
@@ -761,7 +818,7 @@
    :synopsis  "Transforms informal language into precise auditable prose for legal or regulatory contexts"
    :accepts   [:source-content]
    :produces  [:formal-document]
-   :key-params [:level :preserve :disambiguate :number-claims :definitions :citations :output]}
+   :key-params [:level :preserve :disambiguate :number-claims :definitions :citations :output :manifest]}
 
   e/simplify
   {:grimoire  "eloquence"
@@ -769,7 +826,7 @@
    :synopsis  "Transforms technically dense content into plain language for non-specialist audiences"
    :accepts   [:source-content]
    :produces  [:simplified-document]
-   :key-params [:target-level :preserve :language :standard :output]}
+   :key-params [:target-level :preserve :language :standard :output :manifest]}
 
   e/localize
   {:grimoire  "eloquence"
@@ -777,7 +834,7 @@
    :synopsis  "Adapts content for a specific locale — cultural adaptation, not just translation"
    :accepts   [:source-content]
    :produces  [:localised-document]
-   :key-params [:for :adapt :preserve :glossary :output]}
+   :key-params [:for :adapt :preserve :glossary :output :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; REASONING — Logical inference
@@ -822,15 +879,15 @@
    :synopsis  "Abductive reasoning: generates candidate explanations for observations ranked by plausibility"
    :accepts   [:observation]
    :produces  [:ranked-hypotheses]
-    :key-params [:from :using :candidates :rank-by :must-explain :may-not-assume :output :manifest]}
+   :key-params [:from :using :candidates :rank-by :must-explain :may-not-assume :output :manifest]}
 
-    r/analogise
-    {:grimoire  "reasoning"
-    :namespace "r/"
-    :synopsis  "Analogical reasoning from prior cases, with weighted similarity and distinguishing features"
-    :accepts   [:target-case]
-    :produces  [:analogy-result]
-    :key-params [:against :similarity :weight :infer :surface :min-similarity :manifest]}
+  r/analogise
+  {:grimoire  "reasoning"
+   :namespace "r/"
+   :synopsis  "Analogical/case-based reasoning: transfers a conclusion from similar precedents, weighing distinguishing features"
+   :accepts   [:target-case]
+   :produces  [:analogy-result]
+   :key-params [:against :similarity :weight :infer :surface :min-similarity :manifest]}
 
   r/check
   {:grimoire  "reasoning"
@@ -838,7 +895,7 @@
    :synopsis  "Verifies logical relationship between claims: entailment, consistency, or contradiction"
    :accepts   [:target]
    :produces  [:check-result]
-    :key-params [:against :for :using :explain :output :manifest]}
+   :key-params [:against :for :using :explain :output :manifest]}
 
   r/contradict
   {:grimoire  "reasoning"
@@ -846,15 +903,15 @@
    :synopsis  "Searches a belief set for internal contradictions — pairs that cannot both be true"
    :accepts   [:belief-set]
    :produces  [:contradiction-report]
-    :key-params [:using :severity :explain :output :manifest]}
+   :key-params [:using :severity :explain :output :manifest]}
 
-    r/revise
-    {:grimoire  "reasoning"
-    :namespace "r/"
-    :synopsis  "Belief revision: propagates premise changes to withdrawn, retained, and newly-supported conclusions"
-    :accepts   [:model]
-    :produces  [:revised-model]
-    :key-params [:change :using :affected :surface :explain :manifest]}
+  r/revise
+  {:grimoire  "reasoning"
+   :namespace "r/"
+   :synopsis  "Belief revision: propagates a retracted, corrected, or added fact through the conclusions that depend on it"
+   :accepts   [:model]
+   :produces  [:revised-model]
+   :key-params [:change :using :affected :surface :explain :manifest]}
 
   r/trace
   {:grimoire  "reasoning"
@@ -862,7 +919,7 @@
    :synopsis  "Produces a complete readable derivation chain for a conclusion in step-by-step or prose form"
    :accepts   [:conclusion]
    :produces  [:derivation-document]
-    :key-params [:from :format :audience :annotate :output :manifest]}
+   :key-params [:from :format :audience :annotate :output :manifest]}
 
   r/argue
   {:grimoire  "reasoning"
@@ -870,7 +927,7 @@
    :synopsis  "Constructs a formal argument for a position in Toulmin, classical, or legal-brief format"
    :accepts   [:position]
    :produces  [:argument-document]
-    :key-params [:grounds :rebuttals :backing :qualifier :format :output :manifest]}
+   :key-params [:grounds :rebuttals :backing :qualifier :format :output :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; TAXONOMY — Classification
@@ -938,7 +995,7 @@
    :synopsis  "Manages taxonomy change: add, split, merge, rename, deprecate — with crosswalk preservation"
    :accepts   [:taxonomy]
    :produces  [:evolved-taxonomy]
-    :key-params [:changes :produce-crosswalk :notify-affected :version :manifest]}
+   :key-params [:changes :produce-crosswalk :notify-affected :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; AGENT — Autonomous action and multi-agent coordination
@@ -959,6 +1016,14 @@
    :accepts   [:name]
    :produces  [:memory-store]
    :key-params [:for :scope :schema :initial :manifest]}
+
+  a/equip
+  {:grimoire  "agent"
+   :namespace "a/"
+   :synopsis  "Grants an agent scoped tool and resource access (MCP, filesystem, network, shell) with permissions and audit"
+   :accepts   [:agent-name-or-binding]
+   :produces  [:equipped-agent]
+   :key-params [:tools :permissions :approval :audit :on-violation :manifest]}
 
   a/invoke
   {:grimoire  "agent"
@@ -1014,4 +1079,48 @@
    :synopsis  "An agent examines its own output: assumptions made, alternatives not pursued, failure modes"
    :accepts   [:output]
    :produces  [:reflection-result]
-   :key-params [:questions :from :depth :produce :manifest]}}}
+   :key-params [:questions :from :depth :produce :manifest]}
+
+  ;;; ─────────────────────────────────────────────────────────────────
+  ;;; EXHUME — Code and artefact archaeology (artefact → specification)
+  ;;; ─────────────────────────────────────────────────────────────────
+
+  x/survey
+  {:grimoire  "exhume"
+   :namespace "x/"
+   :synopsis  "First-pass map of a codebase: languages, structure, entry points, scale, apparent purpose"
+   :accepts   [:source]
+   :produces  [:survey-binding]
+   :key-params [:scope :detect :depth :note :manifest]}
+
+  x/recover-model
+  {:grimoire  "exhume"
+   :namespace "x/"
+   :synopsis  "Recovers a domain model from source (entities, relationships, operations, invariants), grading each as attested or inferred"
+   :accepts   [:source]
+   :produces  [:domain-model]
+   :key-params [:from :recover :focus :confidence :emit :manifest]}
+
+  x/infer-conventions
+  {:grimoire  "exhume"
+   :namespace "x/"
+   :synopsis  "Infers a codebase's actually-practised coding conventions; emits an asset; distinguishes convention from accident and drift"
+   :accepts   [:source]
+   :produces  [:asset]
+   :key-params [:observe :threshold :distinguish :emit :manifest]}
+
+  x/reconstruct-decisions
+  {:grimoire  "exhume"
+   :namespace "x/"
+   :synopsis  "Reconstructs the decision log behind a codebase from git history, comments, and structure; separates what from why by confidence"
+   :accepts   [:source]
+   :produces  [:charter-decisions]
+   :key-params [:from :recover :confidence :emit :manifest]}
+
+  x/charter
+  {:grimoire  "exhume"
+   :namespace "x/"
+   :synopsis  "Capstone: assembles recovered survey, model, conventions, and decisions into a complete, continuable .cnj — the reverse handover"
+   :accepts   [:source]
+   :produces  [:cnj-file]
+   :key-params [:title :assemble :using :confidence-policy :open-from :emit :manifest]}}}

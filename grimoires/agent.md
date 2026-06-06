@@ -102,6 +102,34 @@ a step and the next step is fully determined, the transition belongs in an
 `o/define-workflow`. When the next step requires agent judgment, it stays
 in the agent.
 
+Two specific overlaps with `orchestrate` are worth disambiguating, because the
+constructs look similar and are not:
+
+- **Human checkpoints.** Both `o/human-approval` and `a/delegate :approve` pause
+  for human judgment — but they guard different things. `o/human-approval` is a
+  *workflow stage*: a deterministic process reaches a point where policy requires
+  a person to decide before the next known step runs (a compliance sign-off, a
+  fraud-threshold review). `a/delegate :approve` is a *leash on autonomy*: an
+  agent exercising judgment pauses so a human can confirm its self-directed
+  approach before it continues. Use `o/human-approval` when the gate is part of
+  the process; use `:approve` when the gate is on the agent's discretion. When
+  both apply — an agent does autonomous work *inside* a workflow that also needs
+  a policy sign-off — they compose, as the integration patterns show.
+
+- **Coordination.** `a/compose`/`a/supervise` coordinate *agents* (entities that
+  exercise judgment); `o/define-workflow` coordinates *operations* (steps that
+  execute). The test is the same one that distinguishes workflow from agent at
+  the task level: if the units being coordinated each require judgment about
+  *how* to proceed, coordinate them as agents; if each unit is a determined
+  operation, coordinate them as a workflow. A pipeline of specialist reviewers
+  is `a/compose`; a pipeline of known transformations is `o/define-workflow`.
+
+**Tool access is the deployment-environment boundary.** `a/equip` is where the
+agent grimoire meets the IDE it runs in. The agent's identity and constraints
+are portable; its equipment — which MCP servers, file paths, and permissions it
+holds — is granted per deployment. This keeps the same agent definition usable
+across Copilot, Antigravity, and other targets, equipped differently in each.
+
 **`semantics`, `reasoning`, and `domain`** are the analytical engines that
 agents invoke. A domain-specialist agent uses `d/explore` to understand
 its territory. A compliance agent uses `r/derive` to determine what rules
@@ -139,6 +167,14 @@ over alternatives like "worker" or "executor" is deliberate.
 
 **`a/define`** — Declaring an agent's identity: its capabilities, specializations,
 constraints, and memory model.
+
+**`a/memory`** — From Latin *memoria*, the faculty of retaining. An agent's
+memory is its operational record across invocations — what it has tried, learned,
+and resolved — distinct from the domain knowledge it reasons over.
+
+**`a/equip`** — From Old French *esquiper*, to fit out a ship for a voyage. To
+equip an agent is to grant it the tools and access it needs to act, with the
+permissions that bound how far that access reaches.
 
 **`a/invoke`** — From Latin *invocare*, to call upon. A directed call with
 a specific task and expected output — the agent equivalent of a function call.
@@ -360,6 +396,174 @@ the same failures repeatedly.
     :resolved-ambiguities []
     :pending-sub-tasks  []
     :quality-score      nil})
+```
+
+---
+
+### `a/equip`
+
+Grants an agent access to tools and external capabilities — MCP servers, APIs,
+the file system, shell, network — with explicit permission scoping that bounds
+what the agent may reach and what it may do with that reach. Where `a/define`
+declares what an agent *is* and `:knows` declares what it *applies*, `a/equip`
+declares what it can *touch*.
+
+#### Signature
+
+```clojure
+(a/equip agent-name-or-binding
+  :tools        [{:tool :tool-name | mcp-server
+                  :access :read | :read-write | :execute
+                  :scope  scope-restriction}
+                 ...]
+  :permissions  {:filesystem {:paths [glob ...] :mode :read | :read-write}
+                 :network    {:allow [host ...] :deny [host ...]}
+                 :shell      :none | :sandboxed | :unrestricted
+                 :secrets    [:named-secret ...]}
+  :approval     {:require-for [:tool-name | :action ...]
+                 :approver    :practitioner | :agent-name}
+  :audit        :all-tool-calls | :writes-only | :none
+  :on-violation :halt | :deny-and-continue | :escalate
+  :manifest     equipped-agent)
+```
+
+#### Parameters
+
+**`:tools`** — The tools and capabilities the agent may use, each with an
+`:access` level (`:read`, `:read-write`, `:execute`) and an optional `:scope`
+narrowing what within that tool is reachable. A tool the agent is not equipped
+with is a tool it cannot call — capability is allow-listed, never assumed. This
+is where MCP servers (the project's IDE-deployment targets — Copilot,
+Antigravity, Claude-in-IDE) are wired to an agent.
+
+**`:permissions`** — The resource boundaries beneath the tools: which file paths
+the agent may read or write, which network hosts it may reach, whether it may
+run shell commands (and if so, sandboxed or not), and which named secrets it may
+access. These are coarser than `:tools` and apply across all of them — an agent
+equipped with a file-writing tool still cannot write outside its
+`:filesystem :paths`.
+
+**`:approval`** — Actions that require human (or supervising-agent) sign-off
+before execution, even when the agent is otherwise equipped for them. The
+natural home for "the agent may read anything but a write to production config
+needs my approval" — permission to *attempt* an action and permission to
+*complete* it are separated.
+
+**`:audit`** — What tool use is recorded. `:all-tool-calls` logs every
+invocation with its arguments and result; `:writes-only` logs the mutating
+ones; for consequential agents, the audit record is the evidence of what the
+agent actually touched.
+
+**`:on-violation`** — What happens when the agent attempts something outside its
+equipment: `:halt` (stop the agent), `:deny-and-continue` (refuse the single
+action, let the agent proceed and adapt), or `:escalate` (surface to the
+approver for a decision). `:deny-and-continue` is often best — it lets the agent
+discover a boundary and route around it rather than failing wholesale.
+
+#### Design rationale
+
+`a/equip` exists because an agent that can *act* must have its means of acting
+made explicit, and the grimoire's whole trust model depends on those means being
+bounded. The philosophy's "explicit constraints" principle covers what an agent
+must not *produce*; `a/equip` is its necessary complement, covering what an agent
+may not *reach*. A `:constraint` that says "never modify production data" is
+aspirational if the agent holds an unscoped database tool; the constraint becomes
+real only when the equipment cannot reach production in the first place. Behaviour
+constraints and access constraints are two halves of the same boundary, and an
+agent grimoire with only the first is missing the half that the deployment
+environment actually enforces.
+
+The separation of `a/equip` from `a/define` is deliberate and load-bearing. An
+agent's *identity* (what it specialises in, what it knows, what it will not
+produce) is stable and portable — the security-reviewer is the same security-
+reviewer everywhere. Its *equipment* is environmental and varies by deployment:
+the same agent definition may run with read-only access in a review context and
+read-write access in an implementation context, against different MCP servers in
+different IDEs. Keeping equipment a separate construct lets one definition be
+equipped differently per context without forking the agent — and makes the
+access grant auditable on its own, which is exactly what a security review of an
+autonomous system needs to inspect.
+
+The design treats **least privilege as the default posture**, which is why
+everything is allow-listed rather than deny-listed. An agent is equipped with
+the specific tools and paths it needs, not with everything-except-the-forbidden.
+This matters most precisely where agents are most useful and most dangerous — in
+the agentic IDEs this grimoire targets, where an over-equipped coding agent can
+delete a repository, leak a secret, or push to production. `:approval` and
+`:on-violation` then handle the boundary cases: the action the agent may attempt
+but not complete unsupervised, and what happens when it reaches past its grant.
+Together they make autonomous tool use *governed* rather than merely *possible*.
+
+#### Example 1: A code-implementation agent equipped for an IDE
+
+```clojure
+(a/equip typescript-agent
+  :tools [
+    {:tool :filesystem-mcp   :access :read-write :scope {:within "src/"}}
+    {:tool :git-mcp          :access :execute     :scope {:commands [:status :diff :add :commit]}}
+    {:tool :typescript-lsp   :access :read}
+    {:tool :test-runner-mcp  :access :execute}]
+  :permissions {
+    :filesystem {:paths ["src/**" "test/**" "package.json"] :mode :read-write}
+    :network    {:deny ["*"]}              ;; an implementation agent needs no network
+    :shell      :sandboxed
+    :secrets    []}                        ;; no secret access — it writes code, not config
+  :approval {:require-for [:git-push :package-install]
+             :approver    :practitioner}
+  :audit    :writes-only
+  :on-violation :deny-and-continue
+  :manifest equipped-typescript-agent)
+
+;; ✓ The agent can read and write under src/ and test/, run tests, and stage and
+;;   commit — but cannot push (requires approval), cannot reach the network at
+;;   all, and holds no secrets. The :constraint "never modify production data" is
+;;   now backed by equipment that literally cannot reach production.
+;; ✓ :on-violation :deny-and-continue means if the agent tries to write outside
+;;   src/, that single write is refused and the agent adapts — it does not crash
+;;   the whole delegation over one out-of-scope attempt.
+;; ✓ Least privilege by construction: network is denied, secrets are empty, shell
+;;   is sandboxed. The agent is equipped with exactly what implementing code needs.
+```
+
+#### Example 2: A read-only review agent
+
+```clojure
+(a/equip security-reviewer
+  :tools [
+    {:tool :filesystem-mcp :access :read :scope {:within "src/"}}
+    {:tool :git-mcp        :access :read :scope {:commands [:log :diff :blame]}}
+    {:tool :sast-scanner   :access :execute}]
+  :permissions {
+    :filesystem {:paths ["src/**" "**/*.config.*"] :mode :read}
+    :network    {:allow ["cve.circl.lu" "nvd.nist.gov"]}   ;; vulnerability databases only
+    :shell      :none
+    :secrets    []}
+  :audit    :all-tool-calls
+  :on-violation :halt
+  :manifest equipped-security-reviewer)
+
+;; ✓ A reviewer reads; it does not write. :mode :read across the board means the
+;;   agent physically cannot alter what it audits — the equipment matches the role.
+;; ✓ :on-violation :halt (stricter than Example 1) suits a security context: an
+;;   audit agent attempting something out of scope is itself a signal worth
+;;   stopping on, not routing around.
+;; ✓ Narrow :network allow-list lets it consult vulnerability databases without
+;;   opening general internet access — equipped for its job, nothing more.
+```
+
+#### Usage patterns
+
+```clojure
+;; Equip the same definition differently per context — review vs implementation
+(a/equip code-agent :tools [{:tool :filesystem-mcp :access :read}]  ;; review context
+  :permissions {:filesystem {:paths ["src/**"] :mode :read}})
+
+;; Equipment composes with delegation: the agent acts within its grant
+(~> (a/equip typescript-agent :tools [...] :permissions {...} :approval {...})
+  (a/delegate :goal "Implement the API" :within {:max-turns 20} :approve :major-decisions))
+;; The :approve gate on delegation governs decisions; the :approval gate on
+;; equipment governs specific tool actions. They are different checkpoints:
+;; one asks "is this the right approach?", the other "may you touch this?".
 ```
 
 ---
@@ -737,6 +941,35 @@ decide when the team's output is complete.
 **`:budget`** — Total turn limits across the team and maximum number of
 coordination rounds. Essential for preventing runaway supervision cycles.
 
+#### Design rationale
+
+`a/supervise` exists for the coordination problem `a/compose` cannot solve: when
+the division of work is not knowable in advance. A composed pipeline fixes the
+agents and their order at definition time — appropriate when the practitioner
+knows the sequence of perspectives to apply. But many goals cannot be
+pre-decomposed: the supervisor must *see the whole*, break it into sub-tasks as
+the shape of the problem emerges, assign them to the right specialists,
+notice when two agents' outputs conflict, and decide when the result is
+coherent enough to stop. That dynamic judgment is the supervisor's job, and it
+is why `a/supervise` takes a supervising *agent* rather than a fixed structure.
+
+The `:strategy` choices encode genuinely different team dynamics, not cosmetic
+variations. `:divide-and-conquer` suits decomposable goals where specialists
+work largely independently; `:debate` suits questions with competing valid
+answers where the supervisor must adjudicate; `:peer-review` suits work where
+one agent produces and others harden it; `:iterative-refinement` suits quality
+that accrues over rounds. Matching strategy to the goal's structure is the
+practitioner's key decision, which is why the strategies are named and distinct
+rather than left to the supervisor to improvise.
+
+`:budget` is load-bearing for the same reason `:max-turns` is on `a/delegate`,
+but more so: a team of agents coordinating in rounds can burn turns
+combinatorially, each agent reacting to every other. Without a `:max-total-turns`
+and `:max-rounds` ceiling, a supervision cycle can spiral — agents refining
+each other's work past the point of diminishing returns, or a debate that never
+converges. The budget forces the supervisor to either reach a coherent result
+or report where the team stalled, within a known horizon.
+
 #### Example 1: Divide-and-conquer implementation
 
 ```clojure
@@ -898,6 +1131,35 @@ is evaluable. "Code is readable" is not.
 but a revised version of the input that addresses the identified weaknesses.
 The revised version is available alongside the evaluation report.
 
+#### Design rationale
+
+`a/evaluate` operationalises the grimoire's "evaluate before accepting"
+discipline by making quality assessment *explicit and criterion-based* rather
+than impressionistic. The temptation with agent output is to accept it because
+it looks plausible — agents produce fluent, confident artefacts, and fluency
+reads as quality. `a/evaluate` interrupts that reflex by forcing the question
+"good *against what*?" The `:against` criteria must be specific and testable,
+which does double work: it makes the evaluation auditable, and it forces the
+practitioner to articulate the standard — a step that frequently reveals the
+implicit bar was lower than it should have been.
+
+The decisive design choice is that **every criterion receives an explicit
+verdict** — pass, fail, or partial — rather than an aggregate impression. An
+overall score of 0.82 hides which 18% failed; a per-criterion breakdown says
+exactly what is missing and how much it matters. This is what makes the
+evaluation actionable: a `:fail` on "all endpoints have tests" with the specific
+endpoint named is a work item, where "generally good test coverage" is not.
+
+`:improve` exists because the gap between finding a problem and fixing it is
+often small once the problem is precisely located — and an evaluator that has
+identified exactly what fails is well-positioned to fix exactly that. Pairing
+the verdict with a revised artefact closes the loop in one step, while keeping
+the evaluation report alongside so the practitioner sees both what was wrong and
+what changed. The boundary with `a/reflect` is deliberate: `a/evaluate` applies
+an *external* standard (the practitioner's criteria), where `a/reflect` applies
+the agent's *own* deeper judgment to its work. External audit and self-audit are
+different acts, and a robust quality process uses both.
+
 #### Example
 
 ```clojure
@@ -970,6 +1232,38 @@ produces more actionable output than "How could this be better?"
 - `:thorough` — the agent examines assumptions, edge cases, failure modes,
   and alternatives it deliberately set aside. Slower; appropriate before
   handing off to downstream agents or practitioners.
+
+#### Design rationale
+
+`a/reflect` exists because an agent's first output is shaped by the framing of
+the task, and that framing carries unexamined assumptions the output silently
+inherits. The agent that modelled a subscription as belonging to one customer
+did not decide that shared subscriptions are impossible — it simply was not
+asked, and the assumption rode along invisibly. Reflection turns the agent's
+attention back on its own work specifically to surface what it took for granted:
+the assumptions not in the input, the alternatives not pursued, the edge cases
+treated as obvious. This is improvement without external critique — the agent's
+own deeper judgment applied to its initial, faster judgment.
+
+The discipline the construct enforces is that **specific questions produce
+specific reflection**. Generic self-review ("how could this be better?") yields
+generic platitudes, because the agent has no purchase on what to examine.
+Pointed questions ("what assumptions about the data schema might not hold?")
+give reflection a target and produce actionable findings. This is why
+`:questions` is first-class and the examples model sharp, particular questions
+rather than open-ended ones — the quality of the reflection is bounded by the
+quality of the questions.
+
+The `:depth` gradient matches reflection cost to stakes. `:surface` catches the
+obvious — a few unpursued alternatives, the assumptions visibly added, the most
+likely failure — and suits routine checks. `:thorough` is the pre-handoff
+discipline: before work passes to a downstream agent or a practitioner who lacks
+the context to question its foundations, every assumption and set-aside
+alternative should be surfaced, because the cost of an unexamined assumption
+compounds once others build on it. Reflecting thoroughly before handover is
+cheaper than discovering, downstream, that the work rested on contested ground —
+which is exactly why the grimoire's best practices pair `a/reflect` with
+`handover`.
 
 #### Example
 
@@ -1061,6 +1355,45 @@ a definition is a capability declaration with explicit constraints, known
 specializations, and inspectable behaviour. The definition is what makes
 the agent auditable and extensible.
 
+### Anti-patterns
+
+**Delegating a task that should have been invoked.** Using `a/delegate` for a
+task with a known, specifiable approach wastes autonomy on a problem that does
+not need it — the agent burns turns deciding what to do when the practitioner
+already knew. Worse, it introduces judgment (and its attendant variability)
+where determinism was available. If you could write the steps, use `a/invoke`
+or a workflow; reserve `a/delegate` for goals whose path is genuinely
+undetermined.
+
+**Equipping an agent for more than its task requires.** Granting an
+implementation agent network access it does not need, or write access beyond
+the directory it works in, widens the blast radius of any mistake or
+misdirection for no benefit. Equip for the specific task — least privilege is
+the default posture, and an over-equipped agent in an IDE can do real damage
+(delete a repository, leak a secret, push to production) that a scoped one
+simply cannot reach.
+
+**Granting autonomy without reporting, then trusting the output.** Running
+`a/delegate :approve :never :must-report [:completion]` on a new agent or a
+novel task is how an agent produces confident, fluent output in the wrong
+direction that no one catches until late. Earn autonomy: start new agents and
+tasks with `:must-report [:decision :attempt :uncertainty]` and tighten the
+leash, relaxing only as reliability is demonstrated.
+
+**Accepting agent output without evaluation.** Fluent, confident output reads as
+correct, and agents are fluent and confident by default. Skipping `a/evaluate`
+because the result looks finished is how unmet requirements ship. Always
+evaluate against explicit, testable criteria — the act of stating the criteria
+often reveals the implicit bar was too low.
+
+**Coordinating agents that should be workflow steps (or vice versa).** Wrapping
+deterministic operations in `a/compose`/`a/supervise` pays the cost of agent
+judgment — variability, turns, reporting — for steps that needed none.
+Conversely, forcing judgment-laden work into `o/define-workflow` produces
+brittle specifications that break on every edge case they were not designed for.
+Coordinate by the nature of the unit: judgment → agents, determined steps →
+workflow.
+
 ---
 
 ## Integration patterns
@@ -1086,6 +1419,32 @@ The canonical flow from `core`'s `handover` to the `agent` grimoire:
 
 The `handover` packages the context; `a/delegate` directs the action.
 These are complementary constructs, not alternatives.
+
+### Equip between definition and delegation
+
+A handed-off agent must be equipped for its deployment before it acts. The full
+flow is define → equip → delegate: the definition is portable, the equipment is
+granted per environment, the delegation directs the work within both.
+
+```clojure
+;; The agent definition is portable; equipment is granted for this deployment
+(a/equip typescript-agent
+  :tools       [{:tool :filesystem-mcp :access :read-write :scope {:within "src/"}}
+                {:tool :git-mcp :access :execute :scope {:commands [:status :diff :add :commit]}}]
+  :permissions {:filesystem {:paths ["src/**" "test/**"] :mode :read-write}
+                :network {:deny ["*"]} :shell :sandboxed}
+  :approval    {:require-for [:git-push] :approver :practitioner}
+  :manifest    equipped-agent)
+
+;; Now delegate within the bounds the equipment sets
+(a/delegate equipped-agent
+  :goal    "Implement the API as specified in the handover package"
+  :context handover-package
+  :within  {:max-turns 20 :must-report [:decision :completion]}
+  :approve :on-completion)
+;; The agent cannot act outside its equipment regardless of what the goal seems
+;; to require — the same way it cannot violate its definition's :constraints.
+```
 
 ### Compose with witness for auditability
 
@@ -1187,18 +1546,19 @@ of each agent's contribution without modifying what the agents produce.
 ```clojure
 {:grimoire    "agent"
  :namespace   "a/"
- :version     "1.0.0"
- :description "Autonomous agent definition, invocation, delegation, multi-agent
-               coordination, and quality assurance patterns"
+ :version     "1.1.0"
+ :description "Autonomous agent definition, equipment and tool access, invocation,
+               delegation, multi-agent coordination, and quality assurance patterns"
 
  :constructs {
-   :definition    [a/define a/memory]
+   :definition    [a/define a/memory a/equip]
    :invocation    [a/invoke a/delegate]
    :coordination  [a/compose a/supervise a/negotiate]
    :quality       [a/evaluate a/reflect]}
 
  :best-for [
    "Autonomous implementation from goal specifications"
+   "Equipping agents with scoped tool access for IDE deployment (MCP, filesystem, git)"
    "Multi-perspective architecture and code reviews"
    "Sequential quality pipelines (generate → review → secure → document)"
    "Contested design decisions via structured negotiation"
@@ -1237,6 +1597,13 @@ of each agent's contribution without modifying what the agents produce.
                  within a task — what has been tried, what failed, what was learned.
                  Distinct from context (domain knowledge), charter (project history),
                  and assume (operative constraints)."}
+   {:term "Agent equipment"
+    :definition "The tools and resource access an agent holds — MCP servers, file
+                 paths, network, shell, secrets — with permission scoping. Granted
+                 per deployment via a/equip and allow-listed by default (least
+                 privilege). The access-constraint complement to a definition's
+                 behaviour-constraints: what the agent may touch, not just what it
+                 may produce."}
    {:term "Supervision"
     :definition "A coordination pattern where one agent maintains the overall view
                  of a goal, dynamically assigns work to specialist agents, monitors
@@ -1267,6 +1634,27 @@ constraint and a goal are in genuine tension, surface the tension rather than
 silently violating the constraint. "The goal requires exception throwing, but
 my constraint prohibits it in business logic. Here are two approaches that
 satisfy both:" is the correct response.
+
+### Agent equipment enforcement
+
+When an agent has an `a/equip` grant, treat it as an allow-list, not a hint. The
+agent may call only the tools it is equipped with, and only within the `:access`
+level and `:scope` granted; a tool not listed is unavailable, not merely
+discouraged. Resource `:permissions` bound all equipped tools — an agent with a
+file-writing tool still may not write outside its `:filesystem :paths`, and an
+attempt to do so triggers `:on-violation`, never a silent out-of-scope write.
+
+Honour `:approval` as a hard gate: an action whose tool or type is in
+`:require-for` must pause for the named approver before execution, even when the
+agent is otherwise equipped for it — permission to attempt is not permission to
+complete. Apply `:on-violation` exactly as specified when the agent reaches past
+its grant: `:halt` stops the agent, `:deny-and-continue` refuses the single
+action and lets the agent adapt, `:escalate` surfaces to the approver. Record
+tool use per `:audit`; for a consequential agent the audit log is the evidence
+of what it actually touched, and must be immutable once written. Default to
+least privilege when equipment is underspecified — grant the narrowest access
+that the task plausibly requires and surface the assumption, rather than
+granting broadly.
 
 ### The `:max-turns` budget
 

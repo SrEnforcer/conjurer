@@ -1,6 +1,6 @@
 ---
 name: conjurer
-description: Interpret and execute Conjurer, a declarative language for LLM interaction. Use when practitioners write Conjurer code using any grimoire namespace — core constructs (conjure, refine, charter, target, handover), domain extraction (d/explore, d/model), data operations (data/schema, data/generate), web generation (w/prototype, w/component), semantic analysis (s/texan, s/viewpoint), workflow orchestration (o/define-workflow), communication (e/compose), logical inference (r/derive, r/decide), classification (t/classify, t/define), or agent coordination (a/delegate, a/compose). Also use when a .cnj file is attached — read the charter first and continue from where the session left off.
+description: Interpret and execute Conjurer, a declarative language for LLM interaction. Use when practitioners write Conjurer code using any grimoire namespace — core constructs (conjure, refine, charter, target, handover), domain extraction (d/explore, d/model, d/bounded-context), data operations (data/schema, data/generate, data/contract), web generation (w/prototype, w/component, w/responsive, w/copy), semantic analysis (s/texan, s/viewpoint, s/detect-manipulation), workflow orchestration (o/define-workflow, o/react, o/fan-out), communication (e/compose, e/critique), logical inference (r/derive, r/decide, r/analogise, r/revise), classification (t/classify, t/define), agent coordination (a/delegate, a/compose, a/equip), or code archaeology (x/recover-model, x/charter — recovering Conjurer spec from an existing codebase). Also use when a .cnj file is attached — read the charter first and continue from where the session left off.
 ---
 
 # Conjurer Language Interpreter
@@ -26,9 +26,10 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 | reasoning | `r/` | `grimoires/reasoning.md` |
 | taxonomy | `t/` | `grimoires/taxonomy.md` |
 | agent | `a/` | `grimoires/agent.md` |
+| exhume | `x/` | `grimoires/exhume.md` |
 
 **Symbol lookup:** `index.edn` — every symbol with grimoire, synopsis, and key params.
-**Compact cheat sheet:** `quick-reference.md` — all 119 symbols at a glance.
+**Compact cheat sheet:** `quick-reference.md` — all 132 symbols at a glance.
 **Full philosophy:** `conjurer.md`
 **File structure spec:** `template.md`
 
@@ -39,11 +40,10 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 1. **Declarative supremacy** — specify outcomes, not implementations
 2. **Semantic richness over syntactic rigidity** — `:validates`, `:ensures`, `:checks` are all equivalent; the system understands intent
 3. **Semantic gravity** — context accumulates mass; later invocations can be terser
-4. **Productive ambiguity** — deliberate openness invites creative judgment; do not force resolution
-5. **Progressive refinement** — first manifestations are sketches; `refine` is a discovery tool
-6. **Intent topology** — `:requires` > `:prefers` > `:style`; `:deferred` is noted but not implemented
-7. **Calibrated certainty** — use `certain` · `prefer` · `allow` and `given` / `ensure` to declare commitment and contracts explicitly
-8. **Collaborative discovery** — surface tensions, propose improvements, make reasoning visible
+4. **Intent topology** — `:requires` > `:prefers` > `:style`; `:deferred` is noted but not implemented
+5. **Productive ambiguity** — deliberate openness invites creative judgment; do not force resolution
+6. **Progressive refinement** — first manifestations are sketches; `refine` is a discovery tool
+7. **Collaborative discovery** — surface tensions, propose improvements, make reasoning visible
 
 ---
 
@@ -182,6 +182,14 @@ is what gets saved; everything else flows from it.
 ### Agent coordination
 
 ```clojure
+;; Equip an agent with scoped tool access (for IDE deployment: MCP, filesystem, git)
+(a/equip typescript-agent
+  :tools       [{:tool :filesystem-mcp :access :read-write :scope {:within "src/"}}
+                {:tool :git-mcp :access :execute :scope {:commands [:status :diff :add :commit]}}]
+  :permissions {:filesystem {:paths ["src/**" "test/**"] :mode :read-write}
+                :network {:deny ["*"]} :shell :sandboxed}
+  :approval    {:require-for [:git-push] :approver :practitioner})
+
 ;; Invoke for a specific task
 (a/invoke security-reviewer
   :task "Review the payment module for OWASP Top 10 vulnerabilities"
@@ -238,7 +246,7 @@ ambiguities that would change the entire direction of the output.
 ```
 SKILL.md                ← this file (entrypoint)
 index.edn               ← machine-readable symbol catalog (routing layer)
-quick-reference.md      ← all 119 symbols at a glance
+quick-reference.md      ← all 132 symbols at a glance
 conjurer.md             ← language philosophy and principles
 template.md             ← grimoire and .cnj file structure specification
 grimoires/
@@ -252,6 +260,7 @@ grimoires/
   reasoning.md          ← r/ logical inference
   taxonomy.md           ← t/ classification
   agent.md              ← a/ autonomous action
+  exhume.md             ← x/ code archaeology (recover spec from existing code)
 ```
 
 When depth is needed on any construct, read the relevant grimoire file.

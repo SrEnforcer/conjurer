@@ -25,6 +25,8 @@
     "quick-reference.md",
     "index.edn",
     "SKILL.md",
+    "CHANGELOG.md",
+    "template.md",
     "grimoires/",
     "examples/"
   ],
