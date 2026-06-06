@@ -474,6 +474,195 @@ the practitioner whether they are recovering a rule or papering over disagreemen
 
 ---
 
+### `x/recover-stack`
+
+Recovers a project's *declared and enforced* technical standard from its manifest
+and configuration files — what it depends on, what it runs and builds on, and
+what it enforces — and emits the assets and infrastructure assumptions that
+standard implies. The complement to `x/infer-conventions`: where that infers the
+*practised* style from how code is written, `x/recover-stack` reads the
+*declared* standard directly from the files that configure and enforce it.
+
+#### Signature
+
+```clojure
+(x/recover-stack source
+  :sources     [:manifest :build-config :enforcement-config :lockfile]
+  :recover     [:dependencies :runtime :build-settings :enforced-rules
+                :embodied-standards :version-constraints]
+  :ecosystem   :auto | :node | :python | :dotnet | :rust | :go | ...
+  :distinguish [:runtime :dev :declared :enforced]
+  :detect-drift boolean              ;; flag where enforced config and actual code disagree
+  :emit        [:asset :assume-infrastructure :stack-report]
+  :manifest    recovered-stack)
+```
+
+#### Parameters
+
+**`:sources`** — Which declaration files to read, named abstractly because every
+ecosystem uses different ones. The construct resolves the concrete files from the
+`:ecosystem`:
+- `:manifest` — the dependency/project manifest (`package.json`,
+  `pyproject.toml`, `Cargo.toml`, `*.csproj`, `go.mod`)
+- `:build-config` — compile/build configuration (`tsconfig.json`,
+  `pyproject.toml [build-system]`, `Directory.Build.props`)
+- `:enforcement-config` — the linters and formatters that *enforce* the standard
+  (`.eslintrc`/`tslint.json`, `.prettierrc`, `.editorconfig`, `ruff.toml`,
+  `.flake8`, `rustfmt.toml`, `.golangci.yml`)
+- `:lockfile` — the resolved dependency graph (`package-lock.json`, `poetry.lock`,
+  `Cargo.lock`) for exact versions and the transitive set
+
+**`:recover`** — What to extract: `:dependencies` (the libraries chosen),
+`:runtime` (language, version, platform), `:build-settings` (compile target,
+module system, strictness), `:enforced-rules` (the lint/format/type rules the
+config mandates — read as `:enforces`/`:prohibits`), `:embodied-standards` (a
+dependency that *is* a standard — e.g. a prelude or style package — recovered as
+a standard, not mere import noise), and `:version-constraints` (pinning as a
+decision).
+
+**`:ecosystem`** — The language ecosystem, so the construct knows which concrete
+files map to the abstract `:sources`. `:auto` detects from the files present.
+This is what keeps the construct language-agnostic: the *recovery intent* is the
+same across Node, Python, .NET, Rust, Go; only the file names differ.
+
+**`:distinguish`** — Separate `:runtime` from `:dev` dependencies (a test runner
+is not a shipped dependency), and `:declared` (what the config says) from
+`:enforced` (what a linter actually blocks). A rule documented but not enforced
+is weaker evidence of standard than one a linter fails the build on.
+
+**`:detect-drift`** — When true, flag places where the *enforced* configuration
+and the *actual* code disagree — the lint config forbids `console.log` but the
+code uses it. This is the bridge to `x/infer-conventions`: declared standard
+versus practised reality, surfaced as a finding rather than silently resolved.
+
+**`:emit`** — The forward constructs the recovered standard maps onto, and a
+manifest+config legitimately holds all three kinds of information:
+- `:asset` — the embodied and enforced standard as a `:code-standard` asset, with
+  `:enforces`/`:prohibits` read from the enforcement config
+- `:assume-infrastructure` — the runtime/build/tooling choices as an
+  `assume :infrastructure` block
+- `:stack-report` — the flat, graded inventory
+
+#### Design rationale
+
+`x/recover-stack` exists because a project's technical standard is *declared*,
+not just *practised* — and the declaration is the strongest evidence there is.
+The prior constructs recover the standard indirectly: `x/infer-conventions`
+guesses it from how code is consistently written, grading by a consistency
+threshold. But most of that standard is sitting in plain sight, written down
+explicitly, in the manifest and config files — `"strict": true` in a tsconfig,
+a `no-console` rule in a linter, a prelude package in the dependencies. Reading
+it there is `:attested`, not inferred; a configured-and-enforced rule is a far
+firmer recovery than a pattern observed at 80% consistency. Leaving that
+declaration unread, as the grimoire did before this construct, meant recovering
+the weakest evidence of the standard while ignoring the strongest.
+
+The construct earns its place — rather than being folded into
+`x/infer-conventions` or `x/reconstruct-decisions` — because the manifest and
+config are a genuinely distinct source with their own structure and their own
+recovery questions, and because dependencies and configuration kept appearing in
+those other constructs only *incidentally*: a library surfaced as evidence for a
+decision, an import pattern as a convention. That incidental treatment is exactly
+the gap this construct closes. A dependency that embodies a coding standard, a
+tsconfig that sets strictness, a linter that enforces a rule — these are not
+side-evidence for something else; they *are* the declared standard, and they
+deserve a construct whose explicit responsibility is to recover them as such.
+
+The design's deepest symmetry is with the forward flow. A `.cnj` declares its
+standard forward in two places: an `asset` (with `:enforces`/`:prohibits`) and
+an `assume :infrastructure` block. `x/recover-stack` recovers exactly those two
+from a codebase's manifest and config — the enforcement config becomes the
+asset's enforced rules, the runtime and build choices become the infrastructure
+assumption. It is the precise inverse of forward standard-declaration, which is
+the surest sign it belongs in the grimoire: where materialisation turns an asset
+into a configured project, `x/recover-stack` turns a configured project back into
+an asset.
+
+`:detect-drift` reflects that the *declared* standard and the *practised* one
+are different recoveries that can disagree, and the disagreement is information.
+When the linter forbids what the code does, neither `x/recover-stack` (which
+read the rule) nor `x/infer-conventions` (which read the practice) is wrong —
+the *project* is inconsistent, and recovering that inconsistency as a finding is
+more honest than letting either construct's answer silently win. This is the
+grimoire's "recover the discrepancy" anti-pattern applied to standards.
+
+#### Example: Recovering the stack from a TypeScript project
+
+```clojure
+(x/recover-stack "../old-conjurer-mcp"
+  :sources      [:manifest :build-config :enforcement-config :lockfile]
+  :recover      [:dependencies :runtime :build-settings :enforced-rules
+                 :embodied-standards :version-constraints]
+  :ecosystem    :auto              ;; detects Node from package.json
+  :distinguish  [:runtime :dev :declared :enforced]
+  :detect-drift true
+  :emit         [:asset :assume-infrastructure :stack-report]
+  :manifest     recovered-mcp-stack)
+
+;; Returns the two forward declarations plus a graded report and drift findings:
+{:asset
+ (asset :recovered-mcp-standard
+   :type        :code-standard
+   :description "Declared and enforced standard recovered from manifest + config"
+   :recovered-from :recovered-mcp-stack
+   :confidence  :attested              ;; read directly from config, not inferred
+   :language    :typescript
+   :enforces    ["Strict type checking (tsconfig: strict true, noUncheckedIndexedAccess true)"
+                 "Result/Option flow via @tsfpp/prelude (a dependency that embodies
+                  the TSF++ standard — recovered as a standard, not import noise)"
+                 "No floating promises (eslint: no-floating-promises error)"]
+   :prohibits   ["console logging (eslint: no-console error)"
+                 "implicit any (tsconfig: noImplicitAny true)"]
+   :active-in   :project)
+
+ :assume-infrastructure
+ (assume :recovered-mcp-infrastructure
+   :infrastructure {:runtime :node
+                    :language :typescript
+                    :module-system :esm        ;; tsconfig: module nodenext
+                    :bundler :esbuild           ;; devDependency + build script
+                    :test :vitest})            ;; devDependency
+
+ :stack-report {
+   :runtime-deps ["@modelcontextprotocol/sdk" "zod" "@tsfpp/prelude"]
+   :dev-deps     ["typescript" "esbuild" "vitest" "eslint" "@typescript-eslint/*"]
+   :embodied-standards [{:dep "@tsfpp/prelude" :standard "TSF++"
+                         :confidence :attested
+                         :note "The coding standard itself, shipped as a dependency"}]}
+
+ :drift [
+   {:finding "eslint enforces no-console, but src/http-bridge.ts logs to console"
+    :enforced "no-console: error"
+    :practice "console.error used in 3 places"
+    :note "Declared standard and practice disagree — recover as finding, do not resolve"}]}
+;; ✓ THE GAP YOU HIT, CLOSED: @tsfpp/prelude is now recovered as an embodied
+;;   standard (TSF++), :attested, not just cited as evidence for a style guess.
+;;   The tsconfig strictness and eslint rules become the asset's :enforces/
+;;   :prohibits — read directly, far firmer than inferring them from code.
+;; ✓ :distinguish split runtime deps (sdk, zod, prelude) from dev deps (the
+;;   toolchain) — the test runner is correctly NOT a shipped dependency.
+;; ✓ :detect-drift caught that the enforced no-console rule is violated in the
+;;   code — surfaced as a finding, the bridge to x/infer-conventions, not hidden.
+```
+
+#### Usage patterns
+
+```clojure
+;; Recover the declared standard (this construct) AND the practised one (infer),
+;; then reconcile — drift between them is the finding worth acting on
+(~> "../old-src"
+  (x/recover-stack :emit [:asset] :detect-drift true)        ;; declared + enforced
+  (x/infer-conventions :emit :asset))                        ;; practised
+;; two assets: what the project says it does, and what it actually does
+
+;; Language-agnostic: the same call recovers a Python project's stack
+(x/recover-stack "../py-service"
+  :ecosystem :python    ;; resolves pyproject.toml, ruff.toml, .flake8
+  :emit [:asset :assume-infrastructure])
+```
+
+---
+
 ## Part II: Reconstruction and emission
 
 The deepest recovery — the reasoning behind the code — and the capstone that
@@ -617,8 +806,9 @@ materialisation turns a `.cnj` into code, `x/charter` turns code into a `.cnj`.
 ```clojure
 (x/charter source
   :title       "project title"
-  :assemble    [:survey :model :conventions :decisions :architecture]
-  :using       [survey-binding model-binding conventions-binding decisions-binding]
+  :assemble    [:survey :model :stack :conventions :decisions :architecture]
+  :using       [survey-binding model-binding stack-binding
+                conventions-binding decisions-binding]
   :confidence-policy {:speculative :as-open-questions
                       :strongly-inferred :as-decisions-marked
                       :attested :as-decisions}
@@ -630,13 +820,16 @@ materialisation turns a `.cnj` into code, `x/charter` turns code into a `.cnj`.
 #### Parameters
 
 **`:assemble`** — Which recovered components to fold into the `.cnj`: the survey
-(scale, purpose, structure), the recovered domain model, the inferred conventions
-(as assets), the reconstructed decisions, and the architecture (as targets with
-modules). Each maps to a section of the canonical `.cnj` structure.
+(scale, purpose, structure), the recovered domain model, the recovered stack
+(dependencies and enforced standard, as an asset plus an infrastructure
+assumption), the inferred conventions (as assets), the reconstructed decisions,
+and the architecture (as targets with modules). Each maps to a section of the
+canonical `.cnj` structure.
 
 **`:using`** — The bindings produced by the prior constructs (`x/survey`,
-`x/recover-model`, `x/infer-conventions`, `x/reconstruct-decisions`). `x/charter`
-assembles rather than re-recovers — it composes what the arc already produced.
+`x/recover-model`, `x/recover-stack`, `x/infer-conventions`,
+`x/reconstruct-decisions`). `x/charter` assembles rather than re-recovers — it
+composes what the arc already produced.
 
 **`:confidence-policy`** — How recovered intent of each grade enters the `.cnj`,
 and this is the construct's most important parameter. `:attested` findings become
@@ -734,6 +927,7 @@ trenches become the map of where to look next.
 (~> "../old-conjurer-mcp"
   (x/survey :note [:reusable])
   (x/recover-model :emit :d-explore-compatible)
+  (x/recover-stack :emit [:asset :assume-infrastructure] :detect-drift true)
   (x/infer-conventions :emit :asset)
   (x/reconstruct-decisions :emit :charter-decisions)
   (x/charter :title "Conjurer MCP Server (recovered)" :open-from :gaps))
@@ -762,6 +956,16 @@ confidence grades through every step and preserve them at emission via
 `x/charter`'s `:confidence-policy`. A recovered charter where guesses and facts
 look identical is worse than no charter, because the practitioner will build on
 the guesses believing them solid.
+
+### Read the declared standard before inferring the practised one
+
+Much of a project's standard is written down explicitly — in its manifest, its
+build config, its linters. Run `x/recover-stack` to read that directly
+(`:attested`) before falling back on `x/infer-conventions` to guess the rest
+from code patterns. A configured-and-enforced rule is far stronger evidence than
+a pattern observed at 80% consistency. A dependency that *is* a standard — a
+prelude or style package — is a recovered standard, not import noise; do not let
+it slip into the evidence list of some other finding.
 
 ### Recovered conventions are a starting point, not a mandate
 
@@ -797,6 +1001,15 @@ in a description has done half the job. The point is to emit Conjurer
 specification — a `.cnj`, an asset, a domain model — that the rest of the lexicon
 can act on. A recovery that produces only prose about the codebase is an analysis
 tool wearing the grimoire's name.
+
+**Treating the declared stack as incidental evidence.** Dependencies and config
+files are not side-evidence for conventions or decisions — they are the project's
+*declared and enforced* standard, and they deserve to be recovered as such with
+`x/recover-stack`. Letting a prelude package, a strictness flag, or a lint rule
+appear only inside some other finding's evidence list — instead of recovered as
+the standard it is — is exactly how the strongest, most directly-attested
+evidence of a project's intent gets lost. Read the manifest and config first and
+recover them on their own terms.
 
 **Improving while exhuming.** Correcting the codebase's inconsistencies,
 editorialising about its quality, or recommending changes during recovery
@@ -865,6 +1078,7 @@ again.
 (~> "../old-conjurer-mcp"
   (x/survey)
   (x/recover-model :emit :d-explore-compatible)
+  (x/recover-stack :emit [:asset :assume-infrastructure] :detect-drift true)
   (x/infer-conventions :emit :asset)
   (x/reconstruct-decisions :emit :charter-decisions)
   (x/charter :title "Conjurer MCP Server (recovered)" :open-from :gaps)
@@ -881,19 +1095,22 @@ again.
 ```clojure
 {:grimoire    "exhume"
  :namespace   "x/"
- :version     "1.0.0"
+ :version     "1.1.0"
  :description "Code and artefact archaeology: recovering Conjurer specification —
-               domain models, conventions, decisions, and a continuable .cnj —
-               from existing codebases never written in Conjurer"
+               domain models, the declared technical stack, conventions, decisions,
+               and a continuable .cnj — from existing codebases never written in
+               Conjurer"
 
  :constructs {
-   :survey-and-recovery [x/survey x/recover-model x/infer-conventions]
+   :survey-and-recovery [x/survey x/recover-model x/infer-conventions x/recover-stack]
    :reconstruction      [x/reconstruct-decisions]
    :emission            [x/charter]}
 
  :best-for [
    "Bootstrapping a .cnj from an existing or prior codebase"
    "Recovering a domain model from source code, types, and tests"
+   "Recovering a project's declared technical standard from its manifest and config
+    (dependencies, build config, lint/format enforcement) — language-agnostic"
    "Inferring a codebase's actually-practised coding conventions as an asset"
    "Reconstructing the decision log behind a project from git history and structure"
    "Deciding what is reusable in a prior attempt before starting fresh"
@@ -922,6 +1139,14 @@ again.
                  it is consistently written) versus the ones it documents (which
                  the code may have stopped following). exhume recovers the
                  practised standard, the one that is true."}
+   {:term "Declared vs. enforced standard"
+    :definition "The technical standard a project states in its manifest and build
+                 config (declared) versus what its linters and formatters actually
+                 block (enforced). x/recover-stack reads both directly — :attested,
+                 stronger than inference — and flags drift where the enforced rule
+                 and the practised code disagree. A dependency that embodies a
+                 standard (a prelude or style package) is recovered as a standard,
+                 not as import noise."}
    {:term "Reverse handover"
     :definition "x/charter's role: assembling recovered fragments into a complete,
                  continuable .cnj. The exact inverse of materialisation —
@@ -957,6 +1182,23 @@ intent; inferences from call patterns alone are weakest. Recover preferentially
 from the strong sources and grade down what you draw from weak ones. The same
 ordering applies to decisions: git history and explicit "because" comments
 outweigh structural guesses.
+
+### Read the declared stack directly; it is the firmest evidence there is
+
+When processing `x/recover-stack`, treat the manifest and configuration files as
+`:attested` evidence — a tsconfig strictness flag, an eslint rule, a dependency
+in package.json is read directly, not inferred, and is therefore firmer than any
+pattern `x/infer-conventions` derives from code. Resolve the abstract `:sources`
+to the right concrete files for the detected `:ecosystem` (package.json vs
+pyproject.toml vs *.csproj vs Cargo.toml vs go.mod, and the matching lint/format
+configs). Read enforcement config as the asset's `:enforces`/`:prohibits`: a
+linter rule that fails the build is a `:prohibits`; a required compiler setting
+is an `:enforces`. Recognise a dependency that *embodies* a standard (a prelude,
+a style or lint-config package) and recover it as a standard, not as a plain
+dependency. Distinguish runtime from dev dependencies, and declared rules from
+enforced ones. When `:detect-drift` is set, compare the enforced config against
+the actual code and surface disagreements as findings — never silently let the
+config's claim or the code's practice win; the inconsistency is the finding.
 
 ### Why is the hardest thing to recover; treat it so
 

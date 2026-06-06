@@ -223,6 +223,56 @@ Together, these turn a Conjurer session from monologue into dialogue. The practi
 
 ---
 
+## Ground truths: what we've learned
+
+The eight principles describe how Conjurer is *built*. This section is different. These are the things that working with intent — manifesting it forward into artefacts, and exhuming it backward out of code — has *taught us*. They are not design decisions; they are observations about the nature of intent, evidence, meaning, and uncertainty that proved true again and again, often the hard way, and that now sit beneath the whole language. Where the principles are architecture, these are epistemology. They cohere around a single recognition: **intent is real, but it is never directly observable.** You always work with its traces — a specification, a pattern, a name, a commit — and the discipline is to know how much weight each trace can bear.
+
+### Artefact is evidence of intent, not intent itself
+
+The code is a witness, not a confession. A function name suggests a purpose but does not state one; a passing test attests behaviour but not the reason for it; a module boundary reveals a decision but not why it was made or what was rejected. What an artefact *does* can be read directly; what its author *meant* must be inferred, and the inference is always partial. Conjurer never collapses the two — which is why `exhume` grades every recovered claim as attested or inferred, and why the implementation is always a derivative the specification can regenerate, never the source of truth itself.
+
+### Intent is durable; its expressions are perishable
+
+A specification survives what its implementations cannot. Code fixes a thousand details that may betray the intent the moment the environment shifts — a different database, a different consistency model, a different team's conventions — and then the code is wrong while the intent is unchanged. This is why the Conjurer description is the source of truth and the artefacts are projections of it: the durable thing is what was meant, and the perishable thing is any one rendering of it. A model that stays in Conjurer and never becomes code is still the authoritative statement against which every future implementation is measured.
+
+### Consistency alone does not establish intent
+
+A practice can be consistent by accident — everyone copied the first example — or consistent because it is abandoned-but-not-removed, where old code is uniform and new code has quietly moved on. Uniformity is evidence of *a* pattern, never proof that the pattern was *meant*. To read intent from consistency, you must distinguish a deliberate convention from an accident and from drift, and you must say what threshold of consistency you are trusting. The most consistent thing about a codebase is sometimes its worst habit.
+
+### Attested beats inferred; declared beats observed
+
+Not all evidence is equal, and the discipline is to read from the strongest first. A rule written in a config and enforced by a linter is firmer than the same rule guessed from code at eighty-percent consistency. A type declaration is firmer evidence of an entity than a call pattern. A stated reason in a commit is firmer than a structural guess — though even a stated reason is only inferred intent, since it may be post-hoc or stale. When direct evidence exists, inference is not a substitute for reading it; the gravest recovery error is to infer weakly what was declared plainly.
+
+### When evidence disagrees, the disagreement is the finding
+
+When a linter forbids what the code does, or a comment claims what the code contradicts, neither reading is simply wrong — the *project* is inconsistent, and that inconsistency is information. The honest move is to recover the discrepancy itself rather than silently letting the config's claim or the code's practice win. The same holds for what cannot be recovered at all: a gap is not silence to be papered over but an explicit question to be carried forward. What you could not learn is itself something you learned.
+
+### Hiding uncertainty is worse than admitting it
+
+A recovery that presents a guess as a fact is worse than no recovery, because it launders the guess into a premise that every later decision then trusts. A language that pretends to deliver guarantees it cannot enforce is worse than one that names its limits and lets practitioners work confidently within them. Calibrated honesty is not weakness; it is what makes the rest trustworthy. This is why certainty in Conjurer is graded rather than assumed, why limits are named rather than glossed, and why confidence is preserved structurally all the way through to emission.
+
+### Fabricated rationale is the cardinal sin
+
+The strongest temptation, in recovery and in explanation alike, is to supply a plausible reason so the record looks complete. This is the one thing never to do, because a fabricated rationale is indistinguishable from a real one and will mislead every future choice that trusts it. If the why is not recoverable, mark it speculative or record it as unreconstructable — never invent. A claimed certainty that the evidence does not support manufactures false confidence: a risk score is not a proof, a diagnosis is not a deduction, and dressing an inductive conclusion as a deductive one is a lie about how much is known.
+
+### Plural meaning is the nature of meaning, not a defect
+
+That a text supports more than one faithful reading is not a deficiency to be overcome — it is what meaning is. Conjurer treats this as a feature: some ambiguity is a deliberate invitation for judgment, not an error to be specified away, and over-specifying what "warmer" or "more encouraging" means would foreclose good solutions no complete specification would have reached. Productive ambiguity is how the best collaborative work happens. The corollary holds for inference under similarity: an analogy is defeated by the differences it ignores, compatibility is not entailment, and a conclusion drawn from a remote resemblance is worse than no conclusion at all.
+
+### Why is the hardest thing to know
+
+Across every artefact, *what* was done is far easier to recover than *why* it was done. Intent behind a choice is the most deeply buried layer — rarely written down, and when written, suspect. This is not a failing of any particular tool; it is the shape of the problem. The right response is not to try harder to be certain about why, but to be honest about how uncertain the why is: separate it from the what, grade it conservatively, and let the unrecoverable reasons become the open questions that a successor must answer rather than the false foundations they would otherwise build on.
+
+### Symmetry compresses; broken symmetry informs
+
+Conjurer is full of dualities, and the strong ones are genuine inverses. Manifestation turns intent into an artefact; exhumation turns an artefact back into intent. `given` declares what holds entering an invocation; `ensure` declares what must hold leaving it. `d/explore` recovers a model from documents; `x/recover-model` recovers the same kind of model from code. `e/formalize` adds precision; `e/simplify` removes barriers. Where an operation has a faithful inverse, the language exploits the symmetry: the backward direction is nearly free once the forward is known, which is much of why the grimoires feel discovered rather than invented. Exhume itself was largely *forced* by its symmetry with the forward flow — knowing how intent becomes code told us, almost entirely, what turning code back into intent would have to look like.
+
+But the most important operations are not symmetric, and the place the symmetry breaks is where the meaning lives. Manifesting intent into code *destroys* specificity — one specification is faithful to many implementations, and the system picks one. Exhuming code into intent *cannot fully restore* it — you recover evidence, graded and partial, never the lost original. The round trip is lossy, and lossy in a direction: forward, intent underdetermines the artefact; backward, the artefact overdetermines, ambiguously, the intent. This irreversibility is not a defect to be engineered away. It is the same arrow that entropy follows — the formal shadow of what a practitioner feels as a project's accumulating disorder — and Conjurer's response is not to deny it but to *measure* it. Confidence grades, attestation, and calibrated certainty are the instruments that make the loss visible: where intent cannot be conserved across the cycle, it is at least accounted for. What cannot be conserved must at least be accounted for.
+
+The same broken symmetry is what makes collaboration productive rather than redundant. When a practitioner and the system each read a source independently and then reconcile, the value comes precisely from the fact that they are *differently fallible* — the human brings tacit judgment the machine leaves implicit; the machine brings exhaustive consistency the human would tire of. If the two readings were symmetric, the second would add nothing; because they are not, their synthesis triangulates past either alone. Conjurer builds this in deliberately — `s/counter-manifest` and the discipline of always surfacing an opposing perspective are a manufactured asymmetry, a second differently-shaped reading produced so that the synthesis has something to triangulate against. (A caution lives inside this truth: not every pairing is a real symmetry, and forcing every construct to have a dual would be its own error. `refine`, `witness`, and `ward` have no clean inverse, and naming the symmetry where it exists must not tempt anyone into manufacturing it where it does not — that would itself violate *consistency alone does not establish intent*.)
+
+---
+
 ## What Conjurer is not
 
 **Conjurer is not prompt engineering.** Prompts are flat, single-turn, and informal. Conjurer invocations are structured, composable, context-aware, and iterable. A prompt is a letter; a Conjurer session is a working relationship.
@@ -257,8 +307,9 @@ The grimoires are peers, not a hierarchy. `core` is foundational in the sense th
 | **reasoning** | `r/` | Logical inference: deductive, inductive, and abductive reasoning with full derivation tracing |
 | **taxonomy** | `t/` | Classification: taxonomy definition, item classification, cross-system alignment, versioned evolution |
 | **agent** | `a/` | Autonomous action: agent definition, invocation, delegation, multi-agent coordination, and quality loops |
+| **exhume** | `x/` | Code archaeology: recovering a domain model, technical stack, conventions, decisions, and a continuable `.cnj` from an existing codebase — the inverse of the forward flow |
 
-No grimoires are currently under active consideration for addition to the standard library.
+Most grimoires manifest intent forward into artefacts. `exhume` is the exception that proves the shape of the whole: it runs the flow backward, recovering specification from code that already exists. No further grimoires are currently under active consideration for addition to the standard library.
 
 ---
 

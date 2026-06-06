@@ -29,7 +29,7 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 | exhume | `x/` | `grimoires/exhume.md` |
 
 **Symbol lookup:** `index.edn` — every symbol with grimoire, synopsis, and key params.
-**Compact cheat sheet:** `quick-reference.md` — all 132 symbols at a glance.
+**Compact cheat sheet:** `quick-reference.md` — all 133 symbols at a glance.
 **Full philosophy:** `conjurer.md`
 **File structure spec:** `template.md`
 
@@ -246,7 +246,7 @@ ambiguities that would change the entire direction of the output.
 ```
 SKILL.md                ← this file (entrypoint)
 index.edn               ← machine-readable symbol catalog (routing layer)
-quick-reference.md      ← all 132 symbols at a glance
+quick-reference.md      ← all 133 symbols at a glance
 conjurer.md             ← language philosophy and principles
 template.md             ← grimoire and .cnj file structure specification
 grimoires/

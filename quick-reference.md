@@ -1,6 +1,6 @@
 # Conjurer — Quick Reference
 
-All 132 symbols across 11 grimoires. For full signatures and examples,
+All 133 symbols across 11 grimoires. For full signatures and examples,
 see the individual grimoire files.
 
 ---
@@ -303,6 +303,7 @@ code. Every recovery is graded `:attested` (read directly) vs `:inferred`
 | `x/survey` | First-pass map: languages, structure, entry points, scale, apparent purpose |
 | `x/recover-model` | Domain model from source (entities, relationships, invariants) — code-facing twin of `d/explore` |
 | `x/infer-conventions` | Actually-practised coding standards → emits an `asset`; separates convention from accident/drift |
+| `x/recover-stack` | Declared & enforced standard from manifest + config (deps, build, lint/format); language-agnostic → asset + infra assumption |
 | `x/reconstruct-decisions` | Decision log from git history, comments, structure → charter `:decisions`; *what* vs *why* graded |
 | `x/charter` | **Capstone:** assemble recovered fragments into a continuable `.cnj` — the reverse handover |
 

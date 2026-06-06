@@ -3,7 +3,7 @@
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces
 
-{:version    "1.3.0"
+{:version    "1.3.1"
  :grimoires  [
    {:name "core"       :file "grimoires/core.md"       :namespace nil}
    {:name "domain"     :file "grimoires/domain.md"     :namespace "d/"}
@@ -1108,6 +1108,14 @@
    :accepts   [:source]
    :produces  [:asset]
    :key-params [:observe :threshold :distinguish :emit :manifest]}
+
+  x/recover-stack
+  {:grimoire  "exhume"
+   :namespace "x/"
+   :synopsis  "Recovers a project's declared and enforced technical standard from manifest and config (dependencies, build/runtime, lint/format enforcement); language-agnostic; emits an asset and infrastructure assumption"
+   :accepts   [:source]
+   :produces  [:asset :assume-infrastructure :stack-report]
+   :key-params [:sources :recover :ecosystem :distinguish :detect-drift :emit :manifest]}
 
   x/reconstruct-decisions
   {:grimoire  "exhume"
