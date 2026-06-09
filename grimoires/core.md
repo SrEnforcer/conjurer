@@ -40,7 +40,7 @@ distinct concern; together they form the complete core vocabulary.
 | IV   | Certainty and contracts        | `certain` · `prefer` · `allow` · `given` · `ensure`                     |
 | V    | Semantic typing                | `shape`                                                                 |
 | VI   | Reflection and perspective     | `explain` · `meta-query` · `witness` · `as`                             |
-| VII  | Session and ecosystem          | `charter` · `target` · `asset` · `handover`                             |
+| VII  | Session and ecosystem          | `charter` · `target` · `asset` · `handover` · `materialise`             |
 
 A practitioner rarely needs every construct in a single session. Most
 programs draw heavily from Parts I and II; the rest are summoned when the
@@ -2268,7 +2268,10 @@ Every serious Conjurer project produces a `.cnj` file. That file begins with
 a `charter`. It references `asset` definitions. It declares `target` outputs.
 When the time comes to cross from specification into implementation, it issues
 a `handover`. These four constructs transform Conjurer from a session-scoped
-language into a persistent, portable, multi-agent design medium.
+language into a persistent, portable, multi-agent design medium. A fifth,
+`materialise`, performs the crossing itself — turning a declared target into an
+artefact in two phases, a deterministic plan verified before semantic generation
+is risked.
 
 ---
 
@@ -2930,6 +2933,149 @@ what was missing. The `.cnj` file is now the project's single source of truth.
 
 ---
 
+### `materialise`
+
+Turns a declared `target` into an artefact, in two distinct phases: a
+*deterministic preflight* that resolves everything resolvable and produces an
+inspectable plan, and a *semantic generation* that turns a validated plan into
+files. The verb the whole ecosystem layer builds toward, finally given a
+construct — and given the structure that makes it honest: verify what can be
+verified before risking what cannot.
+
+#### Signature
+
+```clojure
+(materialise target-or-binding
+  :phase     :both | :preflight | :generate
+  :from      plan-binding            ;; when :phase :generate, the plan to generate from
+  :scope     [concept ...]           ;; narrow what materialises; inherits target's scope
+  :on-unresolved :halt | :report-and-continue
+  :manifest  result-binding)
+```
+
+#### Parameters
+
+**`:phase`** — Which half (or both) to run:
+- `:preflight` — the deterministic half only. Resolve references (in-project and
+  across files), order dependencies, enumerate the target files that *would* be
+  written, and report anything unresolved or unreadable. No generation, no model,
+  no side effects. Repeatable and fully checkable — identical inputs give an
+  identical plan.
+- `:generate` — the semantic half only. Takes a plan (via `:from`) and produces
+  the actual artefact files. This is the judgement-heavy, non-deterministic step.
+- `:both` (default) — preflight then generate, halting before generation if the
+  preflight does not come back clean. The safe ordering made automatic.
+
+**`:from`** — When running `:generate` alone, the preflight plan to generate
+from. Separating the phases lets a practitioner inspect (and trust) the plan
+before committing to generation — the plan is an artefact in its own right.
+
+**`:on-unresolved`** — What a failed preflight does: `:halt` (the default — do not
+generate against an incomplete plan) or `:report-and-continue` (generate what
+can be generated, reporting the gaps). `:halt` is the honest default: generating
+against unresolved references is guessing.
+
+#### Design rationale
+
+`materialise` exists because the act it names was, until now, the language's
+great unspoken verb. Every other core act has a construct — you `conjure`,
+`refine`, `witness`, `handover` — but the central thing the ecosystem layer
+exists to enable, turning specification into artefact, happened only implicitly,
+through `target :via`. Naming it closes that gap. `target` *declares the intent*
+to materialise (selectively: what, where, to which standard); `materialise`
+*performs* it. The two are complementary, and `target :via :direct` now reads as
+"materialise me, both phases, immediately" — the construct is simply what `:via`
+was always invoking without saying so.
+
+The load-bearing design choice is the **two-phase split**, and it is not a
+convenience — it is the calibrated-honesty principle applied to generation.
+Materialisation has a deterministic half and a lossy half. Resolving references,
+ordering dependencies, listing target files, checking that paths exist: this is
+mechanical, repeatable, and verifiable, and nothing is lost by doing it. Turning
+the resulting plan into code: this is semantic, non-deterministic, and
+irreversible in the sense the tenth ground truth describes — the same intent
+yields many possible artefacts and the generator picks one. Fusing the two into
+one atomic act means the practitioner cannot inspect the safe half before
+incurring the unsafe half, and a failed reference is discovered only *after*
+generation has guessed around it. Separating them means the conserved half is
+verified before the lossy half is risked. This is the same discipline as
+`o/execute-workflow :dry-run`, as exhume grading confidence before it emits — and
+the MCP toolchain's `materialise_preflight` tool is exactly this phase, made a
+deterministic service.
+
+`:on-unresolved :halt` as the default follows directly. Generating against an
+incomplete plan is not materialisation; it is fabrication of the kind the
+language warns against everywhere else — the generator filling an unresolved
+dependency with a plausible guess is the code-generation form of inventing a
+rationale. Better to halt, report the gap, and let the practitioner resolve it
+than to manufacture a confident artefact on an unsound foundation.
+
+#### Example 1: The two phases, separated
+
+```clojure
+;; Phase 1 — deterministic preflight. No generation; produces an inspectable plan.
+(materialise subscription-api
+  :phase    :preflight
+  :manifest api-plan)
+
+;; api-plan is a checkable artefact:
+{:target        :subscription-api
+ :files         ["src/subscription/model.ts" "src/subscription/handlers.ts"
+                 "src/subscription/routes.ts"]
+ :resolved-refs [{:from :subscription-api :to :billing-domain :in "billing.cnj"}]
+ :order         [:model :handlers :routes]
+ :unresolved    []
+ :ready         true}
+;; ✓ Fully deterministic: the same .cnj yields this same plan every time. The
+;;   practitioner can read exactly what will be written, and confirm every
+;;   reference resolved, BEFORE any model generates a line of code.
+
+;; Phase 2 — semantic generation, from the validated plan.
+(materialise subscription-api
+  :phase :generate
+  :from  api-plan
+  :manifest api-files)
+;; ✓ Generation runs only against a plan already known to be complete. The lossy,
+;;   non-deterministic step is taken only after the conserved, verifiable one passed.
+```
+
+#### Example 2: Both phases, with a halt on an unresolved reference
+
+```clojure
+(materialise reporting-service
+  :phase         :both
+  :on-unresolved :halt
+  :manifest      reporting-result)
+
+;; Preflight finds a dangling reference and halts before generating:
+{:phase     :preflight
+ :ready     false
+ :unresolved [{:from :reporting-service :target :metrics-domain
+               :reason "referenced in scope but no metrics.cnj on the references path"}]
+ :halted    true
+ :message   "Generation not attempted — resolve :metrics-domain first."}
+;; ✓ :halt is the honest default: rather than generate a reporting service that
+;;   guesses at the missing metrics domain, materialise stops and names the gap.
+;;   Fabricating around an unresolved reference is the code-generation form of
+;;   inventing a rationale — the language refuses it here as everywhere.
+```
+
+#### Usage patterns
+
+```clojure
+;; target declares intent; materialise performs it. :via :direct invokes both phases.
+(target :subscription-api :language :typescript :standard :house-style :via :direct)
+(materialise subscription-api)            ;; equivalent to the :via :direct step
+
+;; Preflight as a standalone safety check across a multi-file project, no generation
+(~> [auth-service billing-service reporting-service]
+  (map #(materialise % :phase :preflight))
+  (witness :observe [:unresolved] :record-to preflight-log))
+;; verify the whole project resolves before generating any of it
+```
+
+---
+
 ## Best practices
 
 ### Intention over instruction
@@ -3084,7 +3230,7 @@ vocabulary on which domain-specific abstractions are built.
 ```clojure
 {:grimoire    "core"
  :namespace   nil   ;; core constructs are unprefixed — conjure, refine, ~>, not c/conjure
- :version     "2.1.0"
+ :version     "2.2.0"
  :description "Foundational constructs, composition machinery, execution
                primitives, and ecosystem connectives for the Conjurer language"
 
@@ -3095,7 +3241,7 @@ vocabulary on which domain-specific abstractions are built.
    :certainty     [certain prefer allow given ensure]
    :typing        [shape]
    :reflection    [explain meta-query witness as]
-   :ecosystem     [charter target asset handover]}
+   :ecosystem     [charter target asset handover materialise]}
 
  :best-for [
    "Declarative intent specification with explicit topology"
@@ -3238,6 +3384,14 @@ vocabulary on which domain-specific abstractions are built.
                  and which remain as Conjurer specification. Most domain
                  knowledge stays in Conjurer; only the necessary surfaces
                  are materialised into target languages."}
+   {:term "Two-phase materialisation"
+    :definition "Materialisation has a deterministic preflight (resolve
+                 references, order dependencies, list target files, report gaps —
+                 repeatable and verifiable, nothing lost) and a semantic
+                 generation (turn the validated plan into files — lossy and
+                 non-deterministic). The materialise construct separates them so
+                 the conserved half is verified before the lossy half is risked,
+                 and halts rather than generating against an unresolved plan."}
    {:term ".cnj file"
     :definition "A Conjurer source file serving as persistent, portable
                  session memory. Begins with charter; accumulates domain work,

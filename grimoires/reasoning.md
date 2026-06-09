@@ -582,12 +582,21 @@ and the path through the decision structure that reached it.
 (r/decide decision-model
   :given   input-map
   :model   :decision-table | :decision-tree | :scoring-model | :rule-set
+  :from-candidates [candidate-id ...]   ;; optional: the f/candidate ids this decision evaluates
   :explain boolean
   :surface [:decision :path :alternatives :sensitivity]
   :manifest decision-result)
 ```
 
 #### Parameters
+
+**`:from-candidates`** — Optional. When a decision evaluates a set of matured
+`f/candidate`s from the `foresight` grimoire, name their ids here. This closes the
+deliberation loop: the decision records which backlog it grew from, so each
+candidate's graded history (its original scores, its dated reassessments)
+connects forward to the decision that resolved it — the mirror of `f/hoist`'s
+`:into`, which connects the candidate forward to its outcome. Purely a
+traceability link; it does not change how the decision is evaluated.
 
 **`:surface [:alternatives]`** — Show which other decision branches were
 considered but not taken. Useful for understanding how close the decision
@@ -1594,7 +1603,7 @@ into audience-appropriate communication.
 ```clojure
 {:grimoire    "reasoning"
  :namespace   "r/"
- :version     "1.1.0"
+ :version     "1.2.0"
  :description "Explicit logical inference: deductive, inductive, abductive, and
                analogical reasoning with full derivation tracing, belief revision,
                and chain-of-custody provenance"
@@ -1776,4 +1785,4 @@ now live again. Omitting this outcome is a correctness failure, not a
 simplification: it leaves the practitioner believing a question is answered when
 the revision has reopened it. Treat `:correct` as a paired retract-and-add that
 preserves the fact's identity and provenance, so the audit trail shows the fact
-was revised rather than deleted and recreated.
+was revised rather than deleted and recreated. 

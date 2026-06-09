@@ -1,6 +1,6 @@
 # Conjurer — Quick Reference
 
-All 133 symbols across 11 grimoires. For full signatures and examples,
+All 137 symbols across 12 grimoires. For full signatures and examples,
 see the individual grimoire files.
 
 ---
@@ -43,6 +43,7 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | `target` | VII | Declare implementation form: language, standard, artefact types |
 | `asset` | VII | Register external standard or capability (coding standard, design system) |
 | `handover` | VII | Package session context; transfer to specialist agent |
+| `materialise` | Turn a target into an artefact: deterministic preflight plan, then semantic generation |
 
 ### Key parameters
 
@@ -322,6 +323,22 @@ code. Every recovery is graded `:attested` (read directly) vs `:inferred`
   (x/charter :title "Project (recovered)" :open-from :gaps))
 ;; code → spec; continue forward from the recovered .cnj
 ```
+
+---
+
+## Foresight (`f/`) — what might become
+
+Forward-looking structured opinion: graded deferred candidates, dated reassessment
+that preserves the trajectory, and promotion that closes a candidate into a decision.
+
+| Symbol | Records |
+|---|---|
+| `f/candidate` | A deferred capability as a graded, dated, lifecycle-bearing candidate (scores + rationale + status) |
+| `f/reassess` | A dated re-evaluation as context changes — appended to history, never an overwrite |
+| `f/hoist` | Promotion of a mature candidate into the decision/target it becomes, bound forward via `:into` |
+
+### Recommended scoring (higher is always better → summable)
+`:feasibility` (10 = trivial) · `:elegance` (10 = native) · `:containment` (10 = tiny blast radius) · `:value` (10 = essential)
 
 ---
 

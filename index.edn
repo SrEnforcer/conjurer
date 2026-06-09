@@ -3,7 +3,7 @@
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces
 
-{:version    "1.3.1"
+{:version    "1.5.0"
  :grimoires  [
    {:name "core"       :file "grimoires/core.md"       :namespace nil}
    {:name "domain"     :file "grimoires/domain.md"     :namespace "d/"}
@@ -15,7 +15,8 @@
    {:name "reasoning"  :file "grimoires/reasoning.md"  :namespace "r/"}
    {:name "taxonomy"   :file "grimoires/taxonomy.md"   :namespace "t/"}
    {:name "agent"      :file "grimoires/agent.md"      :namespace "a/"}
-   {:name "exhume"     :file "grimoires/exhume.md"     :namespace "x/"}]
+   {:name "exhume"     :file "grimoires/exhume.md"     :namespace "x/"}
+   {:name "foresight"  :file "grimoires/foresight.md"  :namespace "f/"}]
 
  :symbols {
 
@@ -262,6 +263,14 @@
    :accepts   [:agent-name]
    :produces  [:handover-package]
    :key-params [:from :scope :include :briefing :produces :return-to :on-completion :manifest]}
+
+  materialise
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Turns a declared target into an artefact in two phases — a deterministic preflight plan verified before semantic generation is risked"
+   :accepts   [:target-or-binding]
+   :produces  [:plan-or-artefact]
+   :key-params [:phase :from :scope :on-unresolved :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; DOMAIN — Knowledge extraction and modelling
@@ -871,7 +880,7 @@
    :synopsis  "Evaluates a decision table, tree, or rule set against inputs; surfaces path and sensitivity"
    :accepts   [:decision-model]
    :produces  [:decision-result]
-   :key-params [:given :model :explain :surface :manifest]}
+   :key-params [:given :model :from-candidates :explain :surface :manifest]}
 
   r/hypothesise
   {:grimoire  "reasoning"
@@ -1131,4 +1140,32 @@
    :synopsis  "Capstone: assembles recovered survey, model, conventions, and decisions into a complete, continuable .cnj — the reverse handover"
    :accepts   [:source]
    :produces  [:cnj-file]
-   :key-params [:title :assemble :using :confidence-policy :open-from :emit :manifest]}}}
+   :key-params [:title :assemble :using :confidence-policy :open-from :emit :manifest]}
+
+  ;;; ─────────────────────────────────────────────────────────────────
+  ;;; FORESIGHT — Forward-looking structured opinion (what might become)
+  ;;; ─────────────────────────────────────────────────────────────────
+
+  f/candidate
+  {:grimoire  "foresight"
+   :namespace "f/"
+   :synopsis  "Records a deliberately deferred capability as a graded, dated, lifecycle-bearing candidate for future decision-making"
+   :accepts   [:id]
+   :produces  [:graded-candidate]
+   :key-params [:label :added :status :scores :rationale :conditions :cluster :history]}
+
+  f/reassess
+  {:grimoire  "foresight"
+   :namespace "f/"
+   :synopsis  "Records a dated re-evaluation of a candidate as context changes — a new assessment in a series, never an overwrite; preserves the trajectory"
+   :accepts   [:of]
+   :produces  [:dated-reassessment]
+   :key-params [:date :scores :rationale :status]}
+
+  f/hoist
+  {:grimoire  "foresight"
+   :namespace "f/"
+   :synopsis  "Promotes a mature candidate into the decision or target it becomes — a dated graduation event that binds the candidate forward to its outcome"
+   :accepts   [:of]
+   :produces  [:promotion-event]
+   :key-params [:date :into :outcomes :note]}}}

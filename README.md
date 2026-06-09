@@ -147,6 +147,7 @@ Conjurer's standard library is organized into **grimoires** — thematic spellbo
 | [eloquence](grimoires/eloquence.md) | `e/` | Tone, audience targeting, rhetorical structure |
 | [agent](grimoires/agent.md) | `a/` | Autonomous action: agent definition, invocation, delegation, multi-agent coordination |
 | [exhume](grimoires/exhume.md) | `x/` | Code archaeology: recover a domain model, conventions, decisions, and a continuable `.cnj` from an existing codebase |
+| [foresight](grimoires/foresight.md) | `f/` | Forward-looking structured opinion: graded deferred candidates, dated reassessment, and promotion to a decision |
 
 ---
 
@@ -201,7 +202,8 @@ conjurer/
     ├── orchestrate.md
     ├── eloquence.md
     ├── agent.md
-    └── exhume.md          ← recover Conjurer spec from existing code
+    ├── exhume.md          ← recover Conjurer spec from existing code
+    └── foresight.md       ← graded deferred candidates and their lifecycle
 ```
 
 Start with [`conjurer.md`](conjurer.md) for the philosophical foundation, then [`grimoires/core.md`](grimoires/core.md) for the language itself.

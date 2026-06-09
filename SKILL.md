@@ -1,6 +1,6 @@
 ---
 name: conjurer
-description: Interpret and execute Conjurer, a declarative language for LLM interaction. Use when practitioners write Conjurer code using any grimoire namespace — core constructs (conjure, refine, charter, target, handover), domain extraction (d/explore, d/model, d/bounded-context), data operations (data/schema, data/generate, data/contract), web generation (w/prototype, w/component, w/responsive, w/copy), semantic analysis (s/texan, s/viewpoint, s/detect-manipulation), workflow orchestration (o/define-workflow, o/react, o/fan-out), communication (e/compose, e/critique), logical inference (r/derive, r/decide, r/analogise, r/revise), classification (t/classify, t/define), agent coordination (a/delegate, a/compose, a/equip), or code archaeology (x/recover-model, x/charter — recovering Conjurer spec from an existing codebase). Also use when a .cnj file is attached — read the charter first and continue from where the session left off.
+description: Interpret and execute Conjurer, a declarative language for LLM interaction. Use when practitioners write Conjurer code using any grimoire namespace — core constructs (conjure, refine, charter, target, handover), domain extraction (d/explore, d/model, d/bounded-context), data operations (data/schema, data/generate, data/contract), web generation (w/prototype, w/component, w/responsive, w/copy), semantic analysis (s/texan, s/viewpoint, s/detect-manipulation), workflow orchestration (o/define-workflow, o/react, o/fan-out), communication (e/compose, e/critique), logical inference (r/derive, r/decide, r/analogise, r/revise), classification (t/classify, t/define), agent coordination (a/delegate, a/compose, a/equip), code archaeology (x/recover-model, x/charter — recovering Conjurer spec from an existing codebase), or forward-looking deliberation (f/candidate, f/hoist — grading and promoting deferred ideas). Also use when a .cnj file is attached — read the charter first and continue from where the session left off.
 ---
 
 # Conjurer Language Interpreter
@@ -27,9 +27,10 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 | taxonomy | `t/` | `grimoires/taxonomy.md` |
 | agent | `a/` | `grimoires/agent.md` |
 | exhume | `x/` | `grimoires/exhume.md` |
+| foresight | `f/` | `grimoires/foresight.md` |
 
 **Symbol lookup:** `index.edn` — every symbol with grimoire, synopsis, and key params.
-**Compact cheat sheet:** `quick-reference.md` — all 133 symbols at a glance.
+**Compact cheat sheet:** `quick-reference.md` — all 137 symbols at a glance.
 **Full philosophy:** `conjurer.md`
 **File structure spec:** `template.md`
 
@@ -246,7 +247,7 @@ ambiguities that would change the entire direction of the output.
 ```
 SKILL.md                ← this file (entrypoint)
 index.edn               ← machine-readable symbol catalog (routing layer)
-quick-reference.md      ← all 133 symbols at a glance
+quick-reference.md      ← all 137 symbols at a glance
 conjurer.md             ← language philosophy and principles
 template.md             ← grimoire and .cnj file structure specification
 grimoires/
@@ -261,6 +262,7 @@ grimoires/
   taxonomy.md           ← t/ classification
   agent.md              ← a/ autonomous action
   exhume.md             ← x/ code archaeology (recover spec from existing code)
+  foresight.md          ← f/ graded deferred candidates, reassessment, promotion
 ```
 
 When depth is needed on any construct, read the relevant grimoire file.
