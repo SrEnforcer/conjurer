@@ -487,11 +487,12 @@ standard implies. The complement to `x/infer-conventions`: where that infers the
 
 ```clojure
 (x/recover-stack source
-  :sources     [:manifest :build-config :enforcement-config :lockfile]
+  :sources     [:manifest :build-config :enforcement-config :lockfile
+                {:role :keyword :package "name" :entry "path" :registry :keyword}]
   :recover     [:dependencies :runtime :build-settings :enforced-rules
                 :embodied-standards :version-constraints]
   :ecosystem   :auto | :node | :python | :dotnet | :rust | :go | ...
-  :distinguish [:runtime :dev :declared :enforced]
+  :distinguish [:runtime :dev :declared :enforced :implicit]
   :detect-drift boolean              ;; flag where enforced config and actual code disagree
   :emit        [:asset :assume-infrastructure :stack-report]
   :manifest    recovered-stack)
@@ -512,6 +513,17 @@ ecosystem uses different ones. The construct resolves the concrete files from th
 - `:lockfile` — the resolved dependency graph (`package-lock.json`, `poetry.lock`,
   `Cargo.lock`) for exact versions and the transitive set
 
+A source entry may also be a **map**, for when part of the standard does not live
+in the project at all but in an external package the project depends on — a shared
+team config, a published lint base, a tsconfig base. The map names the role, the
+package, the file within it, and where it resolves:
+`{:role :eslint-base :package "@team/eslint-config" :entry "dist/base.js"
+:registry :npm}`. This matters because a project's *real* enforced standard is
+often inherited rather than local: a `.eslintrc` that only says `extends:
+"@team/eslint-config"` enforces a whole ruleset that lives elsewhere, and
+recovering only the local file would miss the standard entirely. The map form lets
+`x/recover-stack` follow the declaration to where the standard actually lives.
+
 **`:recover`** — What to extract: `:dependencies` (the libraries chosen),
 `:runtime` (language, version, platform), `:build-settings` (compile target,
 module system, strictness), `:enforced-rules` (the lint/format/type rules the
@@ -526,9 +538,15 @@ This is what keeps the construct language-agnostic: the *recovery intent* is the
 same across Node, Python, .NET, Rust, Go; only the file names differ.
 
 **`:distinguish`** — Separate `:runtime` from `:dev` dependencies (a test runner
-is not a shipped dependency), and `:declared` (what the config says) from
-`:enforced` (what a linter actually blocks). A rule documented but not enforced
-is weaker evidence of standard than one a linter fails the build on.
+is not a shipped dependency), `:declared` (what the config says) from `:enforced`
+(what a linter actually blocks), and both of those from `:implicit` — a standard
+the project follows without declaring or enforcing it anywhere (an unwritten
+convention the code uniformly obeys). The three form an evidence gradient:
+`:enforced` is firmest (a build fails without it), `:declared` is firm (written
+down but not mechanically checked), `:implicit` is weakest (practised but
+nowhere stated, and so closest to what `x/infer-conventions` recovers). A rule
+documented but not enforced is weaker evidence of standard than one a linter
+fails the build on; an implicit one is weaker still.
 
 **`:detect-drift`** — When true, flag places where the *enforced* configuration
 and the *actual* code disagree — the lint config forbids `console.log` but the
@@ -1095,7 +1113,7 @@ again.
 ```clojure
 {:grimoire    "exhume"
  :namespace   "x/"
- :version     "1.1.0"
+ :version     "1.1.1"
  :description "Code and artefact archaeology: recovering Conjurer specification —
                domain models, the declared technical stack, conventions, decisions,
                and a continuable .cnj — from existing codebases never written in
