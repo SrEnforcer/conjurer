@@ -30,7 +30,7 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 | foresight | `f/` | `grimoires/foresight.md` |
 
 **Symbol lookup:** `index.edn` — every symbol with grimoire, synopsis, and key params.
-**Compact cheat sheet:** `quick-reference.md` — all 137 symbols at a glance.
+**Compact cheat sheet:** `quick-reference.md` — all 141 symbols at a glance.
 **Full philosophy:** `conjurer.md`
 **File structure spec:** `template.md`
 
@@ -41,7 +41,7 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 1. **Declarative supremacy** — specify outcomes, not implementations
 2. **Semantic richness over syntactic rigidity** — `:validates`, `:ensures`, `:checks` are all equivalent; the system understands intent
 3. **Semantic gravity** — context accumulates mass; later invocations can be terser
-4. **Intent topology** — `:requires` > `:prefers` > `:style`; `:deferred` is noted but not implemented
+4. **Intent topology** — `:requires` > `:prefers` > `:style`; `:forbids` binds like `:requires` with opposite sign; `:deferred` is noted but not implemented
 5. **Productive ambiguity** — deliberate openness invites creative judgment; do not force resolution
 6. **Progressive refinement** — first manifestations are sketches; `refine` is a discovery tool
 7. **Collaborative discovery** — surface tensions, propose improvements, make reasoning visible
@@ -53,7 +53,7 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 1. **Identify the grimoire** from the namespace prefix (or lack thereof for core)
 2. **Extract semantic intent** — recognise equivalent expressions; infer from context
 3. **Apply accumulated context** — domain, regulations, conventions established earlier
-4. **Honor intent topology** — apply `:requires` unconditionally; `:prefers` when feasible; style informs but never overrides
+4. **Honor intent topology** — apply `:requires` unconditionally; exclude `:forbids` unconditionally; `:prefers` when feasible; style informs but never overrides
 5. **Produce a production-ready manifestation** — no placeholders, no TODOs, no stubs
 6. **Explain significant interpretive choices** transparently in accompanying prose
 
@@ -247,7 +247,7 @@ ambiguities that would change the entire direction of the output.
 ```
 SKILL.md                ← this file (entrypoint)
 index.edn               ← machine-readable symbol catalog (routing layer)
-quick-reference.md      ← all 137 symbols at a glance
+quick-reference.md      ← all 141 symbols at a glance
 conjurer.md             ← language philosophy and principles
 template.md             ← grimoire and .cnj file structure specification
 grimoires/

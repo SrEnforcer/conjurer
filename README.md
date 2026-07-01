@@ -136,7 +136,7 @@ Conjurer's standard library is organized into **grimoires** — thematic spellbo
 
 | Grimoire | Namespace | Purpose |
 |---|---|---|
-| [core](grimoires/core.md) | _(none)_ | The language itself: invocations, composition, execution, certainty contracts, reflection, and ecosystem connectives (`charter` · `target` · `asset` · `handover`) |
+| [core](grimoires/core.md) | _(none)_ | The language itself: invocations, composition, abstraction (`spell` · `charm` · `incantation`), execution, certainty contracts, reflection, and ecosystem connectives (`charter` · `target` · `asset` · `handover` · `grimoire`) |
 | [domain](grimoires/domain.md) | `d/` | Knowledge extraction, domain modeling, DSL generation |
 | [data](grimoires/data.md) | `data/` | Synthetic data generation, transformation, validation pipelines |
 | [web](grimoires/web.md) | `w/` | Web analysis, component generation, full-stack prototyping |
@@ -174,7 +174,7 @@ Seven terms cover the language:
 3. **Semantic gravity** — context accumulates mass; the heavier it grows, the shorter and more precise your invocations become
 4. **Productive ambiguity** — some vagueness is an invitation for creative manifestation, not an error to be corrected
 5. **Progressive refinement** — complexity accretes; `refine` is a discovery tool as much as an enhancement mechanism
-6. **Intent topology** — not all requirements are equally central; `conjure` distinguishes `:requires`, `:prefers`, `:style`, and `:deferred`
+6. **Intent topology** — not all requirements are equally central; `conjure` distinguishes `:requires`, `:forbids`, `:prefers`, `:style`, and `:deferred`
 7. **Calibrated certainty** — values carry graded commitment (`certain` · `prefer` · `allow`); invocations carry contracts (`given` / `ensure`); the language is honest about which enforcement layer verifies what
 8. **Collaborative discovery** — the LLM co-authors, surfaces tensions, and proposes improvements; it does not merely execute
 
@@ -188,7 +188,7 @@ conjurer/
 ├── CHANGELOG.md           ← design history and decisions
 ├── conjurer.md            ← philosophy, naming rationale, full principles
 ├── template.md            ← canonical structure for grimoires and .cnj files
-├── index.edn              ← machine-readable symbol catalog (132 symbols)
+├── index.edn              ← machine-readable symbol catalog
 ├── quick-reference.md     ← every symbol at a glance
 ├── SKILL.md               ← agent entry point and processing guidance
 └── grimoires/

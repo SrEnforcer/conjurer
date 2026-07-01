@@ -180,12 +180,13 @@ This structural property of intent is its *topology*. Conjurer makes it explicit
 ```clojure
 (conjure payment-processor
   :requires  [:pci-compliance :idempotency :audit-trail]
+  :forbids   [:plaintext-pan-at-rest :silent-retries]
   :prefers   [:real-time-fraud-detection :multi-currency-support]
   :style     {:error-messages :user-friendly :verbosity :minimal}
   :deferred  [:analytics-integration :a-b-testing-hooks])
 ```
 
-When constraints conflict — and in real systems they always eventually conflict — the topology tells the system how to choose. `:requires` always wins. `:prefers` yields to `:requires` but ranks above `:style`. `:deferred` items are recorded but not manifested. The practitioner never has to adjudicate these trade-offs explicitly; the topology does it for them.
+When constraints conflict — and in real systems they always eventually conflict — the topology tells the system how to choose. `:requires` always wins. `:forbids` carries the same force with the opposite sign: a manifestation containing a forbidden element is as incorrect as one missing a required capability. `:prefers` yields to `:requires` but ranks above `:style`. `:deferred` items are recorded but not manifested. The practitioner never has to adjudicate these trade-offs explicitly; the topology does it for them.
 
 ---
 
@@ -299,7 +300,7 @@ The grimoires are peers, not a hierarchy. `core` is foundational in the sense th
 
 | Grimoire | Namespace | What it encodes |
 |---|---|---|
-| **core** | _(none)_ | The language itself — fundamentals, composition, execution primitives, certainty contracts (`given`/`ensure`), reflection, and ecosystem connectives (`charter`, `target`, `asset`, `handover`) |
+| **core** | _(none)_ | The language itself — fundamentals, composition, abstraction (`spell`, `charm`, `incantation`), execution primitives, certainty contracts (`given`/`ensure`), reflection, and ecosystem connectives (`charter`, `target`, `asset`, `handover`, `grimoire`) |
 | **domain** | `d/` | Knowledge extraction: exploring documents, modeling domains, resolving conflicts between sources |
 | **data** | `data/` | The full data lifecycle: schema definition, generation, transformation, validation, provenance, and privacy |
 | **web** | `w/` | Web development: style extraction, component generation, full-stack prototyping, accessibility-first design |

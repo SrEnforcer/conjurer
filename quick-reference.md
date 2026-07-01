@@ -1,6 +1,6 @@
 # Conjurer — Quick Reference
 
-All 137 symbols across 12 grimoires. For full signatures and examples,
+All 141 symbols across 12 grimoires. For full signatures and examples,
 see the individual grimoire files.
 
 ---
@@ -23,6 +23,9 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | `transmute` | II | Change form while preserving semantic essence |
 | `weave` | II | Integrate independent artefacts into a system with explicit contracts |
 | `lore` | II | Register domain patterns and anti-patterns for session-wide application |
+| `spell` | II | Define a named, parameterised, reusable invocation pattern |
+| `charm` | II | Anonymous single-use invocation; names the threaded value in a pipeline step |
+| `incantation` | II | Macro: generate a family of invocations; expansion inspectable via `:expand :preview` |
 | `sequence` | III | Execute operations in order; saga compensation on failure |
 | `parallel` | III | Execute operations concurrently; combine by merge, quorum, or first-wins |
 | `branch` | III | Conditional execution on predicate or structural pattern |
@@ -43,6 +46,7 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | `target` | VII | Declare implementation form: language, standard, artefact types |
 | `asset` | VII | Register external standard or capability (coding standard, design system) |
 | `handover` | VII | Package session context; transfer to specialist agent |
+| `grimoire` | VII | Package spells, lore, and shapes into a named, versioned practitioner grimoire |
 | `materialise` | Turn a target into an artefact: deterministic preflight plan, then semantic generation |
 
 ### Key parameters
@@ -50,6 +54,7 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | Parameter | Meaning |
 |---|---|
 | `:requires` | Load-bearing capabilities — always present |
+| `:forbids` | Load-bearing prohibitions — never present; same force as `:requires`, opposite sign |
 | `:prefers` | Preferred capabilities — applied when feasible |
 | `:style` | Aesthetic guidance — never overrides correctness |
 | `:deferred` | Noted but not implemented now |

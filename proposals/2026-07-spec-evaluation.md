@@ -408,4 +408,64 @@ ground truth demands it.
 ## Direct fixes (no candidate needed)
 
 - **F3:** update `README.md`'s "132 symbols" to 137 (or drop the hardcoded
-  count in favour of "see `index.edn`", which cannot drift).
+  count in favour of "see `index.edn`", which cannot drift). *Applied
+  2026-07-01: the hardcoded count was dropped.*
+
+---
+
+## Part V: Disposition (2026-07-01)
+
+The maintainer accepted the ranking and asked for the improvements to be
+carried out. Per foresight discipline, the candidates close through explicit,
+dated events — the original candidate forms above are preserved untouched.
+
+```clojure
+(f/hoist :of :spell
+  :date     "2026-07-01"
+  :into     :core/spell
+  :outcomes [:new-construct :catalog-update]
+  :note     "Conditions resolved at implementation: caller arguments arrive as
+             (prefer v) unless wrapped in certain; context is captured at the
+             invocation site, consistent with semantic gravity.")
+
+(f/hoist :of :forbids-topology
+  :date     "2026-07-01"
+  :into     :core/conjure-forbids
+  :outcomes [:topology-extension :catalog-update]
+  :note     "Introduced on conjure alone, per the recorded condition; extension
+             to refine and weave deferred until practice demands it.")
+
+(f/hoist :of :user-grimoire
+  :date     "2026-07-01"
+  :into     :core/grimoire
+  :outcomes [:new-construct :catalog-update]
+  :note     "Namespace policy resolved as recommended: user namespaces are ≥2
+             characters and must not shadow a standard prefix.")
+
+(f/hoist :of :incantation
+  :date     "2026-07-01"
+  :into     :core/incantation
+  :outcomes [:new-construct :catalog-update]
+  :note     "Landed together with spell, satisfying its sequencing condition.
+             Expansion is mandatory-inspectable via :expand :preview, mirroring
+             materialise's preflight contract; incantations may not generate
+             incantations (v1 boundary).")
+
+(f/hoist :of :charm
+  :date     "2026-07-01"
+  :into     :core/charm
+  :outcomes [:new-construct :catalog-update]
+  :note     "Landed with spell as its anonymous twin; scoped deliberately small —
+             a charm that deserves documentation deserves a name.")
+
+(f/reassess :of :verify-grimoire
+  :date      "2026-07-01"
+  :rationale "Recommendation accepted: the scattering of verification across
+              ensure, data/generate-tests, a/evaluate, and w/audit is correct
+              layering, not a gap. Abandoned honestly rather than kept as
+              backlog clutter; the reasoning above remains as the record."
+  :status    :abandoned)
+
+;; :scry-grimoire remains :proposed — its conditions (freeze revisited,
+;; observed demand) are not met. That is the system working as designed.
+```
