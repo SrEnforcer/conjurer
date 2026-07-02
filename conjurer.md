@@ -228,9 +228,15 @@ Together, these turn a Conjurer session from monologue into dialogue. The practi
 
 The eight principles describe how Conjurer is *built*. This section is different. These are the things that working with intent — manifesting it forward into artefacts, and exhuming it backward out of code — has *taught us*. They are not design decisions; they are observations about the nature of intent, evidence, meaning, and uncertainty that proved true again and again, often the hard way, and that now sit beneath the whole language. Where the principles are architecture, these are epistemology. They cohere around a single recognition: **intent is real, but it is never directly observable.** You always work with its traces — a specification, a pattern, a name, a commit — and the discipline is to know how much weight each trace can bear.
 
+The truths read in four movements: the nature of evidence (what an artefact can and cannot attest), the ethics of uncertainty (what honesty demands when knowledge runs out), the nature of meaning (why plurality and the missing *why* are structural, not accidental), and the structure of the work itself (where symmetry pays, and where its breaking is the message).
+
 ### Artefact is evidence of intent, not intent itself
 
 The code is a witness, not a confession. A function name suggests a purpose but does not state one; a passing test attests behaviour but not the reason for it; a module boundary reveals a decision but not why it was made or what was rejected. What an artefact *does* can be read directly; what its author *meant* must be inferred, and the inference is always partial. Conjurer never collapses the two — which is why `exhume` grades every recovered claim as attested or inferred, and why the implementation is always a derivative the specification can regenerate, never the source of truth itself.
+
+### The artefact records the organization as much as the intent
+
+A module boundary is evidence of a decision — but not always a decision about the domain. Systems come to mirror the communication structure of the teams that build them, so a seam in the code may record an org chart, a reporting line, or a handoff that no longer exists, rather than anything true about the problem. Reading intent from structure therefore demands one more distinction beyond deliberate-versus-accidental: domain-motivated versus organization-motivated. A recovered bounded context that was really a team boundary will mislead every future decision that trusts it as domain truth — the model inherits the org chart's arbitrariness while claiming the domain's authority. When exhuming, grade the two apart; when the evidence cannot tell them apart, that inability is itself a finding. The code remembers who built it, not only why.
 
 ### Intent is durable; its expressions are perishable
 
@@ -263,6 +269,10 @@ That a text supports more than one faithful reading is not a deficiency to be ov
 ### Why is the hardest thing to know
 
 Across every artefact, *what* was done is far easier to recover than *why* it was done. Intent behind a choice is the most deeply buried layer — rarely written down, and when written, suspect. This is not a failing of any particular tool; it is the shape of the problem. The right response is not to try harder to be certain about why, but to be honest about how uncertain the why is: separate it from the what, grade it conservatively, and let the unrecoverable reasons become the open questions that a successor must answer rather than the false foundations they would otherwise build on.
+
+### An unexplained artefact is load-bearing until shown otherwise
+
+The previous truth counsels honesty about how uncertain the why is; this one says what to do while it stays uncertain. A guard clause nobody can explain, a delay that looks arbitrary, a check that seems redundant — the temptation is to treat the unexplained as the unnecessary and clean it away. But an artefact whose reason is unrecoverable is not thereby reasonless: someone put the fence across the road, and that you cannot see why is a statement about your evidence, not about the fence. The conservative default is to treat it as functional — record the open question, carry it forward in the charter, and remove it only when positive evidence shows removal safe, never merely because no reason was found. Absence of a recoverable rationale is the weakest possible ground for action, in either direction. Do not take down a fence until you know why it was put up.
 
 ### Symmetry compresses; broken symmetry informs
 

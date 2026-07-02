@@ -13,6 +13,7 @@ Earlier exploratory evolution is treated as pre-history.
 - User abstraction layer in `core`, closing the vocabulary–spec gap: `spell` (named reusable invocation pattern), `charm` (anonymous invocation for pipeline steps), and `incantation` (macro with a deterministic, inspectable expansion phase via `:expand :preview`).
 - New core construct `grimoire` for packaging spells, lore, and shapes into a named, versioned practitioner grimoire, registrable via `asset`.
 - New `:forbids` slot in the intent topology of `conjure`: load-bearing prohibitions with the same binding force as `:requires`, opposite sign.
+- Two new ground truths in `conjurer.md`: "The artefact records the organization as much as the intent" (structure as organizational evidence — domain-motivated vs organization-motivated seams) and "An unexplained artefact is load-bearing until shown otherwise" (the action discipline for an unrecoverable why), plus a four-movement reading map at the head of the section.
 
 ### Changed
 

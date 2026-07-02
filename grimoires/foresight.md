@@ -385,7 +385,7 @@ The form completes a symmetry the language already half-expresses. `conjure
 `f/hoist` closes it by lifting it into the decision or target it became. Between
 the two sits the candidate's whole tracked existence — graded at `f/candidate`,
 re-judged through `f/reassess`, and finally graduated at `f/hoist`. This is the
-opening/closing symmetry the tenth ground truth names, made concrete: a candidate
+opening/closing symmetry the broken-symmetry ground truth names, made concrete: a candidate
 is not conserved across its lifecycle (it stops being a candidate), but its
 history is *accounted for* — the `:into` binding ensures what it became is
 followable, even after it retires from the backlog.
@@ -395,8 +395,8 @@ event: it produces nothing, binds to nothing, and is fully captured by a dated
 `f/reassess` that sets `:status :abandoned` with a rationale. Hoisting is an event
 because it *produces* something — a decision, a target, a spell — and that
 production is what `:into` and `:outcomes` record. Inventing an `f/abandon` to
-mirror `f/hoist` would be the symmetry-for-its-own-sake error the tenth ground
-truth warns against: not every act has a meaningful inverse, and forcing one here
+mirror `f/hoist` would be the symmetry-for-its-own-sake error the broken-symmetry
+ground truth warns against: not every act has a meaningful inverse, and forcing one here
 would add a form that records nothing the candidate's own status does not.
 
 #### Example: Promoting a candidate to a decision

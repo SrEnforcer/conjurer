@@ -3278,7 +3278,7 @@ Materialisation has a deterministic half and a lossy half. Resolving references,
 ordering dependencies, listing target files, checking that paths exist: this is
 mechanical, repeatable, and verifiable, and nothing is lost by doing it. Turning
 the resulting plan into code: this is semantic, non-deterministic, and
-irreversible in the sense the tenth ground truth describes — the same intent
+irreversible in the sense the broken-symmetry ground truth describes — the same intent
 yields many possible artefacts and the generator picks one. Fusing the two into
 one atomic act means the practitioner cannot inspect the safe half before
 incurring the unsafe half, and a failed reference is discovered only *after*
