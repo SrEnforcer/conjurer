@@ -35,12 +35,12 @@ distinct concern; together they form the complete core vocabulary.
 | Part | Theme                          | Constructs                                                              |
 |------|--------------------------------|-------------------------------------------------------------------------|
 | I    | Fundamental invocations        | `conjure` · `refine` · `context` · `using` · `assume`                   |
-| II   | Composition and transformation | `ritual` · `~>` · `transmute` · `weave` · `lore`                        |
+| II   | Composition and transformation | `ritual` · `~>` · `transmute` · `weave` · `lore` · `spell` · `charm` · `incantation` |
 | III  | Execution primitives           | `sequence` · `parallel` · `branch` · `retry` · `intercept` · `ward`     |
 | IV   | Certainty and contracts        | `certain` · `prefer` · `allow` · `given` · `ensure`                     |
 | V    | Semantic typing                | `shape`                                                                 |
 | VI   | Reflection and perspective     | `explain` · `meta-query` · `witness` · `as`                             |
-| VII  | Session and ecosystem          | `charter` · `target` · `asset` · `handover` · `materialise`             |
+| VII  | Session and ecosystem          | `charter` · `target` · `asset` · `handover` · `materialise` · `grimoire` |
 
 A practitioner rarely needs every construct in a single session. Most
 programs draw heavily from Parts I and II; the rest are summoned when the
@@ -75,6 +75,7 @@ brings it into being.
 ```clojure
 (conjure name-or-description
   :requires  [:non-negotiable-capability ...]
+  :forbids   [:prohibited-element ...]
   :prefers   [:preferred-capability ...]
   :style     {:style-preference value ...}
   :deferred  [:future-capability ...]
@@ -94,6 +95,13 @@ Both are valid. The system extracts intent from either form.
 
 **`:requires`** — Load-bearing capabilities. The manifestation is incorrect
 without these. When constraints conflict, `:requires` always wins.
+
+**`:forbids`** — Load-bearing prohibitions: the topology's negative space. A
+manifestation that contains a forbidden element is incorrect — the same binding
+force as a missing `:requires` item, with the opposite sign. Distinct from
+`ensure` postconditions (verified after generation) because prohibitions shape
+generation up front, and distinct from `lore` anti-patterns (guidance) by
+binding force.
 
 **`:prefers`** — Preferred capabilities, applied when feasible. Yield to
 `:requires` under constraint. Their absence is acceptable; the absence of a
@@ -125,12 +133,14 @@ Every Conjurer program revolves around `conjure`. Unlike a function call that
 invokes an existing procedure, `conjure` describes *what should exist* and
 trusts the system to determine *how to create it*.
 
-The topology vocabulary — `:requires`, `:prefers`, `:style`, `:deferred` —
-solves a real design problem: not all parts of a specification carry equal
-weight. When the system encounters a tension between a compliance requirement
-and a UX preference, it must know which to honour. Without explicit topology,
-this is left to inference and is frequently inferred incorrectly. The
-vocabulary makes prioritisation explicit.
+The topology vocabulary — `:requires`, `:forbids`, `:prefers`, `:style`,
+`:deferred` — solves a real design problem: not all parts of a specification
+carry equal weight. When the system encounters a tension between a compliance
+requirement and a UX preference, it must know which to honour. Without explicit
+topology, this is left to inference and is frequently inferred incorrectly. The
+vocabulary makes prioritisation explicit — including its negative space:
+`:forbids` states what must *not* appear with the same force that `:requires`
+states what must.
 
 The `:examples` parameter is frequently more expressive than parameter
 descriptions. "What does 'normalise' mean for this data?" is answered more
@@ -142,12 +152,14 @@ nuanced, lead with examples.
 ```clojure
 (conjure payment-processor
   :requires  [:pci-dss-compliance :idempotency :audit-trail]
+  :forbids   [:plaintext-pan-at-rest :silent-retries]
   :prefers   [:real-time-fraud-detection :multi-currency-support]
   :style     {:error-messages :user-friendly :logging :structured-json}
   :deferred  [:analytics-hooks :a-b-testing-framework]
   :manifest  payment-processor)
 
 ;; ✓ PCI-DSS, idempotency, audit trail: always present — non-negotiable
+;; ✗ Plaintext PANs at rest, silent retries: never present — equally non-negotiable
 ;; ✓ Fraud detection, multi-currency: present when feasible within constraints
 ;; → Analytics and A/B testing: documented, not implemented yet
 ```
@@ -567,6 +579,12 @@ deliberate steps, how forms change while essence is preserved, how
 independent components are integrated into coherent systems, and how
 domain wisdom is encoded for reuse.
 
+The last three constructs of this part — `spell`, `charm`, and
+`incantation` — are the language's abstraction layer: naming a reusable
+invocation pattern, casting one anonymously inside a pipeline, and
+generating whole families of invocations from a single deterministic
+expansion.
+
 ---
 
 ### `ritual`
@@ -943,6 +961,200 @@ Conjurer, making it available to every subsequent invocation within its scope
                Async dispatch via event bus is always preferred."}]
 
   :active-in :session)
+```
+
+---
+
+### `spell`
+
+Defines a named, parameterised, reusable invocation pattern. Where `conjure`
+manifests once, `spell` captures the *shape* of a manifestation so it can be
+cast again and again — the language's `defn`, in the lineage the name has
+always promised.
+
+#### Signature
+
+```clojure
+(spell name [parameters & {:keys [named-parameters] :or {defaults}}]
+  :doc "what this spell manifests and which defaults it bakes in"
+  body-invocation)
+```
+
+#### Parameters
+
+**`name`** — The spell's name. Casting the spell is applying the name:
+`(name args ...)`.
+
+**`parameters`** — Positional and named parameters, Clojure-style, with
+optional defaults. Caller arguments arrive in the body as *leanings* —
+equivalent to `(prefer v)` — unless the caller wraps them in `certain`. A
+spell never silently upgrades a caller's commitment.
+
+**`:doc`** — What the spell manifests and, importantly, which defaults it
+front-loads. A spell is a contract with its future callers; the doc is where
+that contract is stated.
+
+**`body-invocation`** — Any invocation form: a `conjure`, a `~>` pipeline, a
+`ritual`. Parameters are available throughout.
+
+#### Design rationale
+
+A practitioner who writes the same `conjure` shape twenty times has been
+carrying an abstraction in their head with no way to put it in the language.
+`spell` is that way. It is semantic gravity made portable: a spell front-loads
+the invariant part of an invocation — the compliance defaults, the style
+guidance, the contracts — into a named, reusable form, so each cast carries
+only the delta, exactly as a mature context lets invocations grow shorter.
+
+Two semantics are deliberate. First, *certainty is caller-owned*: arguments
+arrive as leanings unless the caller marks them `certain`, because the person
+casting the spell — not the person who wrote it — knows how committed the
+value is. Second, *context is captured at the invocation site*: a spell cast
+inside a healthcare context inherits that context's gravity, not the gravity
+of wherever the spell happened to be defined. A spell is a pattern, not a
+sealed environment.
+
+#### Example
+
+```clojure
+(spell compliant-endpoint [entity & {:keys [audience] :or {audience :engineer}}]
+  :doc "REST endpoint with the team's compliance defaults baked in"
+  (conjure (str entity "-endpoint")
+    :requires [:audit-trail :idempotency :pci-compliance]
+    :forbids  [:silent-retries]
+    :style    {:error-messages :user-friendly}
+    :within   (ensure :semantic ["errors never leak internal identifiers"])))
+
+;; Twenty invocations later, each is one line, and the compliance
+;; defaults live in exactly one place:
+(compliant-endpoint transaction)
+(compliant-endpoint refund :audience :compliance-officer)
+
+;; A caller who has genuinely decided marks it so:
+(compliant-endpoint settlement :audience (certain :regulator))
+```
+
+#### Usage patterns
+
+```clojure
+;; Spells compose like any invocation — inside pipelines, wards, rituals:
+(~> quarterly-close
+  (compliant-endpoint)
+  (e/compose :audience :executive))
+
+;; Refine the spell, not the twenty casts: every future cast inherits it
+(refine compliant-endpoint
+  :add-to :requires [:structured-logging]
+  :because "Incident review 2026-06: unstructured logs slowed triage")
+```
+
+---
+
+### `charm`
+
+An anonymous, single-use invocation — `spell`'s unnamed twin, as `fn` is to
+`defn`. Earns its keep inside `~>` pipelines, where a step needs to receive
+the threaded value under a name.
+
+#### Signature
+
+```clojure
+(charm [threaded-value-name]
+  body-invocation)
+```
+
+#### Design rationale
+
+Most of what a charm does, an inline `conjure` already does — a charm is
+convenience, not capability, and the spec is honest about that. The one place
+it is genuinely needed is a pipeline step that must *name* the value flowing
+through it: `~>` threads results positionally, and until `charm`, a step that
+wanted to use the threaded value twice, or somewhere other than first
+position, had no expression. A charm should stay small; a charm complex
+enough to deserve documentation deserves a name, and a name makes it a
+`spell`.
+
+#### Example
+
+```clojure
+(~> quarterly-dataset
+  (data/profile :detect [:drift :anomalies])
+  (charm [profile]                             ;; the threaded value, named
+    (conjure anomaly-note
+      :from     profile
+      :severity (:worst-anomaly profile)       ;; used twice — needs the name
+      :output   :markdown))
+  (e/compose :audience :executive :tone :measured))
+```
+
+---
+
+### `incantation`
+
+A macro: an invocation that generates invocations. Expansion is deterministic
+and inspectable *before* anything is manifested — the plan/act separation the
+language already enforces in `materialise`, applied to abstraction.
+
+#### Signature
+
+```clojure
+(incantation name [parameters]
+  :doc        "what family of invocations this generates"
+  :expands-to (generating-expression))       ;; deterministic — no manifestation here
+
+;; Casting:
+(name args :expand :preview)   ;; phase 1 — show the exact invocations, run nothing
+(name args)                    ;; phase 2 — execute the expansion
+```
+
+#### Parameters
+
+**`:expands-to`** — A deterministic expression over the incantation's
+parameters that produces a sequence of invocations. Expansion may reference
+only its parameters and constructs already registered in the session — never
+perform manifestation itself. An incantation may generate spells and
+invocations; it may not generate other incantations.
+
+**`:expand :preview`** — Mandatory-available preflight: the exact list of
+invocations that *would* run, with their arguments resolved. Nothing is
+generated.
+
+#### Design rationale
+
+The classic objection to macros is opaque expansion: code runs that nobody
+ever saw. Conjurer already owns the answer, in a ground truth: *separate the
+deterministic plan from the generative act, and verify the first before
+risking the second.* Expansion is the deterministic, lossless, checkable
+half — which invocations, with which arguments — so it runs as an inspectable
+preflight, exactly like `materialise`'s plan phase. Only against an expansion
+already seen to be sound is the generative half executed. Generating against
+an unverified expansion would be the abstraction-layer form of generating
+against an unverified plan, and the remedy is the same: structural, not
+careful.
+
+The restriction that incantations cannot generate incantations is a
+deliberate v1 boundary: one level of expansion keeps every preview flat and
+fully readable. It can be revisited if practice demands it.
+
+#### Example
+
+```clojure
+(incantation crud-suite [model]
+  :doc "One endpoint family per entity in a domain model"
+  :expands-to
+    (for [entity (entities-of model)]
+      (compliant-endpoint entity
+        :handles [:create :read :update :delete])))
+
+;; Phase 1 — deterministic, lossless, checkable:
+(crud-suite insurance-domain :expand :preview)
+;; => (compliant-endpoint policy   :handles [:create :read :update :delete])
+;;    (compliant-endpoint claim    :handles [:create :read :update :delete])
+;;    (compliant-endpoint insured  :handles [:create :read :update :delete])
+;; Inspect the plan; refine the model or the incantation if it is wrong.
+
+;; Phase 2 — generative, lossy, irreversible:
+(crud-suite insurance-domain)
 ```
 
 ---
@@ -2271,7 +2483,10 @@ a `handover`. These four constructs transform Conjurer from a session-scoped
 language into a persistent, portable, multi-agent design medium. A fifth,
 `materialise`, performs the crossing itself — turning a declared target into an
 artefact in two phases, a deterministic plan verified before semantic generation
-is risked.
+is risked. A sixth, `grimoire`, lets practitioners package their own spells,
+lore, and shapes into a named, versioned spellbook — completing the metaphor
+the language is named for: practitioners do not only read grimoires, they
+write them.
 
 ---
 
@@ -2701,6 +2916,76 @@ are automatically updated on the next session.
 
 ---
 
+### `grimoire`
+
+Packages spells, lore, and shapes into a named, versioned, shareable
+practitioner grimoire — a user-authored spellbook that travels with the
+project like any registered standard.
+
+#### Signature
+
+```clojure
+(grimoire name
+  :namespace "prefix/"                ;; ≥2 characters; must not shadow a standard prefix
+  :version   "semver"
+  :doc       "what domain this spellbook serves"
+  :provides  [prefix/spell ...]
+  :lore      [lore-references ...]    ;; optional
+  :shapes    [prefix/Shape ...])      ;; optional
+```
+
+#### Parameters
+
+**`:namespace`** — The grimoire's prefix. User namespaces must be at least two
+characters and must not shadow any of the twelve standard prefixes — the
+single-character namespaces (and `data/`) are reserved for the standard
+library.
+
+**`:provides`** — The spells the grimoire exports. A grimoire with nothing to
+bundle is empty; `spell` is the unit of content.
+
+**`:lore`**, **`:shapes`** — Optional accompanying pattern libraries and
+semantic types, so a domain's idioms and vocabulary travel with its spells.
+
+#### Design rationale
+
+The standard library is deliberately frozen — and that freeze is only
+sustainable if domain growth has a home outside it. `grimoire` is that home.
+A team's payment expertise, a consultancy's audit patterns, a regulator's
+compliance vocabulary: each becomes a namespace bundling spells, lore, and
+shapes, versioned like any dependency, and registrable via `asset` so that
+every agent joining the project receives it exactly as it receives a coding
+standard — given, not remembered.
+
+This also completes the founding metaphor. Historically, a grimoire was
+something a practitioner *wrote* — an organised body of hard-won expertise.
+Until this construct, Conjurer's practitioners could only read the standard
+twelve. Now expertise accumulated in a project can graduate into a spellbook
+of its own.
+
+#### Example
+
+```clojure
+(grimoire acme-payments
+  :namespace "acme/"
+  :version   "0.1.0"
+  :doc       "Acme's payment-domain spellbook: our defaults, our vocabulary"
+  :provides  [acme/compliant-endpoint acme/settlement-report acme/refund-flow]
+  :lore      [payment-system-patterns]
+  :shapes    [acme/Transaction acme/Settlement])
+
+;; Registered like any other standard — agents receive it in a handover:
+(asset :acme-payments-grimoire
+  :type        :grimoire
+  :description "Acme payment-domain spells, lore, and shapes"
+  :location    "grimoires/acme-payments.cnj"
+  :version     "0.1.0"
+  :applies-to  [:rest-api :domain-model]
+  :active-in   :project)
+```
+
+---
+
 ### `handover`
 
 Packages the current session's context and transfers it to a specialist agent,
@@ -3113,10 +3398,11 @@ than describing them.
 
 ### Make topology explicit
 
-Use `:requires`, `:prefers`, `:style`, and `:deferred` deliberately. They
-prevent the system from treating a stylistic preference as a correctness
-requirement, or from trading away a compliance constraint to satisfy a
-performance preference.
+Use `:requires`, `:forbids`, `:prefers`, `:style`, and `:deferred`
+deliberately. They prevent the system from treating a stylistic preference as
+a correctness requirement, or from trading away a compliance constraint to
+satisfy a performance preference — and `:forbids` keeps prohibitions out of
+prose where they would carry no binding force.
 
 ### Prefer `~>` for multi-step transformations
 
@@ -3230,21 +3516,23 @@ vocabulary on which domain-specific abstractions are built.
 ```clojure
 {:grimoire    "core"
  :namespace   nil   ;; core constructs are unprefixed — conjure, refine, ~>, not c/conjure
- :version     "2.2.0"
- :description "Foundational constructs, composition machinery, execution
-               primitives, and ecosystem connectives for the Conjurer language"
+ :version     "2.3.0"
+ :description "Foundational constructs, composition machinery, abstraction
+               (spells, charms, incantations), execution primitives, and
+               ecosystem connectives for the Conjurer language"
 
  :constructs {
    :fundamental   [conjure refine context using assume]
-   :composition   [ritual ~> transmute weave lore]
+   :composition   [ritual ~> transmute weave lore spell charm incantation]
    :execution     [sequence parallel branch retry intercept ward]
    :certainty     [certain prefer allow given ensure]
    :typing        [shape]
    :reflection    [explain meta-query witness as]
-   :ecosystem     [charter target asset handover materialise]}
+   :ecosystem     [charter target asset handover materialise grimoire]}
 
  :best-for [
    "Declarative intent specification with explicit topology"
+   "Naming and reusing invocation patterns as spells; generating invocation families via incantations"
    "Progressive refinement as a discovery process"
    "Context establishment, inheritance, and semantic gravity"
    "Cross-grimoire composition and system integration"
@@ -3421,10 +3709,14 @@ when parameters are absent rather than requesting specification of every detail.
 
 ### Intent topology
 
-When processing `:requires`, `:prefers`, `:style`, and `:deferred`:
+When processing `:requires`, `:forbids`, `:prefers`, `:style`, and `:deferred`:
 
 - Apply all `:requires` items unconditionally. A manifestation that omits a
   `:requires` item is incorrect.
+- Exclude all `:forbids` items unconditionally. A manifestation that contains
+  a forbidden element is incorrect — the same force as `:requires`, opposite
+  sign. Prohibitions shape generation up front; do not generate first and
+  strip afterwards.
 - Apply `:prefers` items when they don't conflict with `:requires`. Under
   constraint, `:requires` always wins.
 - Use `:style` to inform presentation, tone, and aesthetic decisions. Style
@@ -3432,9 +3724,33 @@ When processing `:requires`, `:prefers`, `:style`, and `:deferred`:
 - Record `:deferred` items in the manifestation's documentation with a clear
   note that they are intentionally not yet implemented.
 
-When a genuine conflict exists between `:requires` items, surface it
-explicitly rather than silently prioritising one. Ask the practitioner to
-adjudicate.
+When a genuine conflict exists between `:requires` items — or between a
+`:requires` and a `:forbids` item — surface it explicitly rather than
+silently prioritising one. Ask the practitioner to adjudicate.
+
+### Spells, charms, and incantations
+
+When processing a `spell` definition, record the pattern; manifest nothing.
+When a spell is cast, treat caller arguments as `(prefer v)` unless the caller
+wrapped them in `certain` — never silently upgrade a caller's commitment. Apply
+the context active at the *invocation site*, not the definition site.
+
+When processing an `incantation`, keep the two phases strictly separate.
+Expansion is deterministic: resolve which invocations would run, with which
+arguments, referencing only the incantation's parameters and constructs
+already registered in the session. On `:expand :preview`, present that list
+and execute nothing. Never execute an expansion the practitioner has had no
+opportunity to inspect when they asked for one, and refuse expansion
+expressions that would themselves manifest (that is execution smuggled into
+the plan phase). Incantations may not generate incantations.
+
+A `charm` is processed as its body invocation with the threaded value bound
+to the declared name. If a charm grows complex enough to warrant
+documentation, suggest promoting it to a `spell`.
+
+When processing a user `grimoire`, validate that its `:namespace` is at least
+two characters and does not shadow a standard prefix; reject collisions
+explicitly rather than silently re-prefixing.
 
 ### Context and semantic gravity
 

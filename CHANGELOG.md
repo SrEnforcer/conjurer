@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 This changelog is intentionally initialized at the current maturity baseline.
 Earlier exploratory evolution is treated as pre-history.
 
+## 1.2.0 - 2026-07-01
+
+### Added
+
+- Specification evaluation with graded extension candidates (`proposals/2026-07-spec-evaluation.md`), scored with foresight's recommended set and expressed as `f/candidate` forms.
+- User abstraction layer in `core`, closing the vocabulary–spec gap: `spell` (named reusable invocation pattern), `charm` (anonymous invocation for pipeline steps), and `incantation` (macro with a deterministic, inspectable expansion phase via `:expand :preview`).
+- New core construct `grimoire` for packaging spells, lore, and shapes into a named, versioned practitioner grimoire, registrable via `asset`.
+- New `:forbids` slot in the intent topology of `conjure`: load-bearing prohibitions with the same binding force as `:requires`, opposite sign.
+
+### Changed
+
+- Updated catalog and references (`index.edn`, `quick-reference.md`, `README.md`, `SKILL.md`, `conjurer.md`) for the expanded symbol surface (137 → 141).
+- README no longer hardcodes the symbol count (it had drifted from `index.edn`).
+
 ## 1.1.0 - 2026-06-10
 
 ### Added

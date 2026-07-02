@@ -3,7 +3,7 @@
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces
 
-{:version    "1.5.0"
+{:version    "1.6.0"
  :grimoires  [
    {:name "core"       :file "grimoires/core.md"       :namespace nil}
    {:name "domain"     :file "grimoires/domain.md"     :namespace "d/"}
@@ -30,7 +30,7 @@
    :synopsis  "Primary manifestation: describe what should exist; the system brings it into being"
    :accepts   [:name-or-description]
    :produces  [:any-artefact]
-   :key-params [:requires :prefers :style :deferred :accepts :returns :examples :output :manifest]}
+   :key-params [:requires :forbids :prefers :style :deferred :accepts :returns :examples :output :manifest]}
 
   refine
   {:grimoire  "core"
@@ -135,6 +135,30 @@
    :accepts   [:sources]
    :produces  [:active-pattern-library]
    :key-params [:patterns :anti-patterns :observed-in :active-in]}
+
+  spell
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Defines a named, parameterised, reusable invocation pattern; caller arguments arrive as leanings unless marked certain"
+   :accepts   [:parameters :body-invocation]
+   :produces  [:castable-pattern]
+   :key-params [:doc]}
+
+  charm
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Anonymous single-use invocation; names the threaded value within a pipeline step"
+   :accepts   [:threaded-value]
+   :produces  [:step-result]
+   :key-params []}
+
+  incantation
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Macro: generates a family of invocations from a deterministic, inspectable expansion (:expand :preview) before anything is manifested"
+   :accepts   [:parameters :expansion-expression]
+   :produces  [:invocation-family]
+   :key-params [:doc :expands-to :expand]}
 
   sequence
   {:grimoire  "core"
@@ -271,6 +295,14 @@
    :accepts   [:target-or-binding]
    :produces  [:plan-or-artefact]
    :key-params [:phase :from :scope :on-unresolved :manifest]}
+
+  grimoire
+  {:grimoire  "core"
+   :namespace nil
+   :synopsis  "Packages spells, lore, and shapes into a named, versioned, shareable practitioner grimoire; registrable via asset"
+   :accepts   [:name]
+   :produces  [:practitioner-grimoire]
+   :key-params [:namespace :version :doc :provides :lore :shapes]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; DOMAIN — Knowledge extraction and modelling
