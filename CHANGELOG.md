@@ -18,6 +18,7 @@ Earlier exploratory evolution is treated as pre-history.
 
 - Updated catalog and references (`index.edn`, `quick-reference.md`, `README.md`, `SKILL.md`, `conjurer.md`) for the expanded symbol surface (137 → 141).
 - README no longer hardcodes the symbol count (it had drifted from `index.edn`).
+- Compressed the "Symmetry compresses; broken symmetry informs" ground truth to half its length; its four claims (exploited symmetry, measured loss, manufactured counter-reading, plan/act separation) survive intact, and the plan/act corollary now cites incantation's preview phase alongside materialise's preflight.
 
 ## 1.1.0 - 2026-06-10
 
