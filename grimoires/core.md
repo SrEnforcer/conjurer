@@ -123,9 +123,14 @@ descriptions; the system uses them to calibrate intent for edge cases and
 normalisation behaviour.
 
 **`:output`** — Desired output format: `:code`, `:edn`, `:json`, `:markdown`,
-`:artifact`, etc.
+`:artefact`, etc.
 
 **`:manifest`** — Binds the result to a name for use in subsequent invocations.
+The outer form `(def name (conjure ...))` is equivalent and equally valid:
+`def` binds from outside the invocation, `:manifest` from inside. Use
+whichever reads better in context — chained work tends to read best with
+`def`; a binding that belongs to the invocation's own story reads best as
+`:manifest`. The examples in this grimoire use both.
 
 #### Design rationale
 
@@ -241,7 +246,7 @@ parameters, removes elements, or deepens analysis — without starting over.
 
 #### Parameters
 
-**`existing-manifestation`** — The artifact to enhance.
+**`existing-manifestation`** — The artefact to enhance.
 
 **`:focus-on`** — Narrows refinement to specific aspects. Without it, the
 entire manifestation is refined. With it, only the named aspects change —
@@ -590,7 +595,7 @@ expansion.
 ### `ritual`
 
 A structured, multi-phase invocation that guides the system through deliberate
-sequential steps, accumulating intermediate artifacts at each stage.
+sequential steps, accumulating intermediate artefacts at each stage.
 
 #### Signature
 
@@ -599,7 +604,7 @@ sequential steps, accumulating intermediate artifacts at each stage.
   :phases [
     {:name    :phase-name
      :do      invocation
-     :produce :artifact-name}
+     :produce :artefact-name}
     ...]
   :checkpoint :after-each-phase | :on-completion
   :manifest   final-result)
@@ -608,8 +613,8 @@ sequential steps, accumulating intermediate artifacts at each stage.
 #### Design rationale
 
 Some manifestations are too complex for a single `conjure` — the final
-artifact depends on intermediate discoveries that cannot be known upfront. A
-ritual makes the multi-step nature explicit: each phase produces an artifact
+artefact depends on intermediate discoveries that cannot be known upfront. A
+ritual makes the multi-step nature explicit: each phase produces an artefact
 the next phase consumes, and the accumulation of intermediate work is itself
 part of the value.
 
@@ -689,7 +694,7 @@ restructuring surrounding code. Observability becomes frictionless.
     :highlight [:uncapped-liability :auto-renewal-clauses :ip-assignment]
     :omit      [:boilerplate]
     :output    :executive-summary)
-  (e/format    :tone :precise :audience :legal-counsel :length :concise))
+  (e/compose   :tone :precise :audience :legal-counsel :length :concise))
 
 ;; PDF → domain model → semantic analysis → risk summary → formatted output
 ;; Each step independently inspectable; any step replaceable without
@@ -1044,7 +1049,7 @@ sealed environment.
 
 ;; Refine the spell, not the twenty casts: every future cast inherits it
 (refine compliant-endpoint
-  :add-to :requires [:structured-logging]
+  :add     [:structured-logging]
   :because "Incident review 2026-06: unstructured logs slowed triage")
 ```
 
@@ -1267,7 +1272,7 @@ Executes operations concurrently, collecting and combining results.
 ```clojure
 (parallel name
   :operations      [op-1 op-2 ...]
-  :combine-results :merge | :array | :synthesise | custom-fn
+  :combine-results :merge | :array | :synthesise | custom-charm
   :wait-for        :all | :any | :first-n
   :timeout         duration-ms
   :on-error        :fail-fast | :collect-errors | :best-effort
@@ -1339,9 +1344,10 @@ trick.
     (conjure validate-business   :data input :rules [:age-of-consent :restricted-regions])]
   :wait-for        :all
   :on-error        :collect-errors    ;; surface all violations, not just the first
-  :combine-results (fn [results]
-                     {:valid  (every? :valid results)
-                      :errors (mapcat :errors results)})
+  :combine-results (charm [results]
+                     (conjure validation-verdict
+                       :valid  "true only when every individual check passed"
+                       :errors "all violations from all checks, concatenated"))
   :manifest        validation-result)
 ```
 
@@ -1380,6 +1386,11 @@ Pattern matching supports both exact values and predicates, enabling
 everything from simple dispatch to multi-factor decision trees. The `:else`
 clause provides mandatory default behaviour — unhandled cases are never
 silently ignored.
+
+Predicate patterns close over the value under test by convention: `score` in
+the cases below denotes the result of `:on`, just as `status` in `retry`'s
+`:retry-on` denotes the failure being classified. The binding is implicit,
+so choose names that make the referent unmistakable.
 
 #### Example 1: Risk-based routing
 
@@ -1434,12 +1445,12 @@ Executes an operation with automatic retry logic for transient failures.
 (retry name
   :operation     operation
   :attempts      n
-  :backoff       :linear | :exponential | :jittered-exponential | custom-fn
+  :backoff       :linear | :exponential | :jittered-exponential | custom-charm
   :initial-delay ms
   :max-delay     ms
   :retry-on      [error-predicate ...]
   :give-up-on    [error-predicate ...]
-  :on-retry      callback-fn
+  :on-retry      charm
   :manifest      result-binding)
 ```
 
@@ -1480,9 +1491,12 @@ practitioner to be deliberate — is a feature.
   :give-up-on    [(= status 400)       ;; bad request — not retriable
                   (= status 401)       ;; auth failure — fix the credentials
                   (= status 402)]      ;; payment declined — not a transient error
-  :on-retry      (fn [attempt error]
-                   (log/warn "Payment gateway retry" attempt :error-type (type error))
-                   (metrics/increment "payment.gateway.retries"))
+  :on-retry      (charm [retry-event]
+                   (conjure retry-telemetry
+                     :log    {:level :warn :event "payment-gateway-retry"
+                              :attempt (:attempt retry-event)
+                              :error-type (:error-type retry-event)}
+                     :metric "payment.gateway.retries"))
   :manifest      charge-result)
 ```
 
@@ -1545,7 +1559,7 @@ opens a transaction is the last to close it.
     (conjure verify-jwt       :require [:not-expired :correct-audience])
     (conjure verify-ownership :customer-id customer-id :actor current-user)
     (conjure validate-schema  :data payment-data :schema payment-method-schema)
-    (conjure check-rate-limit :customer-id customer-id :limit 10-per-hour)]
+    (conjure check-rate-limit :customer-id customer-id :limit (per-hour 10))]
 
   :around [
     (conjure measure-latency  :record-to :metrics :labels {:op "payment-update"})
@@ -1743,6 +1757,13 @@ keywords operate at the *capability* level — `:requires [:pci-compliance]`
 declares that PCI compliance is a load-bearing capability. Qualifiers operate
 at the *value* level — `(certain (px 200))` declares that 200 pixels
 specifically is bound. Both kinds of constraint coexist in the same invocation.
+
+A note on unit forms. Examples throughout this grimoire write quantities as
+`(eur 10000)`, `(minutes 5)`, `(px 200)` rather than as naked numbers. These
+are ordinary Conjurer expressions, not special syntax: the head names the
+unit, the argument carries the magnitude. They exist because a naked `10000`
+forces the system to infer what it measures, while a unit form makes the
+dimension part of the value. Prefer them wherever a number has a unit.
 
 #### Example 1: Layout specification with mixed certainty
 
@@ -1976,7 +1997,7 @@ topology (`:requires` capability declarations). Where `shape` describes
 describes *artefact properties* of any kind: code structure, runtime
 behaviour, accessibility, performance characteristics, copy tone.
 
-The `:verify-via` field is non-cosmetic. It is the construct's promise of
+The `:verify-via` field is doing real work. It is the construct's promise of
 honesty: the system declares which guarantees are mechanical and which are
 semantic, so practitioners are not misled into trusting a constraint that
 is only as strong as the model's commitment.
@@ -2100,6 +2121,8 @@ invocation runs, postconditions hold of the result. The dotted arrow marks
 that qualifiers are not part of that time-flow — they apply *inside* the
 invocation, at the granularity of individual values.
 
+---
+
 ## Part V: Semantic typing
 
 The `shape` construct describes what data *means*, not just the form it
@@ -2166,7 +2189,7 @@ concept; a schema is an implementation of it.
     :mrn               (string :format "MRN-XXXXXXXX" :unique-per-facility true)
     :date-of-birth     (date :past-only :not-before "1900-01-01")
     :primary-diagnosis (icd-10-code :valid :current)
-    :medications       [(map :of medication-record) :or :empty-list]
+    :medications       (list :of medication-record :allow-empty true)
     :consent-given     (boolean :required true)}
 
   :invariants [
@@ -2260,7 +2283,7 @@ practitioner asks why, understanding develops, the specification sharpens.
   context specifies financial services where composite models substantially
   reduce false positives on legitimate cross-border spend."
 
- :alternatives-considered [
+ :alternatives [
    {:approach  "Simple threshold rules"
     :rejected  "Too many false positives for customers who travel frequently"}
    {:approach  "Isolation forest (unsupervised)"
@@ -2937,7 +2960,7 @@ project like any registered standard.
 #### Parameters
 
 **`:namespace`** — The grimoire's prefix. User namespaces must be at least two
-characters and must not shadow any of the twelve standard prefixes — the
+characters and must not shadow any of the eleven standard prefixes — the
 single-character namespaces (and `data/`) are reserved for the standard
 library.
 
@@ -3051,9 +3074,9 @@ the context.
 `handover` packages the context once, explicitly, completely. The receiving
 agent gets: the goals (from the charter), the domain model, the coding standard
 (from the asset), the specific scope, and the briefing. It has everything. The
-practitioner does not repeat themselves. The standard — whatever the team has defined — is applied because the agent
-was given the standard's file, not because the practitioner remembered to
-mention it.
+practitioner does not repeat themselves. The standard — whatever the team
+has defined — is applied because the agent was given the standard's file,
+not because the practitioner remembered to mention it.
 
 #### Example 1: Handing off API implementation to a specialist agent
 
@@ -3090,11 +3113,12 @@ mention it.
   :on-completion :notify)
 ```
 
-#### Example 3: Documentation handover to eloquence
+#### Example 3: Documentation handover
 
 ```clojure
-;; Handover within the Conjurer ecosystem — to the eloquence grimoire
-(handover :to :eloquence
+;; Handover to a documentation specialist — an agent whose craft is the
+;; eloquence grimoire
+(handover :to :documentation-agent
   :from    :current-session
   :scope   [:documentation]
   :include [:charter :domain-model :decisions]
@@ -3341,8 +3365,6 @@ than to manufacture a confident artefact on an unsound foundation.
  :message   "Generation not attempted — resolve :metrics-domain first."}
 ;; ✓ :halt is the honest default: rather than generate a reporting service that
 ;;   guesses at the missing metrics domain, materialise stops and names the gap.
-;;   Fabricating around an unresolved reference is the code-generation form of
-;;   inventing a rationale — the language refuses it here as everywhere.
 ```
 
 #### Usage patterns
@@ -3353,9 +3375,11 @@ than to manufacture a confident artefact on an unsound foundation.
 (materialise subscription-api)            ;; equivalent to the :via :direct step
 
 ;; Preflight as a standalone safety check across a multi-file project, no generation
-(~> [auth-service billing-service reporting-service]
-  (map #(materialise % :phase :preflight))
-  (witness :observe [:unresolved] :record-to preflight-log))
+(witness
+  (o/fan-out :over [auth-service billing-service reporting-service]
+    :do (materialise :phase :preflight))
+  :observe   [:unresolved]
+  :record-to preflight-log)
 ;; verify the whole project resolves before generating any of it
 ```
 
@@ -3389,6 +3413,19 @@ algorithmic descriptions.
 A rich context at the start of a session is worth dozens of repeated parameters
 across individual invocations. The investment compounds: the heavier the
 established context, the shorter and more precise every subsequent invocation.
+
+### One state, five homes
+
+Five constructs carry session state, and each answers a different question.
+Reaching for the right one keeps a `.cnj` file legible:
+
+| Construct | Carries | The question it answers |
+|---|---|---|
+| `context` | Domain facts | What world are we in? — entities, vocabulary, regulations |
+| `assume` | Operative constraints | What reality must this work in? — team, scale, budget, infrastructure |
+| `given` | Input state | What is true entering this invocation? — facts, state, MCP results |
+| `lore` | Behavioural idioms | How do experts act here? — patterns, anti-patterns, heuristics |
+| `asset` | External standards | What governs the output? — coding standards, design systems, vocabularies |
 
 ### Lead with examples when precision matters
 
@@ -3505,7 +3542,8 @@ available everywhere within scope.
 
 Higher-level grimoire constructs are built on core primitives.
 `o/define-workflow` is `sequence` and `parallel` with richer state management.
-`d/comprehensive-analysis` is `parallel` extraction followed by `d/merge`.
+Extracting several domain facets at once is `parallel` over `d/extract`
+followed by `d/merge`.
 The primitives are not low-level — they are the universal composition
 vocabulary on which domain-specific abstractions are built.
 
@@ -3983,6 +4021,18 @@ A `handover` object is not a prompt. When constructing the handover:
    relevant to the scoped outputs
 5. Include the `:decisions` log — the receiving agent must know what was
    already decided and why, to avoid re-opening closed questions
+
+### Materialise phases
+
+When processing `materialise`, keep the two phases strictly separate. The
+preflight is deterministic: resolve references, order dependencies, and
+enumerate the files that would be written — identical inputs must yield an
+identical plan, and nothing may be generated during it. Never begin
+generation against a plan with unresolved entries unless the practitioner
+explicitly chose `:report-and-continue`; on `:halt` (the default), stop and
+name the gaps rather than guessing around them. When `:phase :generate` is
+invoked with a `:from` plan, generate only what the plan enumerates — the
+plan is the contract, and a file outside it is fabrication.
 
 ### Decision log discipline
 
