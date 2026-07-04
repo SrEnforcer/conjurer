@@ -13,11 +13,14 @@ Earlier exploratory evolution is treated as pre-history.
 - User abstraction layer in `core`, closing the vocabulary–spec gap: `spell` (named reusable invocation pattern), `charm` (anonymous invocation for pipeline steps), and `incantation` (macro with a deterministic, inspectable expansion phase via `:expand :preview`).
 - New core construct `grimoire` for packaging spells, lore, and shapes into a named, versioned practitioner grimoire, registrable via `asset`.
 - New `:forbids` slot in the intent topology of `conjure`: load-bearing prohibitions with the same binding force as `:requires`, opposite sign.
+- Two new ground truths in `conjurer.md`: "The artefact records the organization as much as the intent" (structure as organizational evidence — domain-motivated vs organization-motivated seams) and "An unexplained artefact is load-bearing until shown otherwise" (the action discipline for an unrecoverable why), plus a four-movement reading map at the head of the section.
 
 ### Changed
 
 - Updated catalog and references (`index.edn`, `quick-reference.md`, `README.md`, `SKILL.md`, `conjurer.md`) for the expanded symbol surface (137 → 141).
 - README no longer hardcodes the symbol count (it had drifted from `index.edn`).
+- Compressed the "Symmetry compresses; broken symmetry informs" ground truth to half its length; its four claims (exploited symmetry, measured loss, manufactured counter-reading, plan/act separation) survive intact, and the plan/act corollary now cites incantation's preview phase alongside materialise's preflight.
+- Editorial pass over `core.md` examples and prose: fixed phantom symbols (`e/format` → `e/compose`; `d/comprehensive-analysis` removed), replaced host-language `fn`/`map`/`#()` escapes with native `charm` and `o/fan-out` forms, blessed `def` as the outer equivalent of `:manifest`, documented the unit-form idiom (`(eur 10000)`, `(minutes 5)`) and the predicate-binding convention, added a "One state, five homes" disambiguation table (`context` / `assume` / `given` / `lore` / `asset`), added a materialise implementation note, and normalised spelling (artifact → artefact).
 
 ## 1.1.0 - 2026-06-10
 

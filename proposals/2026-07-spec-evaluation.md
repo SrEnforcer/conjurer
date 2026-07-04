@@ -42,7 +42,7 @@ applied to opinion; `materialise` is the "separate the deterministic plan from
 the generative act" corollary made structural. The spec is internally
 load-bearing, not decorative.
 
-**The symmetry discipline is unusually honest.** The tenth ground truth names
+**The symmetry discipline is unusually honest.** The broken-symmetry ground truth names
 where dualities are real (`conjure`/`exhume`, `given`/`ensure`) and — more
 importantly — warns against manufacturing symmetry where none exists. The spec
 follows its own warning: there is deliberately no `f/abandon`, and `refine`,
@@ -384,8 +384,8 @@ grades.
 
 ## Part IV: Deliberately not proposed
 
-Listing what was rejected, and why, is part of the method — the spec's tenth
-ground truth demands it.
+Listing what was rejected, and why, is part of the method — the spec's
+broken-symmetry ground truth demands it.
 
 - **`<~` (reverse threading).** Pure symmetry-for-its-own-sake: no semantics
   that `~>` with reordered forms lacks. The exact error the ground truths warn
