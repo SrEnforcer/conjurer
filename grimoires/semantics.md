@@ -1151,7 +1151,10 @@ or on raw documents that feed into domain models.
 
 Apply only the specified `:models`. Do not add additional models because they
 seem relevant. The practitioner's model selection is an analytical choice;
-adding unrequested models changes the analysis's scope.
+adding unrequested models changes the analysis's scope. Core's
+scope-override rule applies here in its restrictive half: a correctness-
+relevant omission may be *flagged* as a note alongside the result, but the
+analysis itself never widens beyond the requested models.
 
 When `:models :all` is specified, apply every available model and organise
 findings by model. Flag where models produce convergent or divergent findings

@@ -1359,8 +1359,12 @@ already exists:
 
 The circuit breaker must track state persistently — not just in-process — to
 function correctly under horizontal scaling. A circuit that opens in one
-process instance must be open in all instances. Use a shared store (Redis,
-database) for circuit breaker state.
+process instance must be open in all instances. This is a runtime property,
+not one the processor can enforce directly: honour it by generating
+circuit-breaker implementations that keep their state in a shared store
+(Redis, a database) wherever the workflow can scale horizontally, and record
+the requirement in the manifested artefact — enforcement belongs to the
+target system.
 
 ### Human approval audit requirements
 
@@ -1371,8 +1375,11 @@ Every `o/human-approval` interaction must be permanently logged with:
 - Any notes or reasoning provided
 - The data presented to the reviewer at decision time (for evidential completeness)
 
-This record must be immutable once written and retained for the compliance
-period applicable to the workflow's domain.
+Immutability and retention are runtime properties: the processor honours
+them by generating audit storage that is append-only and by recording the
+retention requirement in the artefact. True enforcement belongs to the
+target system's tooling — claiming otherwise would overstate the
+processor's reach.
 
 ### Event reaction: dedup, ordering, and backpressure are mandatory reasoning
 

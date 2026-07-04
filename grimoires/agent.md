@@ -1652,7 +1652,10 @@ complete. Apply `:on-violation` exactly as specified when the agent reaches past
 its grant: `:halt` stops the agent, `:deny-and-continue` refuses the single
 action and lets the agent adapt, `:escalate` surfaces to the approver. Record
 tool use per `:audit`; for a consequential agent the audit log is the evidence
-of what it actually touched, and must be immutable once written. Default to
+of what it actually touched. Immutability of that log is a runtime property:
+the processor honours it by writing entries append-only and never revising
+them, while storage-level enforcement belongs to the deployment environment.
+Default to
 least privilege when equipment is underspecified — grant the narrowest access
 that the task plausibly requires and surface the assumption, rather than
 granting broadly.

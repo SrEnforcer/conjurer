@@ -201,6 +201,29 @@ Every construct with non-obvious LLM behaviour should have a dedicated
 subsection in the implementation notes. Constructs whose behaviour is fully
 specified by the signature and examples do not need one.
 
+The notes carry a defined modality. **Must** and **never** are binding: a
+processor that violates one has processed the construct incorrectly.
+**Prefer** and **should** are strong defaults that yield only to an explicit
+conflicting instruction — and the yielding is surfaced, never silent.
+**Flag** means surface the observation and continue. This is the certainty
+vocabulary the language gives practitioners (`certain` · `prefer` · `allow`),
+applied to the language's own instructions.
+
+Precedence, when layers disagree: an invocation's explicit parameters win
+over a grimoire's implementation notes, except where a note declares a
+binding exception and says so; implementation notes win over inferences
+drawn from examples; `SKILL.md`'s processing steps frame all of it. When a
+directive concerns the runtime behaviour of a manifested system rather than
+the act of processing — audit-log immutability, persistent circuit state —
+the processor honours it by *generating artefacts that enforce it*, naming
+which layer enforces what, exactly as `ensure :verify-via` demands of
+practitioners.
+
+Disciplines bind per construct, not per pipeline. Exhume's
+recover-do-not-improve governs `x/` invocations; the moment a recovered
+model flows into `d/refine`, the domain grimoire's disciplines govern. A
+pipeline crosses grimoire boundaries; the notes do not travel across them.
+
 ---
 
 ### Consistency rules

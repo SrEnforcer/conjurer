@@ -57,6 +57,12 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 5. **Produce a production-ready manifestation** — no placeholders, no TODOs, no stubs
 6. **Explain significant interpretive choices** transparently in accompanying prose
 
+When layers disagree: the invocation's explicit parameters win over a
+grimoire's implementation notes (except where a note declares a binding
+exception), and implementation notes win over inferences drawn from examples.
+`template.md`'s implementation-notes contract defines the full modality and
+precedence rules.
+
 ---
 
 ## When a `.cnj` file is attached
