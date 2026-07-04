@@ -1258,8 +1258,13 @@ re-derivation silently gets wrong.
 
 ```clojure
 ;; Audit trail: when a fact is corrected, propagate and record what changed
-(~> (r/derive compliance-question :from model :using rules :explain true)
-  (r/revise :change {:correct corrected-fact} :affected *1 :surface [:withdrawn :newly-follows]))
+(def compliance-derivation
+  (r/derive compliance-question :from model :using rules :explain true))
+
+(r/revise model
+  :change   {:correct corrected-fact}
+  :affected compliance-derivation
+  :surface  [:withdrawn :newly-follows])
 
 ;; Test the fragility of a conclusion: retract each premise, see what survives
 (r/revise model
@@ -1534,7 +1539,8 @@ makes the decision logic explicit, documented, and auditable. `o/branch` routes;
                   :explain  true)}
 
     {:name      :route-decision
-     :operation (branch :on eligibility-result
+     :operation (branch route-on-eligibility
+                  :on eligibility-result
                   :cases {:approved       (conjure issue-offer)
                           :referred        (o/human-approval :reviewers [:underwriter])
                           :declined        (conjure generate-decline-letter)})}])

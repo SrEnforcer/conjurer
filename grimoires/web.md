@@ -1522,10 +1522,7 @@ strategy, interaction flow, and copy — before a line of the prototype is fixed
     :definition "The user-facing text bound to interface elements and states —
                  labels, helper text, empty states, error messages. Treated as a
                  designed, voice-consistent system, distinct from the long-form
-                 prose that eloquence composes."}
-   {:term "Responsive"
-    :definition "Layouts that adapt appropriately across device sizes, from
-                 mobile (320px) through tablet (768px) to desktop (1280px+)"}]}
+                 prose that eloquence composes."}]}
 ```
 
 ---

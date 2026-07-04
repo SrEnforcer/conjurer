@@ -234,10 +234,10 @@ needs, rather than hand-maintaining five drifting copies.
                    :default :cart}
     :payment-method {:type :enum
                      :values [:credit-card :debit-card :bank-transfer :paypal]
-                     :required-when (fn [o] (#{:confirmed :shipped :delivered} (:status o)))}
+                     :required-when (in? status #{:confirmed :shipped :delivered})}
     :tracking-number {:type :string :optional true
                       :pattern "^[A-Z]{2}[0-9]{9}[A-Z]{2}$"
-                      :required-when (fn [o] (= :shipped (:status o)))}}
+                      :required-when (= status :shipped)}}
 
   :required  [:order-id :customer-id :placed-at :items :total :status]
   :unique    [:order-id]
@@ -246,12 +246,14 @@ needs, rather than hand-maintaining five drifting copies.
               {:fields [:status]      :type :hash}]
 
   :constraints [
-    {:rule    (fn [o] (= (:total o) (+ (:subtotal o) (:vat-amount o))))
+    {:rule    (= total (+ subtotal vat-amount))
      :message "total must equal subtotal + vat-amount"
      :severity :error}
-    {:rule    (fn [o] (>= (:subtotal o) 0))
+    {:rule    (>= subtotal 0)
      :message "subtotal must be non-negative"
      :severity :error}]
+  ;; Rules read over the record's fields as free variables — the same
+  ;; predicate-binding convention as core's branch and retry.
 
   :relationships [
     {:field :customer-id :target :customer :type :many-to-one :cascade :preserve}
@@ -292,7 +294,7 @@ needs, rather than hand-maintaining five drifting copies.
   :phi-fields [:first-name :last-name :dob :ssn :email :phone :mrn]
 
   :constraints [
-    {:rule    (fn [p] (or (:email p) (:phone p)))
+    {:rule    (or email phone)
      :message "At least one contact method (email or phone) is required"
      :severity :error}]
 
@@ -424,8 +426,8 @@ generated ones that preserve distribution and format without preserving identity
 #### Example 2: Relational generation with referential integrity
 
 ```clojure
-(def customers (data/generate :customer :count 100 :locale :nl :schema customer-schema :seed 42
-                              :manifest customers))
+(data/generate :customer :count 100 :locale :nl :schema customer-schema :seed 42
+  :manifest customers)
 
 (data/generate :order
   :count  500
@@ -497,20 +499,24 @@ filtering records, enriching fields, and aggregating values.
 
 #### Operation vocabulary
 
+Predicates and derivations read over the record's fields as free variables —
+the predicate-binding convention documented in core's `branch`: `(> age 18)`
+speaks of the record flowing through the operation.
+
 ```clojure
 ;; Filtering
-{:op :filter        :predicate (fn [r] (> (:age r) 18))}
-{:op :reject        :predicate (fn [r] (nil? (:email r)))}
+{:op :filter        :predicate (> age 18)}
+{:op :reject        :predicate (nil? email)}
 
 ;; Field mapping
 {:op :rename        :from :first_name :to :first-name}
-{:op :map-field     :field :email :fn clojure.string/lower-case}
-{:op :map           :fn (fn [r] (assoc r :full-name (str (:first-name r) " " (:last-name r))))}
+{:op :map-field     :field :email :using :lowercase}
+{:op :map           :using "add :full-name by joining first and last name"}
 {:op :drop-fields   :fields [:internal-id :legacy-code]}
 {:op :keep-fields   :fields [:id :email :name]}
 
 ;; Enrichment
-{:op :enrich        :field :geocoded :from (fn [r] (geocode (:address r)))}
+{:op :enrich        :field :geocoded :from (geocode address)}
 {:op :join          :with other-dataset :on :id :type :left}
 {:op :lookup        :field :customer-tier :in tier-table :key :customer-id}
 
@@ -537,22 +543,22 @@ filtering records, enriching fields, and aggregating values.
   (data/transform
     :operations [
       {:op :parse      :format :csv :header true}
-      {:op :filter     :predicate (fn [r] (seq (:email r)))}
-      {:op :map-field  :field :email :fn clojure.string/lower-case}
+      {:op :filter     :predicate (present? email)}
+      {:op :map-field  :field :email :using :lowercase}
       {:op :deduplicate :on [:email]}
       {:op :coerce     :field :age :to :integer}
-      {:op :reject     :predicate (fn [r] (< (:age r) 18))}]
+      {:op :reject     :predicate (< age 18)}]
     :streaming true :batch-size 5000)
 
   (data/transform
     :operations [
       {:op :enrich :field :risk-band
-       :from (fn [r] (classify-risk (:credit-score r)))}
+       :from (classify-risk credit-score)}
       {:op :derive :field :segment
        :from [:total-orders :ltv]
-       :using (fn [r] (cond (> (:ltv r) 5000) :vip
-                            (> (:ltv r) 1000) :gold
-                            :else :standard))}])
+       :using (cond (> ltv 5000) :vip
+                    (> ltv 1000) :gold
+                    :else        :standard)}])
 
   (data/validate :against customer-schema :on-failure :collect))
 ```
@@ -655,15 +661,15 @@ than reprocessing everything from the start.
 
   :stages [
     {:name :validate-and-clean
-     :fn   (~> stage-input
+     :do   (~> stage-input
              (data/validate :against raw-customer-schema :on-failure :collect)
              (data/transform :operations [
-               {:op :filter     :predicate (fn [r] (seq (:email r)))}
-               {:op :map-field  :field :email :fn clojure.string/lower-case}
+               {:op :filter     :predicate (present? email)}
+               {:op :map-field  :field :email :using :lowercase}
                {:op :deduplicate :on [:email]}]))}
 
     {:name :enrich
-     :fn   (parallel enrichment-ops
+     :do   (parallel enrichment-ops
              :operations [
                (data/transform stage-input
                  :operations [{:op :enrich :field :geocoded :from geocode-api}]
@@ -675,16 +681,16 @@ than reprocessing everything from the start.
              :on-error :best-effort)}
 
     {:name :apply-business-rules
-     :fn   (data/transform stage-input
+     :do   (data/transform stage-input
              :operations [
                {:op :derive :field :tier :from [:ltv :order-count]
-                :using (fn [r] (cond (> (:ltv r) 10000) :platinum
-                                     (> (:ltv r) 5000)  :gold
-                                     :else :standard))}])}
+                :using (cond (> ltv 10000) :platinum
+                             (> ltv 5000)  :gold
+                             :else         :standard)}])}
 
     {:name :load
-     :fn   (retry db-load
-             :operation (fn [records]
+     :do   (retry db-load
+             :operation (charm [records]
                           (batch-upsert target-db :customers records))
              :attempts 3 :backoff :exponential
              :retry-on [connection-error? deadlock?])}]
@@ -694,7 +700,7 @@ than reprocessing everything from the start.
 
   :monitoring {:metrics true
                :logging :info
-               :alerts  [{:condition (fn [m] (< (:success-rate m) 0.90))
+               :alerts  [{:condition (< success-rate 0.90)
                           :action    :page-on-call}]}
 
   :checkpointing {:enabled true :interval 5000}
@@ -968,7 +974,7 @@ the way it should?"
 
 ;; Cross-field and cross-table
 {:expect :field-relationship
- :params {:rule (fn [r] (<= (:discount r) (:subtotal r)))
+ :params {:rule (<= discount subtotal)
           :description "discount never exceeds subtotal"}}
 {:expect :aggregate-matches
  :params {:measure {:field :line-total :fn :sum}
@@ -1064,7 +1070,7 @@ separate keeps the diagnosis clear.
       {:expect :value-distribution :field :order-count
        :params {:shape :zipf :description "order counts must be heavy-tailed, not uniform"}}
       {:expect :field-relationship
-       :params {:rule (fn [r] (>= (:tenure-days r) 0))
+       :params {:rule (>= tenure-days 0)
                 :description "tenure is never negative"}}
       {:expect :mean-near :field :ltv :params {:value 850 :tolerance-pct 20}}]
     :on-failure :stop))
@@ -1413,8 +1419,8 @@ in the differences.
 
 #### Design rationale
 
-Reconciliation is a fundamental data quality operation that the original spec
-did not address. It answers: "Does our database match the source of truth?"
+Reconciliation is a fundamental data quality operation with no substitute
+among its siblings. It answers: "Does our database match the source of truth?"
 "Did our migration transfer all records correctly?" "Does the report match
 the underlying data?" These are common questions in finance, compliance, and
 data migration — and they all require the same underlying operation: a
@@ -1588,7 +1594,7 @@ definition in a domain model should map directly to a `data/schema`.
 (def patient-domain (d/explore clinical-docs :focus [:entities :constraints]))
 
 (data/schema :patient
-  :fields      (d/extract patient-domain :what :entities :matching {:name "patient"} :as :fields)
+  :fields      (d/extract patient-domain :what :entities :matching {:name "patient"} :as :map)
   :constraints (d/extract patient-domain :what :constraints :matching {:applies-to "patient"} :as :list)
   :compliance  [:hipaa])
 ```

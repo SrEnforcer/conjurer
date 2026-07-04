@@ -1452,23 +1452,24 @@ Inserting `witness` into an `a/compose` pipeline produces an audit trail
 of each agent's contribution without modifying what the agents produce.
 
 ```clojure
-(a/compose audited-pipeline
-  :agents [
-    {:agent :typescript-agent
-     :task  "Generate API implementation"
-     :produces :api-impl}
+(witness
+  (a/compose audited-pipeline
+    :agents [
+      {:agent :typescript-agent
+       :task  "Generate API implementation"
+       :produces :api-impl}
 
-    {:agent :security-reviewer
-     :task  "Review implementation"
-     :produces :security-report}]
+      {:agent :security-reviewer
+       :task  "Review implementation"
+       :produces :security-report}]
 
-  :strategy :sequential
-  :manifest pipeline-result)
-
-;; Wrap each stage with witness for full audit trail:
-(witness pipeline-result
-  :observe  [:decisions :alternatives :confidence-levels]
+    :strategy :sequential
+    :manifest pipeline-result)
+  :observe   [:decisions :alternatives :confidence-levels]
   :record-to pipeline-audit-log)
+
+;; The pipeline runs unchanged; witness captures each agent's decisions
+;; and alternatives out-of-band as the composition executes.
 ```
 
 ### Negotiate then decide with reasoning

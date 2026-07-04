@@ -305,7 +305,7 @@ actually produce.
 
 ```clojure
 (s/viewpoint source
-  :as         :role-keyword | viewpoint-definition
+  :as         :role-keyword | [role ...] | viewpoint-definition
   :focus      [:interests :risks :opportunities :obligations :blind-spots]
   :compare-to [:other-viewpoint ...]
   :output     :edn | :markdown-report
@@ -498,7 +498,7 @@ the appropriate operation.
 ```clojure
 (s/distill "procurement-policy-v4.pdf"
   :preserve    [:argument-structure :key-claims :qualifications]
-  :target-length (/ 1 5)    ;; Reduce to 20% of original length
+  :target-length 1/5        ;; Reduce to 20% of original length
   :for         :executive
   :output      :structured-outline)
 

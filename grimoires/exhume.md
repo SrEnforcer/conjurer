@@ -211,8 +211,11 @@ at reusable code and dead code; it does not tell you to reuse or delete.
 
 ```clojure
 ;; Survey first, then aim deep recovery only where the survey points
-(~> (x/survey "../legacy-system" :detect [:structure :apparent-purpose])
-  (x/recover-model :focus (:domain-bearing-modules *1)))
+(def legacy-survey
+  (x/survey "../legacy-system" :detect [:structure :apparent-purpose]))
+
+(x/recover-model "../legacy-system"
+  :focus (:domain-bearing-modules legacy-survey))
 
 ;; Survey to decide reuse before starting a fresh project
 (x/survey "../old-conjurer-mcp" :note [:reusable :dead-code])
