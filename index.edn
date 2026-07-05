@@ -1020,7 +1020,7 @@
    :synopsis  "Checks a taxonomy for exhaustiveness, exclusivity, criterion consistency, and reachability"
    :accepts   [:taxonomy]
    :produces  [:validation-report]
-   :key-params [:checks :against :strict :output]}
+   :key-params [:checks :against :strict :output :manifest]}
 
   t/browse
   {:grimoire  "taxonomy"
@@ -1028,15 +1028,15 @@
    :synopsis  "Queries and navigates a taxonomy: finding categories, traversing paths, filtering by facet"
    :accepts   [:taxonomy]
    :produces  [:browse-results]
-   :key-params [:find :where :include :depth :return :output]}
+   :key-params [:find :where :include :depth :return :output :manifest]}
 
   t/evolve
   {:grimoire  "taxonomy"
    :namespace "t/"
-   :synopsis  "Manages taxonomy change: add, split, merge, rename, deprecate — with crosswalk preservation"
+   :synopsis  "Manages taxonomy change: add, split, merge, rename, deprecate — with crosswalk preservation and a recorded driver"
    :accepts   [:taxonomy]
    :produces  [:evolved-taxonomy]
-   :key-params [:changes :produce-crosswalk :notify-affected :manifest]}
+   :key-params [:changes :driver :produce-crosswalk :notify-affected :version :manifest]}
 
   ;;; ─────────────────────────────────────────────────────────────────
   ;;; AGENT — Autonomous action and multi-agent coordination
