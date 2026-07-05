@@ -1093,15 +1093,15 @@ it must reach.
 structured outputs from other grimoires and preparing them for human consumption.
 
 ```clojure
-(~> requirements-document
-  (d/explore    :depth 3)
-  (s/texan      :models [:argumentation :stakeholder])
-  (data/profile domain-data :statistics :all)
-  (e/compose "Domain Analysis Report"
-    :from    {:domain-model domain-model :semantic-analysis analysis :data-profile profile}
-    :audience :product-manager
-    :purpose  :inform
-    :length   :standard))
+(def domain-model (d/explore requirements-document :depth 3))
+(def analysis     (s/texan requirements-document :models [:argumentation :stakeholder]))
+(def profile      (data/profile domain-data :statistics :all))
+
+(e/compose "Domain Analysis Report"
+  :from     {:domain-model domain-model :semantic-analysis analysis :data-profile profile}
+  :audience :product-manager
+  :purpose  :inform
+  :length   :standard)
 ```
 
 ### Witness reports as communication source

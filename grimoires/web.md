@@ -1522,10 +1522,7 @@ strategy, interaction flow, and copy — before a line of the prototype is fixed
     :definition "The user-facing text bound to interface elements and states —
                  labels, helper text, empty states, error messages. Treated as a
                  designed, voice-consistent system, distinct from the long-form
-                 prose that eloquence composes."}
-   {:term "Responsive"
-    :definition "Layouts that adapt appropriately across device sizes, from
-                 mobile (320px) through tablet (768px) to desktop (1280px+)"}]}
+                 prose that eloquence composes."}]}
 ```
 
 ---
@@ -1602,7 +1599,9 @@ percentage-based has not done the responsive work.
 
 When processing `w/flow`, always produce the error and recovery paths, even when
 `:surface` requests only the happy path — surface them as a note if not
-requested in full. A flow specification that describes only the success sequence
+requested in full. This is core's scope-override rule applied: the omission
+is correctness-relevant, so the unrequested paths arrive flagged as a note,
+never silently folded into the requested output. A flow specification that describes only the success sequence
 has omitted the part that fails in production. For every step, the output must
 say what happens when its validation fails, and for the flow as a whole, what
 survives interruption per `:persistence`. Treat `:persistence :none` on a long

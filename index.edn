@@ -756,7 +756,7 @@
    :synopsis  "Runs one operation once per item across a runtime-sized collection with concurrency control"
    :accepts   [:name]
    :produces  [:fan-out-result]
-   :key-params [:over :operation :concurrency :on-item-error :gather :reduce-fn :progress :timeout :manifest]}
+   :key-params [:over :operation :concurrency :on-item-error :gather :reduce-with :progress :timeout :manifest]}
 
   o/human-approval
   {:grimoire  "orchestrate"

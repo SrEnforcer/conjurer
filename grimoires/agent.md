@@ -1452,23 +1452,24 @@ Inserting `witness` into an `a/compose` pipeline produces an audit trail
 of each agent's contribution without modifying what the agents produce.
 
 ```clojure
-(a/compose audited-pipeline
-  :agents [
-    {:agent :typescript-agent
-     :task  "Generate API implementation"
-     :produces :api-impl}
+(witness
+  (a/compose audited-pipeline
+    :agents [
+      {:agent :typescript-agent
+       :task  "Generate API implementation"
+       :produces :api-impl}
 
-    {:agent :security-reviewer
-     :task  "Review implementation"
-     :produces :security-report}]
+      {:agent :security-reviewer
+       :task  "Review implementation"
+       :produces :security-report}]
 
-  :strategy :sequential
-  :manifest pipeline-result)
-
-;; Wrap each stage with witness for full audit trail:
-(witness pipeline-result
-  :observe  [:decisions :alternatives :confidence-levels]
+    :strategy :sequential
+    :manifest pipeline-result)
+  :observe   [:decisions :alternatives :confidence-levels]
   :record-to pipeline-audit-log)
+
+;; The pipeline runs unchanged; witness captures each agent's decisions
+;; and alternatives out-of-band as the composition executes.
 ```
 
 ### Negotiate then decide with reasoning
@@ -1651,7 +1652,10 @@ complete. Apply `:on-violation` exactly as specified when the agent reaches past
 its grant: `:halt` stops the agent, `:deny-and-continue` refuses the single
 action and lets the agent adapt, `:escalate` surfaces to the approver. Record
 tool use per `:audit`; for a consequential agent the audit log is the evidence
-of what it actually touched, and must be immutable once written. Default to
+of what it actually touched. Immutability of that log is a runtime property:
+the processor honours it by writing entries append-only and never revising
+them, while storage-level enforcement belongs to the deployment environment.
+Default to
 least privilege when equipment is underspecified — grant the narrowest access
 that the task plausibly requires and surface the assumption, rather than
 granting broadly.

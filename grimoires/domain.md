@@ -26,8 +26,8 @@ recognition, and hard-won experience — is precisely what domain models must
 capture. It is also what makes domain modelling hard. Sources document the
 explicit; the valuable often lives in the gap.
 
-`domain` grimoire functions therefore do two things: they extract what sources
-*say*, and they infer what the domain *implies*. Both are made visible. Both
+The `domain` grimoire's functions therefore do two things: they extract what
+sources *say*, and they infer what the domain *implies*. Both are made visible. Both
 are attributed. The gap between stated fact and inferred structure is preserved
 as an epistemic distinction, not collapsed.
 
@@ -204,7 +204,7 @@ epistemological distinction that matters for high-stakes domains where the
 difference between "the regulation says" and "this implies" is legally
 significant.
 
-#### Example 1: Dutch healthcare insurance domain
+#### Example 1: US health insurance domain (ACA)
 
 ```clojure
 (d/explore "https://www.healthcare.gov/glossary/"
@@ -377,7 +377,7 @@ significant.
      :steps   [:redirect-to-as :user-authenticates :code-issued :code-exchanged :token-issued]
      :use-when "Client can securely store client secret (server-side apps)"}
    "Token Refresh" {
-     :actors [:Client :Authorisation-Server]
+     :actors ["Client" "Authorisation Server"]
      :inputs [:refresh-token]
      :outputs [:new-access-token :new-refresh-token]}}
 
@@ -604,6 +604,11 @@ When understanding must emerge from multiple sources, or when a model must be
 understood from a particular vantage point, synthesis constructs combine,
 compare, and scope domain knowledge.
 
+Three further constructs give synthesis its strategic dimension:
+`d/bounded-context` maps where meaning changes across a large domain,
+`d/ubiquitous-language` fixes the vocabulary within each region, and
+`d/evolve` keeps the whole account honest as the domain changes over time.
+
 ---
 
 ### `d/merge`
@@ -656,7 +661,7 @@ regulatory requirements. Technical domains evolve through standards bodies,
 vendor implementations, and community practices. A model built from one source
 is incomplete; a model that hides the provenance of its claims is unreliable.
 
-The `:perspective-map` is an important addition to the original design. When
+The `:perspective-map` is the construct's distinctive parameter. When
 merging a regulatory interpretation with a practitioner handbook with an
 academic analysis, the merged model should carry that provenance. Not just
 *what* each source said, but *from where it was speaking*. This is the
@@ -732,8 +737,8 @@ an analysis of the *relationship* between two models.
 
 #### Design rationale
 
-Comparison without merge is a common need that the original spec did not
-address. A compliance team needs to know: does our internal data model align
+Comparison without merge is a need of its own, distinct from what `d/merge`
+serves. A compliance team needs to know: does our internal data model align
 with GDPR requirements? A migration team needs to know: what concepts exist
 in the legacy model that are absent from the target? A standards body needs
 to know: how does this implementation of the standard diverge from the
@@ -1340,10 +1345,10 @@ the model's memory of its own past.
 
 ---
 
-## Part III: Explicit modeling
+## Part III: Explicit modelling
 
 When no suitable source exists, when sources are insufficient, or when
-practitioner knowledge must be codified directly, explicit modeling constructs
+practitioner knowledge must be codified directly, explicit modelling constructs
 allow the practitioner to author domain knowledge rather than extract it.
 
 ---
@@ -1559,7 +1564,7 @@ adherence to known patterns.
 (d/validate model
   :checks  [:completeness :consistency :naming :relationship-integrity
             :constraint-coverage :lifecycle-reachability]
-  :against :ddd | :rest-conventions | :openapi | :custom-standard
+  :against :ddd | :rest-conventions | :openapi | custom-asset-name
   :against-language language-binding   ;; optional: check naming against a glossary
   :strict  false
   :output  :validation-report
@@ -1669,6 +1674,9 @@ between domain experts and engineers become possible.
 The `:conjurer-extension` target is particularly powerful: it generates a new
 Conjurer grimoire from the domain model, extending Conjurer itself with
 domain-specific invocations. The modelled domain becomes executable Conjurer.
+The natural home for such an extension is the core `grimoire` construct:
+package the generated spells under their namespace, version them, and register
+the result via `asset` so the domain's vocabulary travels with the project.
 
 #### Example 1: Healthcare DSL
 
@@ -1680,20 +1688,19 @@ domain-specific invocations. The modelled domain becomes executable Conjurer.
     :namespace "healthcare.us"
     :target    :clojure))
 
-;; Generated DSL enables domain-fluent code:
-(require '[healthcare.us :as h])
+;; Generated DSL enables domain-fluent code — activate it with using:
+(using healthcare-dsl
+  (prescribe-medication
+    :prescriber  physician-007
+    :patient     patient-12345
+    :medication  "Metformin 500mg"
+    :dosage      {:frequency :twice-daily :duration :90-days}
+    :indication  "Type 2 diabetes — HbA1c above target on lifestyle intervention alone")
 
-(h/prescribe-medication
-  :prescriber  physician-007
-  :patient     patient-12345
-  :medication  "Metformin 500mg"
-  :dosage      {:frequency :twice-daily :duration :90-days}
-  :indication  "Type 2 diabetes — HbA1c above target on lifestyle intervention alone")
-
-(h/check-interactions
-  :patient             patient-12345
-  :new-medication      "Metformin 500mg"
-  :current-medications current-prescription-list)
+  (check-interactions
+    :patient             patient-12345
+    :new-medication      "Metformin 500mg"
+    :current-medications current-prescription-list))
 ```
 
 #### Example 2: Conjurer extension from domain
@@ -1766,7 +1773,8 @@ returning targeted results.
   :find   "natural-language question or pattern"
   :return :concepts | :relationships | :constraints | :operations | :all
   :limit  n
-  :output :edn | :list
+  :as     :list | :map          ;; result shape, as in d/extract
+  :output :edn
   :manifest query-result)
 ```
 
@@ -1776,7 +1784,7 @@ returning targeted results.
 (d/query healthcare-domain
   :find   "all obligations that apply when handling patient data"
   :return :constraints
-  :output :list)
+  :as     :list)
 
 ;; Returns: ordered list of all constraints matching the query,
 ;; with source attribution and confidence scores.
@@ -1784,7 +1792,7 @@ returning targeted results.
 (d/query ecommerce-domain
   :find   "entities that can be in more than one state simultaneously"
   :return :concepts
-  :output :list)
+  :as     :list)
 ```
 
 ---
@@ -1893,7 +1901,8 @@ integration pattern: one exploration, many transmutations.
 (~> crm-domain
   (d/scope :to "customer-management" :include :all)
   (w/prototype "Customer Portal"
-    :from-domain true :features [:crud :search :export])
+    :from-domain true :features [:crud :search :export]
+    :manifest customer-portal)
   (weave customer-platform
     :strands [customer-portal auth-service notification-service]
     :ensuring [:gdpr-compliance :audit-trail]))
@@ -1907,14 +1916,14 @@ integration pattern: one exploration, many transmutations.
 
 ### Domain context enriching core context
 
-Domain models feed directly into `context establish`. An explored domain is
+Domain models feed directly into `context`. An explored domain is
 not just a data structure — it is semantic knowledge that should propagate
 into the session's interpretive frame.
 
 ```clojure
 (def healthcare (d/explore "healthcare-requirements.pdf" :depth 3))
 
-(context establish clinical
+(context clinical
   :domain      :healthcare
   :entities    (d/extract healthcare :what :entities :as :map)
   :constraints (d/extract healthcare :what :constraints :as :list))
@@ -1953,7 +1962,7 @@ into the session's interpretive frame.
    :synthesis    [d/merge d/compare d/scope]
    :structure    [d/bounded-context d/ubiquitous-language]
    :evolution    [d/evolve]
-   :modeling     [d/model d/annotate d/validate]
+   :modelling     [d/model d/annotate d/validate]
    :operations   [d/generate-dsl d/export d/query]}
 
  :best-for [
@@ -1966,7 +1975,7 @@ into the session's interpretive frame.
    "DSL generation from domain models"
    "Living documentation that evolves with understanding"
    "Comparative analysis between model versions or perspectives"
-   "Scoping large domain models for targeted artifact generation"]
+   "Scoping large domain models for targeted artefact generation"]
 
  :works-with [:core :data :web :semantics :orchestrate]
 
@@ -2199,7 +2208,7 @@ Every domain model must include:
    :confidence           :high | :medium | :low
    :completeness         0.0-1.0
    :depth-achieved       n
-   :language             :nl
+   :language             :en
    :conflicts-found      n
    :conflicts-resolved   n}}
 ```

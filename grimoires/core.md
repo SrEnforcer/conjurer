@@ -3745,6 +3745,30 @@ exact syntax. Recognise semantic equivalence: `:validates`, `:ensures`,
 equivalent validation logic. Infer reasonable defaults from established context
 when parameters are absent rather than requesting specification of every detail.
 
+One caution: `:requires` is polysemous, and its reading is decided by the
+shape and position of its value, not by the keyword alone. A vector of
+capability keywords on a manifestation (`:requires [:pci-compliance
+:audit-trail]`) is intent topology — load-bearing capabilities. A map of
+field-to-constraint (`:requires {:email :valid-format}`) is validation
+intent, equivalent to `:validates`. Inside a workflow stage definition
+(`:requires [:prior-stage]`) it is a stage dependency. Read the shape;
+never let the topology reading and the validation reading blur into each
+other.
+
+### Exceeding the requested scope
+
+An invocation's explicit parameters define its scope, and the default
+discipline is to honour that scope exactly — apply only the requested
+models, produce only the requested surfaces, analyse only the requested
+dimensions. Exceed the requested scope only when the omission is
+correctness- or safety-relevant: an error path the flow will hit in
+production, a compliance constraint the established context makes binding,
+a failure mode the happy path conceals. Even then, the unrequested material
+arrives as a *flagged note attached to the result* — never silently folded
+into the artefact as though it had been asked for. The practitioner decides
+whether to adopt it. Everything below this bar stays out: relevance is not
+a licence to widen scope.
+
 ### Intent topology
 
 When processing `:requires`, `:forbids`, `:prefers`, `:style`, and `:deferred`:

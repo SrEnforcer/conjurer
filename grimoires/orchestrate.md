@@ -275,7 +275,7 @@ a workflow from a function that happens to call several services.
                :tracing true
                :logging :info
                :alerts  [
-                 {:condition (fn [m] (> (:p95-duration-hours m) 72))
+                 {:condition (> p95-duration-hours 72)
                   :message   "Onboarding p95 exceeding 72-hour SLA"
                   :action    :page-on-call}]}
 
@@ -490,12 +490,12 @@ workflows: process ten thousand records, fifty at a time, and gather the results
 
 ```clojure
 (o/fan-out name
-  :over          collection | (fn -> collection)
-  :operation     (fn [item] invocation)
+  :over          collection | expression-producing-collection
+  :operation     (charm [item] invocation)
   :concurrency   n | :unbounded
   :on-item-error :collect | :halt | :compensate | :skip
   :gather        :all | :successes-only | :reduce
-  :reduce-fn     (fn [acc result] ...)        ;; when :gather :reduce
+  :reduce-with   {:count-by :field} | {:sum :field}   ;; when :gather :reduce
   :progress      {:checkpoint-every n :report boolean}
   :timeout       {:per-item duration :total duration}
   :manifest      result-binding)
@@ -507,8 +507,9 @@ workflows: process ten thousand records, fifty at a time, and gather the results
 Unlike `o/scatter-gather`, the cardinality is not known at definition time — it
 is whatever the collection holds at runtime, from three items to three million.
 
-**`:operation`** — The operation to run for each item, as a function of the item.
-The same logic applied across the collection; this is the "map" of map-reduce.
+**`:operation`** — The operation to run for each item, written as a `charm`
+that names the item. The same logic applied across the collection; this is
+the "map" of map-reduce.
 
 **`:concurrency`** — How many items process simultaneously. This is the
 load-bearing control: `:unbounded` launches all at once (correct only for small
@@ -528,8 +529,9 @@ denial-of-service.
   better because it preserves the record)
 
 **`:gather`** — How per-item results combine: `:all` (every result, failures
-included), `:successes-only`, or `:reduce` (fold them with `:reduce-fn` — the
-"reduce" of map-reduce, for sums, counts, merged reports).
+included), `:successes-only`, or `:reduce` (fold them per `:reduce-with` — the
+"reduce" of map-reduce, for sums, counts, merged reports; `{:count-by :status}`
+tallies results by a field, `{:sum :amount}` totals one).
 
 **`:progress`** — For long fan-outs, checkpoint every *n* items so a failure
 mid-batch can resume rather than restart, and optionally report progress. A
@@ -569,12 +571,12 @@ genuinely need saga semantics across the collection.
 ```clojure
 (o/fan-out revalidate-customer-records
   :over          (data/transform stale-records :operations [{:op :keep-fields [:id :payload]}])
-  :operation     (fn [record]
+  :operation     (charm [record]
                    (conjure revalidate :record record :schema customer-schema-v3))
   :concurrency   50                       ;; 50 at a time — protects the validation service
   :on-item-error :collect                 ;; one bad record must not stop the batch
   :gather        :reduce
-  :reduce-fn     (fn [acc r] (update acc (:status r) (fnil inc 0)))
+  :reduce-with   {:count-by :status}      ;; tally results into the :summary map
   :progress      {:checkpoint-every 500 :report true}
   :timeout       {:per-item 5000 :total (hours 2)}
   :manifest      revalidation-summary)
@@ -601,7 +603,7 @@ genuinely need saga semantics across the collection.
 ;; Fan-out with saga semantics: compensate completed items if the batch must roll back
 (o/fan-out migrate-accounts
   :over account-ids
-  :operation (fn [id] (conjure migrate-account :id id))
+  :operation (charm [id] (conjure migrate-account :id id))
   :concurrency 20
   :on-item-error :compensate              ;; undo migrated accounts on failure
   :gather :all)
@@ -610,7 +612,7 @@ genuinely need saga semantics across the collection.
 {:name :process-regional-batches
  :operation (o/fan-out regional-processing
               :over    active-regions
-              :operation (fn [region]
+              :operation (charm [region]
                            (o/execute-workflow regional-settlement :inputs {:region region}))
               :concurrency 4)}
 ```
@@ -745,10 +747,11 @@ A circuit breaker cycles through three states:
                :min-calls   10}    ;; Don't open on fewer than 10 calls
   :reset-after (seconds 30)
   :half-open  {:allow-through 3}
-  :on-open    (fn [stats]
-                (log/warn "Payment gateway circuit opened"
-                          :error-rate (:error-rate stats))
-                (metrics/gauge "payment.circuit.state" :open))
+  :on-open    (charm [stats]
+                (conjure circuit-telemetry
+                  :log    {:level :warn :event "payment-gateway-circuit-opened"
+                           :error-rate (:error-rate stats)}
+                  :metric {:gauge "payment.circuit.state" :value :open}))
   :fallback   (conjure queue-payment-async
                 :payment payment-data
                 :notify-customer true)
@@ -836,8 +839,8 @@ observability, error handling, and overlap discipline.
 (o/react name
   :on            {:event-source source :event-type type :filter predicate}
   :workflow      workflow-definition
-  :map-event     (fn [event] {:param value ...})   ;; event payload → workflow inputs
-  :dedup         {:key (fn [event] ...) :window duration}
+  :map-event     {:workflow-param expression-over-event ...}   ;; event payload → workflow inputs
+  :dedup         {:key :event-field :window duration}
   :ordering      :strict | :per-key | :unordered
   :on-failure    :retry | :dead-letter | :alert | :skip
   :concurrency   n | :unbounded
@@ -855,8 +858,9 @@ optional `:filter` predicate so the reaction fires only for events that matter
 filtering inside the workflow wastes executions; the filter belongs at the trigger.
 
 **`:map-event`** — How the event's payload becomes the workflow's inputs. Events
-and workflow inputs have different shapes; this function bridges them, extracting
-and reshaping the fields the workflow needs from the raw event.
+and workflow inputs have different shapes; this mapping bridges them, written
+over the event's fields as free variables — `{:order-id order-id :amount
+(minor-units amount)}` — per the predicate-binding convention.
 
 **`:dedup`** — Event sources frequently deliver the same event more than once
 (at-least-once delivery is the common guarantee). `:dedup` suppresses duplicates
@@ -911,12 +915,12 @@ and both must therefore decide what happens when triggers outpace execution.
 (o/react on-payment-settled
   :on        {:event-source :payment-events
               :event-type   :payment.settled
-              :filter       (fn [e] (= (:currency e) :eur))}
+              :filter       (= currency :eur)}
   :workflow  order-fulfilment-workflow
-  :map-event (fn [e] {:order-id   (:order-id e)
-                      :amount     (:amount e)
-                      :settled-at (:timestamp e)})
-  :dedup     {:key (fn [e] (:payment-id e)) :window (minutes 10)}
+  :map-event {:order-id   order-id
+              :amount     amount
+              :settled-at timestamp}
+  :dedup     {:key :payment-id :window (minutes 10)}
   :ordering  :per-key            ;; events for one order stay ordered; different orders concurrent
   :on-failure :dead-letter
   :concurrency 100
@@ -941,14 +945,14 @@ and both must therefore decide what happens when triggers outpace execution.
 ;; React to a file landing in object storage, fan out over its rows
 (o/react on-batch-file-arrival
   :on        {:event-source :object-store :event-type :object.created
-              :filter (fn [e] (str-ends-with? (:key e) ".csv"))}
+              :filter (ends-with? key ".csv")}
   :workflow  (o/define-workflow :ingest-batch
-               :stages [{:name :parse   :operation (fn [in] (data/convert-format (:file in) :to :edn))}
-                        {:name :process :operation (fn [rows]
+               :stages [{:name :parse   :operation (charm [in] (data/convert-format (:file in) :to :edn))}
+                        {:name :process :operation (charm [rows]
                                                      (o/fan-out ingest :over rows
-                                                       :operation (fn [r] (conjure ingest-row :row r))
+                                                       :operation (charm [r] (conjure ingest-row :row r))
                                                        :concurrency 50))}])
-  :map-event (fn [e] {:file (:key e)}))
+  :map-event {:file key})
 
 ;; React to a state change, with drop-oldest for latest-wins semantics
 (o/react on-inventory-changed
@@ -1355,8 +1359,12 @@ already exists:
 
 The circuit breaker must track state persistently — not just in-process — to
 function correctly under horizontal scaling. A circuit that opens in one
-process instance must be open in all instances. Use a shared store (Redis,
-database) for circuit breaker state.
+process instance must be open in all instances. This is a runtime property,
+not one the processor can enforce directly: honour it by generating
+circuit-breaker implementations that keep their state in a shared store
+(Redis, a database) wherever the workflow can scale horizontally, and record
+the requirement in the manifested artefact — enforcement belongs to the
+target system.
 
 ### Human approval audit requirements
 
@@ -1367,8 +1375,11 @@ Every `o/human-approval` interaction must be permanently logged with:
 - Any notes or reasoning provided
 - The data presented to the reviewer at decision time (for evidential completeness)
 
-This record must be immutable once written and retained for the compliance
-period applicable to the workflow's domain.
+Immutability and retention are runtime properties: the processor honours
+them by generating audit storage that is append-only and by recording the
+retention requirement in the artefact. True enforcement belongs to the
+target system's tooling — claiming otherwise would overstate the
+processor's reach.
 
 ### Event reaction: dedup, ordering, and backpressure are mandatory reasoning
 
