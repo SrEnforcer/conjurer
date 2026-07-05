@@ -144,6 +144,17 @@ definition, optionally a parent (for nesting), and membership guidance
 (`:rules`, `:examples`, or both). Definitions must be sharp enough that a
 borderline item can be adjudicated.
 
+**`:membership`** — How category membership is decided. `:rules` gives each
+category necessary-and-sufficient criteria — the *monothetic* style, with
+sharp boundaries and clean adjudication. `:examples` defines categories by
+exemplars that items are matched against by family resemblance — the
+*polythetic* style, with graded boundaries and, honestly, more
+`:boundary-cases`. `:both` uses rules first and exemplars to adjudicate the
+borderline. The choice shapes classification downstream: a monothetic
+taxonomy suits `t/classify :mode :strict`; a polythetic one is honest only
+in `:best-fit` or `:multi-label` mode, where confidence can express the
+gradedness the membership style implies.
+
 **`:exhaustive`** / **`:exclusive`** — Declared claims about the taxonomy's
 shape: does every item fit somewhere (`:exhaustive`), and does nothing fit in
 two places (`:exclusive`)? These are checkable by `t/validate`. Declaring them
@@ -198,7 +209,6 @@ default that drops an unclassifiable item on the floor.
      :handling {:retention :unrestricted :access :general}}
     {:name "Personal"
      :definition "Data relating to an identifiable natural person (GDPR Art. 4)"
-     :parent nil
      :examples ["email" "ip-address" "device-id"]
      :handling {:retention :purpose-limited :access :need-to-know :erasure true}}
     {:name "Special category"
@@ -350,7 +360,7 @@ makes that check the default rather than an afterthought.
 
 ```clojure
 (t/build "API Error Taxonomy"
-  :from     (data/transform error-logs :operations [{:op :keep-fields [:status :message :endpoint]}])
+  :from     (data/transform error-logs :operations [{:op :keep-fields :fields [:status :message :endpoint]}])
   :purpose  "Group errors so on-call engineers can triage by likely cause and owner"
   :guidance "Organise by root cause and responsible layer (client, gateway, service,
              dependency), not by HTTP status code alone"
@@ -549,7 +559,7 @@ genuinely hard to call.
 
 #### Parameters
 
-**`:items`** — One item or a collection. Each is placed independently; the
+**`items`** — One item or a collection. Each is placed independently; the
 result preserves the item alongside its placement.
 
 **`:mode`** — How placement works:
@@ -656,7 +666,10 @@ difference between honest and procrustean placement.
 ;; Classify, then route by confidence: automate the sure ones, review the rest
 (~> incoming-fields
   (t/classify :using data-sensitivity :mode :strict :surface [:confidence :boundary-cases])
-  (r/decide :route {:high :auto-apply-handling :medium :human-review :low :human-review}))
+  (branch route-by-confidence
+    :on    classification-confidence
+    :cases {:high (conjure auto-apply-handling)
+            :else (conjure queue-for-human-review :with :boundary-case-notes)}))
 
 ;; Multi-label classification against a faceted taxonomy
 (t/classify product-items :using apparel-facets :mode :multi-label)
@@ -732,6 +745,15 @@ preserves so that items classified under an old scheme remain reachable from a
 new one. Alignment and evolution are two halves of managing classification
 change across time and across systems.
 
+The boundary with `d/compare` mirrors the one between the grimoires
+themselves: `d/compare` relates two *domain models* — entities, constraints,
+structure — while `t/align` relates two *category systems*, and its outputs
+(crosswalks, splitting rules, unmappable categories) are specific to
+classification. Comparing an internal data model against GDPR's structure is
+`d/compare`; mapping an internal sensitivity scheme onto GDPR's categories
+is `t/align`. The two often run together on the same compliance question,
+one per layer.
+
 #### Example: Aligning an internal scheme to a regulatory standard
 
 ```clojure
@@ -804,7 +826,8 @@ taxonomy before it is trusted to classify.
             :reachability :balance :definition-sharpness]
   :against sample-items            ;; optional: test the taxonomy on real items
   :strict  boolean
-  :output  :validation-report)
+  :output  :validation-report
+  :manifest validation-binding)
 ```
 
 #### Parameters
@@ -925,7 +948,8 @@ read interface to a taxonomy.
   :include [:definition :examples :children :siblings :path :item-count]
   :depth   n | :all
   :return  :categories | :matching-items | :path | :subtree
-  :output  :browse-results)
+  :output  :browse-results
+  :manifest browse-binding)
 ```
 
 #### Parameters
@@ -1015,6 +1039,8 @@ classified under the old shape reachable from the new one.
 ```clojure
 (t/evolve taxonomy
   :changes          [{:add | :split | :merge | :rename | :deprecate change-spec} ...]
+  :driver           :domain-change | :design-correction | :usage-feedback
+                    | :standard-alignment
   :produce-crosswalk boolean
   :notify-affected  boolean
   :version          "semver for the evolved taxonomy"
@@ -1031,6 +1057,18 @@ classified under the old shape reachable from the new one.
 - `:rename` — change a category's name, preserving its identity and members
 - `:deprecate` — retire a category without deleting it; existing classifications
   remain valid but nothing new is routed there
+
+**`:driver`** — Why the taxonomy is changing, recorded against the change.
+This is the same epistemic distinction `d/evolve` draws for domain models:
+`:domain-change` (new kinds of thing appeared in the world) and
+`:standard-alignment` (an external scheme moved) mean the *territory*
+changed; `:design-correction` (the categories were badly carved) and
+`:usage-feedback` (validation or classification practice exposed a flaw —
+the overgrown bucket, the recurring boundary case) mean our *carving* of it
+was wrong or improvable. A future reader of the crosswalk needs to know
+which: a split driven by the domain says the world got richer; the same
+split driven by correction says the original taxonomy was mistaken, and
+anything else built on its shape deserves a second look.
 
 **`:produce-crosswalk`** — When true, emit a translation table from old
 categories to new. This is the parameter that makes evolution *safe*: without a
@@ -1063,6 +1101,16 @@ because one old category becomes ambiguous across several new ones) carries the
 rule needed to reclassify its members, and a `:rename` preserves identity rather
 than appearing to delete-and-create.
 
+The construct is the classification-facing sibling of `d/evolve`, and the
+boundary is worth holding: `d/evolve` versions a *domain model* — entities,
+rules, constraints — with a lineage of dated, reasoned changes; `t/evolve`
+versions a *category system*, and its distinctive obligation is the
+crosswalk, because a taxonomy's consumers are the classifications already
+made under it. The `:driver` parameter deliberately carries `d/evolve`'s
+epistemic lesson across the boundary: in both constructs, a change because
+the world moved and a change because we were wrong are different facts, and
+flattening them misleads every future reader.
+
 `:deprecate` rather than delete reflects the same lesson the `data` grimoire's
 contract evolution and tombstoning teach: a retired category is not the same as
 a category that never existed. Items were classified under it; reports
@@ -1075,6 +1123,7 @@ historical data while routing nothing new to it.
 ```clojure
 ;; The t/validate report flagged "How-to question" as 61% of tickets — split it
 (t/evolve ticket-triage
+  :driver  :usage-feedback     ;; the taxonomy was too coarse; the world did not change
   :changes [
     {:split "How-to question"
      :into  ["How-to — billing" "How-to — integrations" "How-to — account settings"]
@@ -1094,6 +1143,7 @@ historical data while routing nothing new to it.
 {:taxonomy "Support Ticket Triage"
  :version  "3.0.0"
  :evolved-from "2.3.0"
+ :driver   :usage-feedback
  :changes-applied 3
  :crosswalk [
    {:from "How-to question" :to ["How-to — billing" "How-to — integrations"
@@ -1129,9 +1179,10 @@ historical data while routing nothing new to it.
   (t/evolve :changes split-overgrown-category :produce-crosswalk true)
   (t/validate :checks [:balance :exhaustiveness] :strict true))
 
-;; Apply a crosswalk to re-classify historical data after evolution
-(~> historical-classifications
-  (t/classify :using (:crosswalk ticket-triage-v3)))   ;; translate old → new
+;; After a split, re-run the old category's members through the new taxonomy —
+;; the crosswalk's reclassification rule says which items need it
+(~> (t/browse ticket-triage :find "How-to question" :return :matching-items)
+  (t/classify :using ticket-triage-v3 :mode :strict :explain true))
 ```
 
 ---
@@ -1218,9 +1269,14 @@ formalises and applies them; reasoning decides what each placement means.
     :categories (d/extract regulatory-domain :what :taxonomy :as :categories)
     :exhaustive true))
 
-(~> system-data-fields
-  (t/classify :using sensitivity-taxonomy :mode :strict :surface [:confidence :boundary-cases])
-  (r/decide :handling-rules :per-category))
+(def field-classifications
+  (t/classify system-data-fields :using sensitivity-taxonomy
+    :mode :strict :surface [:confidence :boundary-cases]))
+
+(r/decide handling-rules
+  :given   field-classifications
+  :model   :rule-set
+  :explain true)
 ```
 
 ### Classification feeding data validation
@@ -1257,7 +1313,7 @@ migration.
 ```clojure
 {:grimoire    "taxonomy"
  :namespace   "t/"
- :version     "1.0.0"
+ :version     "1.1.0"
  :description "Definition, construction, application, alignment, validation,
                navigation, and evolution of classification systems —
                enumerative and faceted"
@@ -1265,7 +1321,8 @@ migration.
  :constructs {
    :definition  [t/define t/build t/facet]
    :application [t/classify t/align t/validate]
-   :lifecycle   [t/browse t/evolve]}
+   :navigation  [t/browse]
+   :evolution   [t/evolve]}
 
  :best-for [
    "Defining classification schemes with explicit criteria and membership rules"
@@ -1294,6 +1351,19 @@ migration.
     :definition "The question that distinguishes categories at one level of a
                  taxonomy. A well-formed level divides on exactly one criterion;
                  mixing criteria at a level is the root cause of overlap."}
+   {:term "Membership style"
+    :definition "How category membership is decided: monothetic (:rules —
+                 necessary-and-sufficient criteria, sharp boundaries) or
+                 polythetic (:examples — family resemblance to exemplars,
+                 graded boundaries and more boundary cases). :both layers
+                 exemplar adjudication over rules."}
+   {:term "Evolution driver"
+    :definition "Why a taxonomy changed: the domain moved (:domain-change,
+                 :standard-alignment) or the carving was wrong or improvable
+                 (:design-correction, :usage-feedback). The same epistemic
+                 distinction d/evolve records for domain models — a future
+                 reader must be able to tell the world changing from us
+                 having been mistaken."}
    {:term "Exhaustiveness"
     :definition "The property that every item in the domain fits some category.
                  A checkable claim, not an assumption."}
@@ -1373,6 +1443,12 @@ it as identity-preserving, never as delete-plus-create. A `:deprecate` retains
 the category for historical classifications and routes nothing new to it; never
 treat deprecation as deletion. Splits, merges, and deprecations are breaking
 changes to anything consuming the old categories and warrant a major version bump.
+
+Record the `:driver` against every change and never infer one that was not
+declared: whether the domain moved or the carving was corrected is the
+practitioner's claim, not the processor's guess. When no `:driver` is given
+for a change that plainly needs one — a split, a merge — flag its absence
+rather than silently defaulting.
 
 ### Unclassifiable handling is never silent
 

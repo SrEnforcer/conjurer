@@ -257,14 +257,15 @@ runs in reverse order automatically on failure.
 | `t/build` | Construct taxonomy inductively from existing items |
 | `t/facet` | Multi-dimensional orthogonal classification |
 | `t/classify` | Place items in taxonomy; surfaces confidence and boundary cases |
-| `t/align` | Map one taxonomy to another; surfaces gaps and conflicts |
+| `t/align` | Map one taxonomy to another; surfaces gaps and conflicts (cf. `d/compare` for whole domain models) |
 | `t/validate` | Check for exhaustiveness, exclusivity, criterion consistency |
 | `t/browse` | Query and navigate: find, filter by facet, traverse paths |
-| `t/evolve` | Manage taxonomy change with crosswalk preservation |
+| `t/evolve` | Manage taxonomy change with crosswalk preservation and a recorded driver (cf. `d/evolve` for domain models) |
 
-### `:membership` types
-- **`:monothetic`** — strict necessary and sufficient criteria; sharp boundaries
-- **`:polythetic`** — family resemblance; items share most characteristic properties
+### `:membership` styles
+- **`:rules`** — necessary-and-sufficient criteria per category (*monothetic*); sharp boundaries
+- **`:examples`** — family resemblance to exemplars (*polythetic*); graded boundaries, more boundary cases
+- **`:both`** — rules first; exemplars adjudicate the borderline
 
 ---
 
