@@ -1,0 +1,634 @@
+;; dice-forge.cnj
+;; The Dice Forge — a workshop for polyhedral dice: define them, style them,
+;; roll them. A complete project specification in a single .cnj file.
+;;
+;; ─── The role of this example ────────────────────────────────────────────
+;;
+;; This is the canonical SINGLE-FILE example: one .cnj carrying a whole
+;; project from charter to handover-readiness, in the canonical section
+;; order. For the multi-file layout — a project split across concern-bounded
+;; .cnj files with a root anchor — see examples/conjurer-site/ instead. The
+;; two examples are deliberately different projects: this one is a compact
+;; browser app with a rich, self-contained domain; that one is a full-stack
+;; site with an API and infrastructure.
+;;
+;; What this example showcases, section by section:
+;;   §1 charter    — decision log, open questions, selective-materialisation outputs
+;;   §2 assets     — a team standard (TSF++) and a design system as first-class assets
+;;   §3 assume     — honest operative constraints (browser-only, no backend)
+;;   §4 context    — a compact semantic frame
+;;   §5 domain     — d/model with mechanically checkable invariants (Euler's
+;;                   formula), tacit-knowledge annotations, shapes with sum-type
+;;                   faces, a spell, an incantation with :expand :preview, a
+;;                   faceted classification, and :forbids on the roll engine
+;;   §6 frontend   — design tokens with an accessibility invariant, the die
+;;                   editor as a w/flow, microcopy via w/copy
+;;   §7 targets    — two thin materialisation surfaces; the probability model
+;;                   deliberately stays Conjurer-only
+;;   §8 foresight  — four graded candidates for what this project might become
+;;   §9 coda       — the project's spells graduating into a practitioner grimoire
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 1 — CHARTER
+;; ─────────────────────────────────────────────────────────────────────────
+
+(charter "The Dice Forge"
+  :version  "0.1.0"
+  :created  "2026-07-05"
+  :updated  "2026-07-05"
+  :domain   "Polyhedral dice: their geometry, faces, values, and rolling —
+             presented as a browser workshop for defining and rolling dice"
+
+  :goals [
+    "Let a user forge dice: choose a polyhedron, give its faces pips, numerals,
+     symbols, or images, assign values or meanings, and pick its colours"
+    "Roll any pool of forged dice with a satisfying animation and an outcome
+     display that respects each die's semantics — sums for numeric dice,
+     tallies for symbolic ones"
+    "Keep the dice engine a pure functional core: same seed, same rolls,
+     so fairness is a property test rather than a hope"
+    "Serve as the canonical single-file .cnj example: every section of the
+     canonical structure, exercised by a domain anyone can hold in their head"]
+
+  :audience {:primary   :hobbyist-game-designer
+             :secondary [:conjurer-learner :frontend-engineer]}
+
+  :decisions [
+    {:date "2026-07-05"
+     :decision "Two packages: a pure core (geometry, faces, rolling) and a React
+                app shell. The TSF++ standard enforces the boundary. The domain
+                itself argues for this split — a roll is a pure function of a
+                die and an RNG stream; only the shell owns entropy and effects."}
+    {:date "2026-07-05"
+     :decision "The core forbids unseeded randomness. Rolls take an injected,
+                seedable RNG so that fairness (every face equiprobable) is
+                verifiable by property test, and any roll can be replayed."}
+    {:date "2026-07-05"
+     :decision "Numeric AND symbolic dice from day one. Sum-type face content
+                with per-die outcome semantics; Fudge dice (symbols carrying
+                values) proved the model must support both at once."}
+    {:date "2026-07-05"
+     :decision "Browser-only. Dice sets persist to localStorage; no backend,
+                no accounts. Anything that needs a server is a foresight
+                candidate, not a launch feature."}
+    {:date "2026-07-05"
+     :decision "The percentile d% (two d10s read as one 00–99 outcome) is
+                deferred: it introduces compound rolls, a concept the launch
+                model deliberately excludes. Tracked as a graded candidate."}]
+
+  :open [
+    "d10 numbering: model as 1–10 with '0 face reads as 10', or as 0–9?
+     Physical dice ship both ways — pick one display convention"
+    "Should symbolic meanings be a fixed starter set (:combat :defend :heal
+     :star) or user-definable from the first release?"
+    "Touch layout: does the editor flow need a distinct phone arrangement,
+     or does the desktop flow degrade acceptably?"]
+
+  :outputs {
+    :dice-domain-model :conjurer-only     ;; the authoritative spec — never code
+    :probability-rules :conjurer-only     ;; fairness stays specification
+    :core              :target-core       ;; declared in §7
+    :app               :target-app}       ;; declared in §7
+
+  :tags [:example :single-file :dice :typescript :react])
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 2 — ASSETS
+;; ─────────────────────────────────────────────────────────────────────────
+
+(asset :tsfpp-standard
+  :type        :code-standard
+  :description "TSF++ — TypeScript functional-core / imperative-shell standard,
+                embodied by the @tsfpp/* packages. The core package is pure;
+                effects live only in the shell."
+  :language    :typescript
+  :location    "https://github.com/tsfpp/standard"
+  :version     "2.x"
+  :enforces    [
+    "Functional core: every function in the core package is pure"
+    "Effects (RNG entropy, storage, DOM) live only in the app shell"
+    "Errors as Result<T, E> unions — no thrown exceptions in business logic"
+    "No implicit any; explicit return types on exported functions"]
+  :prohibits   [
+    "Math.random or Date.now inside the core package"
+    "Imperative mutation of shared state"
+    "Default exports"]
+  :applies-to  [:library :spa :test-suite]
+  :active-in   :project)
+
+(asset :shadcn-tailwind
+  :type        :component-library
+  :description "shadcn/ui components on Tailwind — accessible primitives the
+                app composes; die visuals are custom components on the same
+                token base"
+  :language    :typescript
+  :location    "https://ui.shadcn.com"
+  :enforces    [
+    "Interactive components meet WCAG 2.1 AA"
+    "All visual decisions reference design tokens, never raw values"]
+  :applies-to  [:spa]
+  :active-in   :project)
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 3 — ASSUMPTIONS
+;; ─────────────────────────────────────────────────────────────────────────
+
+(assume
+  :environment    :browser-only-spa
+  :scale          "Personal tool; tens of dice per user, not thousands"
+  :team           {:size 1 :skill-level :senior}
+  :infrastructure {:existing [:vite :react :tailwind :shadcn :localstorage]
+                   :avoid    [:backend :accounts :databases]}
+  :constraints    {:budget :none :timeline "A weekend project done well"}
+  :negotiable     [:animation-library :icon-set]
+  :non-negotiable [:seeded-rng-in-core :wcag-aa :reduced-motion-support])
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 4 — CONTEXT
+;; ─────────────────────────────────────────────────────────────────────────
+
+(context dice-workshop
+  :domain      :tabletop-dice
+  :entities    {:die  [:id :name :polyhedron :faces :semantics :appearance]
+                :face [:position :content :value]
+                :roll [:pool :seed :outcomes :total-or-tally]}
+  :conventions {:values           :integers
+                :randomness       :seeded-and-injected
+                :face-positions   :one-indexed
+                :outcome-display  :glyph-first}   ;; ⚄ before "5"
+  :assumptions [
+    "A die's identity is its definition, not any physical instance —
+     rolling never mutates a die"
+    "All seven standard RPG solids are isohedral: every face is
+     geometrically equivalent, so a fair roll is equiprobable by shape"]
+  :active-in   :session)
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 5 — DOMAIN
+;; ─────────────────────────────────────────────────────────────────────────
+
+;; ─── 5.1 The domain model ────────────────────────────────────────────────
+;; d/model, not d/explore: there are no source documents here. This is
+;; practitioner-authored knowledge, declared as such — the honest construct
+;; for a domain the author already knows.
+
+(d/model "Polyhedral Dice"
+  :entities {
+    :polyhedron {:type       :value-object
+                 :attributes [:name :vertices :edges :face-count :face-shape]
+                 :note       "Pure geometry — shared by every die of its shape"}
+
+    :die        {:type       :aggregate-root
+                 :attributes [:id :name :polyhedron :faces :semantics :appearance]
+                 :lifecycle  [:draft :forged :retired]
+                 :note       "A forged die is immutable; editing forges a
+                              successor and retires the original, so past
+                              rolls always reference the die that made them"}
+
+    :face       {:type       :value-object
+                 :attributes [:position :content :value]
+                 :note       "Content is a sum type — see the face shape below"}
+
+    :roll       {:type       :entity
+                 :attributes [:id :pool :seed :rolled-at :outcomes]
+                 :note       "Replayable: pool + seed fully determine outcomes"}}
+
+  :relationships [
+    {:from :die  :to :polyhedron :type :shaped-as   :cardinality :many-to-one}
+    {:from :die  :to :face       :type :bears       :cardinality :one-to-many}
+    {:from :roll :to :die        :type :throws      :cardinality :many-to-many}]
+
+  :operations {
+    :forge-die {:actors        [:user]
+                :inputs        [:polyhedron :faces :semantics :appearance]
+                :outputs       [:die]
+                :preconditions ["face count equals the polyhedron's face-count"
+                                "every face position 1..n is assigned exactly once"]
+                :postconditions ["die enters :forged and becomes immutable"]}
+
+    :roll-pool {:actors        [:user]
+                :inputs        [:pool :rng-stream]
+                :outputs       [:roll]
+                :preconditions ["every die in the pool is :forged"]
+                :postconditions ["one outcome per die; aggregation follows each
+                                  die's semantics"]
+                :invariants    ["rolling reads the RNG stream; it mutates nothing"]}}
+
+  :invariants [
+    "Euler's formula holds for every polyhedron: V − E + F = 2"
+    "A die bears exactly as many faces as its polyhedron has"
+    "On standard numeric dice, opposite faces sum to n+1 — except the d4,
+     which has no opposite faces (see annotations)"
+    "A fair die's faces are equiprobable: isohedral shape + unbiased RNG"]
+
+  :manifest dice-domain)
+
+;; ─── 5.2 Tacit knowledge the geometry alone doesn't say ─────────────────
+
+(d/annotate dice-domain
+  :annotations [
+    {:target     "polyhedron.tetrahedron"
+     :kind       :tacit-knowledge
+     :note       "The d4 has no top face — it lands with a vertex up. Read the
+                  upright value at the apex (or the base edge, on edge-numbered
+                  variants). This is why the opposite-faces invariant exempts it:
+                  a tetrahedron's faces have no opposites."
+     :confidence :high}
+    {:target     "die.numbering"
+     :kind       :caveat
+     :note       "Spindown d20s (numbers arranged in sequence for life-tracking)
+                  violate the balanced-numbering convention on purpose. They are
+                  legitimate dice but poor randomisers on physically imperfect
+                  solids — worth a note in the editor if a user recreates one."
+     :confidence :high}
+    {:target     "polyhedron.pentagonal-trapezohedron"
+     :kind       :context
+     :note       "The d10 is the one standard die that is not Platonic — it is
+                  isohedral (fair) without being regular. Fairness needs face
+                  equivalence, not full regularity."
+     :confidence :high}])
+
+;; ─── 5.3 Shapes — what the data means ────────────────────────────────────
+
+(shape face
+  :fields {
+    :position (integer :min 1)              ;; which face of the solid
+    :content  (one-of                       ;; the sum type at the heart of the model
+                {:pips    (integer :min 1 :max 9)}
+                {:numeral (integer)}
+                {:symbol  {:glyph (string :single-grapheme) :meaning (keyword)}}
+                {:image   (url)})
+    :value    (one-of (integer)             ;; plain numeric worth
+                      {(keyword) (integer | percent)} ;; named values: {:def 5 :heal (percent 50)}
+                      :none)}                          ;; pure symbol, tally only
+  :invariants [
+    "pip content implies value equals the pip count"
+    "a face with :none value belongs only on a die with :symbolic semantics"]
+  :examples [
+    {:position 5 :content {:pips 5}                                :value 5}
+    {:position 1 :content {:symbol {:glyph "⚔" :meaning :combat}} :value :none}
+    {:position 3 :content {:symbol {:glyph "⛨" :meaning :defend}} :value {:def 5 :heal (percent 50)}}
+    ;; Fudge/Fate face — the bridge case: a symbol that carries a number
+    {:position 2 :content {:symbol {:glyph "+" :meaning :plus}}   :value 1}])
+
+(shape die
+  :fields {
+    :id         (uuid)
+    :name       (string :min-length 1 :max-length 40)
+    :polyhedron (one-of :tetrahedron :cube :octahedron
+                        :pentagonal-trapezohedron :dodecahedron :icosahedron)
+    :faces      (list :of face)
+    :semantics  (one-of :numeric :symbolic)
+    :appearance {:body (design-token) :pips (design-token)}}
+  :invariants [
+    "faces count matches the polyhedron's face-count"
+    ":numeric dice have an integer value on every face"
+    "appearance references tokens, never raw colour values"]
+  :examples [
+    {:name "Classic d6" :polyhedron :cube :semantics :numeric
+     :faces "pips 1–6, opposite faces summing to 7"
+     :appearance {:body :die.ivory :pips :die.pip-on-light}}])
+
+(shape roll-outcome
+  :fields {
+    :per-die (list :of {:die (uuid) :face face})
+    :display (string)
+    :result  (one-of {:total (integer)}                    ;; numeric pools sum
+                     {:tally {(keyword) (integer)}})}      ;; symbolic pools count
+  :examples [
+    ;; the two aggregation semantics, rendered:
+    {:display "⚄ + ⚅ = 11"            :result {:total 11}}
+    {:display "⚔ ⚔ ⛨ → 2×combat, 1×defend (def 5, heal 50%)"
+     :result  {:tally {:combat 2 :defend 1}}}
+    {:display "+ − ␣ = 0"             :result {:total 0}}])   ;; 3dF, values sum
+;; ✓ Three examples carry the whole outcome semantics: numeric dice sum,
+;;   symbolic dice tally, and Fudge dice prove one die can be both.
+
+;; ─── 5.4 Craft lore ──────────────────────────────────────────────────────
+
+(lore dice-craft
+  :observed-in ["physical dice manufacturing" "tabletop design practice"]
+  :patterns [
+    {:name      :balanced-numbering
+     :when      "assigning values to a numeric die's faces"
+     :apply     "Distribute so opposite faces sum to n+1 (d4 exempt)."
+     :rationale "Balances the effect of any physical bias and matches every
+                 die a user has ever held — violating it reads as wrong."}
+    {:name      :standard-pip-arrangement
+     :when      "rendering pip faces 1–9"
+     :apply     "Use the canonical pip layouts (quincunx 5, two-column 6, …)."
+     :rationale "Pip patterns are read as gestalts, not counted; a nonstandard
+                 arrangement forces users to count."}]
+  :anti-patterns [
+    {:name    :low-contrast-pips
+     :avoid   "Pip or glyph colour that fails contrast against the die body"
+     :because "A die you cannot read at arm's length fails at its one job —
+               contrast is enforced at the token layer (§6.1)."}]
+  :active-in :session)
+
+;; ─── 5.5 The spell: one reusable pattern for forging dice ───────────────
+
+(spell forge-die [polyhedron & {:keys [face-style semantics appearance]
+                                :or   {face-style :numerals
+                                       semantics  :numeric
+                                       appearance {:body :die.ivory
+                                                   :pips :die.pip-on-light}}}]
+  :doc "Forge a die of the given solid with the workshop's defaults baked in:
+        balanced numbering per the dice-craft lore, token-based appearance,
+        and faces generated to match the polyhedron's face count."
+  (conjure die
+    :shaped-as  polyhedron
+    :faces      (generate-faces polyhedron face-style)   ;; balanced per lore
+    :semantics  semantics
+    :appearance appearance
+    :within     (ensure :structural ["face count = polyhedron face-count"]
+                        :verify-via [:tests])))
+
+;; Casting it: the invariant part lives in the spell; each cast is the delta.
+(forge-die :cube)                                          ;; a classic pipped d6
+(forge-die :icosahedron :face-style :numerals)             ;; a standard d20
+(forge-die :cube
+  :face-style {:symbols [{:glyph "+" :meaning :plus  :value  1}
+                         {:glyph "+" :meaning :plus  :value  1}
+                         {:glyph "−" :meaning :minus :value -1}
+                         {:glyph "−" :meaning :minus :value -1}
+                         {:glyph "␣" :meaning :blank :value  0}
+                         {:glyph "␣" :meaning :blank :value  0}]}
+  :semantics :numeric)                                     ;; a Fudge die: dF
+(forge-die :cube
+  :face-style {:symbols [{:glyph "⚔" :meaning :combat}
+                         {:glyph "⚔" :meaning :combat}
+                         {:glyph "⚔" :meaning :combat}
+                         {:glyph "⛨" :meaning :defend :value {:def 5 :heal (percent 50)}}
+                         {:glyph "⛨" :meaning :defend :value {:def 5 :heal (percent 50)}}
+                         {:glyph "★" :meaning :critical}]}
+  :semantics :symbolic
+  :appearance {:body :die.crimson :pips :die.pip-on-dark}) ;; a combat die
+
+;; ─── 5.6 The incantation: the standard set from one expansion ────────────
+
+(incantation standard-dice-set [_]
+  :doc "The seven-piece RPG set minus the percentile die (deferred — §8):
+        one forge-die cast per standard solid."
+  :expands-to
+    (for [solid [{:polyhedron :tetrahedron              :sides 4  :v 4  :e 6  :f 4}
+                 {:polyhedron :cube                     :sides 6  :v 8  :e 12 :f 6}
+                 {:polyhedron :octahedron               :sides 8  :v 6  :e 12 :f 8}
+                 {:polyhedron :pentagonal-trapezohedron :sides 10 :v 12 :e 20 :f 10}
+                 {:polyhedron :dodecahedron             :sides 12 :v 20 :e 30 :f 12}
+                 {:polyhedron :icosahedron              :sides 20 :v 12 :e 30 :f 20}]]
+      (forge-die (:polyhedron solid)
+        :face-style (if (= 6 (:sides solid)) :pips :numerals))))
+
+;; Phase 1 — deterministic, inspectable, nothing manifested:
+(standard-dice-set :expand :preview)
+;; => (forge-die :tetrahedron              :face-style :numerals)   ;; d4
+;;    (forge-die :cube                     :face-style :pips)       ;; d6
+;;    (forge-die :octahedron               :face-style :numerals)   ;; d8
+;;    (forge-die :pentagonal-trapezohedron :face-style :numerals)   ;; d10
+;;    (forge-die :dodecahedron             :face-style :numerals)   ;; d12
+;;    (forge-die :icosahedron              :face-style :numerals)   ;; d20
+;; ✓ The exact six casts that WOULD run, visible before anything is forged.
+;;   Note the vertex/edge/face data in the expansion source: every solid
+;;   satisfies V − E + F = 2, and the generated test suite asserts it.
+
+;; Phase 2 — the generative act, against an expansion already seen to be sound:
+(standard-dice-set :manifest starter-set)
+
+;; ─── 5.7 Classification: dice are faceted, not a tree ────────────────────
+
+(t/facet "Dice Classification"
+  :purpose "Filter and browse the workshop's dice along independent dimensions"
+  :facets {
+    :polyhedron   {:values [:tetrahedron :cube :octahedron
+                            :pentagonal-trapezohedron :dodecahedron :icosahedron]
+                   :criterion "The solid"                     :cardinality :one}
+    :face-content {:values [:pips :numerals :symbols :images]
+                   :criterion "What the faces show"           :cardinality :one}
+    :semantics    {:values [:numeric :symbolic]
+                   :criterion "How outcomes aggregate"        :cardinality :one}
+    :palette      {:values :open
+                   :criterion "Appearance theme"              :cardinality :one}}
+  :constraints [
+    {:rule ":pips content implies :numeric semantics" :facets [:face-content :semantics]}]
+  :manifest dice-facets)
+;; ✓ A pipped d6 and a skull-faced d6 differ on one facet, not in species —
+;;   forcing this into a tree would have nested appearance under content
+;;   under solid, uselessly.
+
+;; ─── 5.8 The roll engine — where :forbids earns its keep ─────────────────
+
+(conjure roll-engine
+  :accepts  {:pool (list :of die) :rng :seeded-stream}
+  :returns  roll-outcome
+  :requires [:pure-function :replayable-rolls :per-semantics-aggregation]
+  :forbids  [:unseeded-randomness :thrown-exceptions :mutation-of-dice]
+  :within (ensure
+    :structural  ["engine lives in the core package; imports no shell modules"]
+    :behavioural [
+      "with a fixed seed, the same pool rolls the same outcomes, always"
+      "10,000 seeded rolls of any starter-set die land every face within
+       3σ of uniform — the fairness property test"
+      "a numeric pool reports {:total}; a symbolic pool reports {:tally};
+       a Fudge pool reports {:total} because its symbols carry values"]
+    :verify-via   [:tests :llm]
+    :on-violation :halt)
+  :manifest roll-engine)
+;; ✓ :forbids is the load-bearing negative here: Math.random anywhere in the
+;;   core would make the fairness test meaningless. The prohibition shapes
+;;   generation up front; the property test verifies it after.
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 6 — FRONTEND DESIGN
+;; ─────────────────────────────────────────────────────────────────────────
+
+;; ─── 6.1 Tokens: die appearance as a design system ──────────────────────
+
+(w/tokens "Forge Theme"
+  :primitives {:color {:ivory   {500 "#f5f0e6"}
+                       :crimson {500 "#9b1c31"}
+                       :indigo  {500 "#3b4a8c"}
+                       :jade    {500 "#2e6e5e"}
+                       :onyx    {500 "#1c1c22"}}
+               :space  [0 4 8 16 24 32]
+               :radius [8 12 16]}
+  :semantic   {:die {:ivory        "@color.ivory.500"
+                     :crimson      "@color.crimson.500"
+                     :indigo       "@color.indigo.500"
+                     :jade         "@color.jade.500"
+                     :onyx         "@color.onyx.500"
+                     :pip-on-light "@color.onyx.500"
+                     :pip-on-dark  "@color.ivory.500"}}
+  :components {:die-face {:radius "@radius.2" :glyph-scale 0.62}}
+  :export-as  [:css-custom-properties :tailwind-config]
+  :within (ensure
+    :structural   ["every (body, pip) pairing offered by the picker meets
+                    4.5:1 contrast"]
+    :verify-via   [:tests]
+    :on-violation :halt)
+  :manifest forge-theme)
+;; ✓ Readability is correctness for a die. The contrast rule lives at the
+;;   token layer, so the colour picker can only offer legal pairings —
+;;   the anti-pattern in the dice-craft lore, made unrepresentable.
+
+;; ─── 6.2 The die editor as a flow ────────────────────────────────────────
+
+(w/flow forge-a-die
+  :state-model :linear
+  :steps [
+    {:name :choose-solid    :screen "Pick the polyhedron — six solids, previewed in 3D-ish CSS"
+     :validates [:one-selected]                     :on-error :inline-correction}
+    {:name :face-content    :screen "Pips, numerals, symbols, or images"
+     :validates [:style-legal-for-solid]            :on-error :inline-correction}
+    {:name :values-meanings :screen "Assign values or meanings per face"
+     :validates [:every-face-assigned :numeric-dice-fully-valued]
+     :on-error :inline-correction}
+    {:name :appearance      :screen "Body and pip colours from the legal pairings"
+     :validates [:tokens-only]                      :on-error :inline-correction}
+    {:name :review-forge    :screen "The die, rendered and rollable once for feel"
+     :on-error :save-and-recover}]
+  :persistence :session          ;; a half-forged die survives navigation
+  :optimistic  false
+  :surface     [:happy-path :error-paths :recovery]
+  :manifest    editor-flow)
+;; Editing a forged die re-enters this flow with fields pre-filled; forging
+;; from the review step retires the original — the immutability decision
+;; from the domain model (§5.1), surfaced as UX.
+
+;; ─── 6.3 Microcopy for the states the happy path never shows ────────────
+
+(w/copy dice-workshop-app
+  :surfaces   [:empty-states :error-messages :buttons :confirmations]
+  :voice      {:tone :warm :person :second :formality :casual}
+  :for-component editor-flow
+  :principles [:clarity :blameless-errors :consistent-terms]
+  :locale     :en
+  :manifest   workshop-copy)
+;; Expected register, by example:
+;;   first-run empty state — "No dice yet. Forge your first."
+;;   no-results (filtered) — "No dice match those facets — clear a filter?"
+;;   delete confirmation   — "Retire this die? Past rolls keep their record."
+;;   roll button           — "Roll" (it does not need to be cleverer than that)
+
+;; ─── 6.4 The roll experience ─────────────────────────────────────────────
+
+(conjure roll-experience
+  :requires [:outcome-display-per-semantics :keyboard-operable]
+  :style {
+    :feel      "physical — dice tumble, settle, then the outcome line appears"
+    :duration  (prefer (ms 600))          ;; tunable; snappy beats cinematic
+    :library   (allow :framer-motion)     ;; illustrative — any capable lib
+    :reduced-motion (certain :fade-only)} ;; binding — a11y is not negotiable
+  :manifest roll-experience)
+;; ✓ All three certainty markers in one :style map, each where it belongs:
+;;   the a11y behaviour is bound, the timing is a lean, the library is open.
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 7 — TARGETS (selective materialisation)
+;; ─────────────────────────────────────────────────────────────────────────
+;; Only two surfaces become code. The domain model and the probability rules
+;; remain Conjurer — the specification the implementation is measured against.
+
+(target :core
+  :language  :typescript
+  :runtime   :browser
+  :standard  :tsfpp-standard
+  :produces  [:library :types :test-suite]
+  :scope     [:polyhedron :die :face :roll-engine :dice-facets]
+  :from      dice-domain
+  :style     {:errors :result-type :rng :injected-interface}
+  :via       :direct
+  :manifest  target-core)
+
+(target :app
+  :language  :typescript
+  :framework :react
+  :runtime   :browser
+  :standard  :tsfpp-standard
+  :produces  [:spa]
+  :scope     [:editor-flow :roll-experience :forge-theme :workshop-copy
+              :dice-set-persistence]
+  :from      dice-domain
+  :style     {:build :vite :css :tailwind :components :shadcn
+              :persistence :localstorage}
+  :via       :direct
+  :manifest  target-app)
+
+;; Everything not in a :scope above — the invariants, the annotations, the
+;; fairness rules, the lore — stays in this file, authoritative and uncoded.
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 8 — FORESIGHT: what the forge might become
+;; ─────────────────────────────────────────────────────────────────────────
+
+(f/candidate :dice-notation
+  :label   "Parse standard dice notation — '3d6+2', '4dF', 'd20 adv'"
+  :added   "2026-07-05" :status :proposed
+  :scores  {:feasibility 7 :elegance 8 :containment 8 :value 8}
+  :rationale "The lingua franca of every tabletop table; a text box that rolls
+              '3d6+2' meets users where they already are. Deferred because the
+              grammar (modifiers, advantage, exploding dice) deserves design,
+              not a launch-week regex."
+  :conditions ["editor and roll flows stable" "grammar scope decided"]
+  :cluster :input)
+
+(f/candidate :roll-history
+  :label   "Roll history with per-die statistics and a fairness view"
+  :added   "2026-07-05" :status :proposed
+  :scores  {:feasibility 8 :elegance 7 :containment 8 :value 6}
+  :rationale "Replayable rolls make history nearly free to record, and a
+              distribution chart makes the fairness property visible to users,
+              not just to tests. Deferred as pure addition — nothing at launch
+              depends on it."
+  :conditions ["localStorage schema versioned before history accretes"]
+  :cluster :analysis)
+
+(f/candidate :physics-3d
+  :label   "Physically simulated 3D rolls (WebGL) replacing the CSS tumble"
+  :added   "2026-07-05" :status :proposed
+  :scores  {:feasibility 4 :elegance 6 :containment 6 :value 6}
+  :rationale "The most-requested feature of every dice app and the most
+              expensive: a physics engine, meshes per solid, and a subtle
+              honesty question — display physics must not replace the seeded
+              engine as the source of outcomes. Kept because it is the
+              delight ceiling; deferred because everything else is cheaper."
+  :conditions ["outcome-from-engine, animation-as-replay architecture proven"]
+  :cluster :experience)
+
+(f/candidate :percentile-d100
+  :label   "The percentile pair: two d10s read as one 00–99 outcome"
+  :added   "2026-07-05" :status :proposed
+  :scores  {:feasibility 8 :elegance 6 :containment 7 :value 5}
+  :rationale "Completes the classic seven-piece set (charter decision,
+              2026-07-05). Deferred because it introduces compound rolls —
+              one outcome from two dice — which the launch model deliberately
+              excludes; admitting it early would complicate every outcome
+              display for one die."
+  :conditions ["a second compound-roll use case appears (e.g. advantage),
+                justifying the concept properly"]
+  :cluster :input)
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 9 — CODA: the workshop's spells, graduated into a spellbook
+;; ─────────────────────────────────────────────────────────────────────────
+;; When a second project wants dice (§8's candidates hint at one), the
+;; expertise in this file does not get re-derived — it gets packaged:
+
+(grimoire dice-forge
+  :namespace "dice/"
+  :version   "0.1.0"
+  :doc       "The Dice Forge spellbook: forging, classifying, and rolling
+              polyhedral dice, with the craft lore that keeps them honest"
+  :provides  [dice/forge-die dice/standard-dice-set]
+  :lore      [dice-craft]
+  :shapes    [dice/die dice/face dice/roll-outcome])
+
+(asset :dice-forge-grimoire
+  :type        :grimoire
+  :description "Dice-domain spells, lore, and shapes from The Dice Forge"
+  :location    "grimoires/dice-forge.cnj"
+  :version     "0.1.0"
+  :applies-to  [:library :spa]
+  :active-in   :project)
+;; ✓ The single-file project ends where the language's founding metaphor
+;;   closes: practitioners do not only read grimoires — they write them.
