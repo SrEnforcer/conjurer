@@ -9,6 +9,8 @@ Earlier exploratory evolution is treated as pre-history.
 
 ### Added
 
+- Named the paradigm. `conjurer.md` gains a "What Conjurer is" section (the positive sibling of "What Conjurer is not") classifying the language as **intent-sourced programming** — *intent is the source, code is the build* — with its four commitments (semantic execution, spec-as-authority, first-class uncertainty, bidirectionality) and its lineage (MDA, Simonyi's Intentional Programming, contrasted with Spec-Driven Development). Echoed as a one-liner in `README.md`.
+- The Dice Forge (`examples/dice-forge.cnj`): the canonical single-file example, a browser dice workshop replacing the duplicate single-file copy of the conjurer-site project. `examples-README.md` reworked to index three distinct worked projects (dice-forge, conjurer-site, conjurer-mcp) rather than two organisational patterns of one.
 - Specification evaluation with graded extension candidates (`proposals/2026-07-spec-evaluation.md`), scored with foresight's recommended set and expressed as `f/candidate` forms.
 - User abstraction layer in `core`, closing the vocabulary–spec gap: `spell` (named reusable invocation pattern), `charm` (anonymous invocation for pipeline steps), and `incantation` (macro with a deterministic, inspectable expansion phase via `:expand :preview`).
 - New core construct `grimoire` for packaging spells, lore, and shapes into a named, versioned practitioner grimoire, registrable via `asset`.
