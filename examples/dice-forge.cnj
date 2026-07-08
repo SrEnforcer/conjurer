@@ -262,7 +262,7 @@
                   equivalence, not full regularity."
      :confidence :high}
     {:target     "polyhedron.pentagonal-trapezohedron.numbering"
-     :kind       :decision
+     :kind       :context
      :note       "Numbered 1–10; the face conventionally marked '0' is read as
                   10 (charter decision, 2026-07-07). Resolves the launch's only
                   genuine numbering ambiguity — every other standard solid's
@@ -279,7 +279,7 @@
                 {:numeral (integer)}
                 {:symbol  {:glyph   (string :single-grapheme)
                           :meaning (one-of :combat :defend :heal :star :critical
-                                          :plus :minus :blank)}}   ;; fixed v1 vocabulary — :open, 2026-07-07
+                                          :plus :minus :blank)}}   ;; closed v1 vocabulary — charter decision, 2026-07-07
                 {:image   (url)})
     :value    (one-of (integer)             ;; plain numeric worth
                       {(keyword) (integer | percent)} ;; named values: {:def 5 :heal (percent 50)}
