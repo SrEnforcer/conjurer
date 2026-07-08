@@ -1,0 +1,16 @@
+# Trial materialisation output — generated code from a .cnj is not spec.
+# The trailing slash ignores the directory but keeps examples/dice-forge.cnj tracked.
+examples/dice-forge/
+
+# Node / build tooling
+node_modules/
+dist/
+*.tgz
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/settings.json
