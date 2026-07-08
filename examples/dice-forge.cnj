@@ -22,7 +22,8 @@
 ;;                   faces, a spell, an incantation with :expand :preview, a
 ;;                   faceted classification, and :forbids on the roll engine
 ;;   §6 frontend   — design tokens with an accessibility invariant, the die
-;;                   editor as a w/flow, microcopy via w/copy
+;;                   editor as a w/flow, a breakpoint-based w/responsive
+;;                   strategy, microcopy via w/copy
 ;;   §7 targets    — two thin materialisation surfaces; the probability model
 ;;                   deliberately stays Conjurer-only
 ;;   §8 foresight  — four graded candidates for what this project might become
@@ -74,15 +75,28 @@
     {:date "2026-07-05"
      :decision "The percentile d% (two d10s read as one 00–99 outcome) is
                 deferred: it introduces compound rolls, a concept the launch
-                model deliberately excludes. Tracked as a graded candidate."}]
+                model deliberately excludes. Tracked as a graded candidate."}
+    {:date "2026-07-07"
+     :decision "d10 numbered 1–10; the face conventionally marked '0' is read
+                as 10. Matches the majority of commercial dice and needs no
+                special-casing in the outcome display. Recorded on
+                polyhedron.pentagonal-trapezohedron in §5.2."}
+    {:date "2026-07-07"
+     :decision "Symbolic meanings are a fixed starter vocabulary for v1, not
+                user-definable: :combat :defend :heal :star :critical :plus
+                :minus :blank — exactly the meanings already exercised by
+                this file's own dice. User-definable meanings become a
+                foresight candidate if a second use case demands them, rather
+                than an open-ended keyword space from day one."}
+    {:date "2026-07-07"
+     :decision "The workshop is responsive at one breakpoint (640px):
+                mobile and desktop, no distinct tablet treatment for a
+                personal tool with this small a surface. The editor flow's
+                existing :linear model already shows one step at a time, so
+                it needs no structural change; only the appearance swatch
+                grid and the dice list reflow. See §6.3."}]
 
-  :open [
-    "d10 numbering: model as 1–10 with '0 face reads as 10', or as 0–9?
-     Physical dice ship both ways — pick one display convention"
-    "Should symbolic meanings be a fixed starter set (:combat :defend :heal
-     :star) or user-definable from the first release?"
-    "Touch layout: does the editor flow need a distinct phone arrangement,
-     or does the desktop flow degrade acceptably?"]
+  :open []
 
   :outputs {
     :dice-domain-model :conjurer-only     ;; the authoritative spec — never code
@@ -246,6 +260,13 @@
      :note       "The d10 is the one standard die that is not Platonic — it is
                   isohedral (fair) without being regular. Fairness needs face
                   equivalence, not full regularity."
+     :confidence :high}
+    {:target     "polyhedron.pentagonal-trapezohedron.numbering"
+     :kind       :decision
+     :note       "Numbered 1–10; the face conventionally marked '0' is read as
+                  10 (charter decision, 2026-07-07). Resolves the launch's only
+                  genuine numbering ambiguity — every other standard solid's
+                  face values are unambiguous integers."
      :confidence :high}])
 
 ;; ─── 5.3 Shapes — what the data means ────────────────────────────────────
@@ -256,7 +277,9 @@
     :content  (one-of                       ;; the sum type at the heart of the model
                 {:pips    (integer :min 1 :max 9)}
                 {:numeral (integer)}
-                {:symbol  {:glyph (string :single-grapheme) :meaning (keyword)}}
+                {:symbol  {:glyph   (string :single-grapheme)
+                          :meaning (one-of :combat :defend :heal :star :critical
+                                          :plus :minus :blank)}}   ;; fixed v1 vocabulary — :open, 2026-07-07
                 {:image   (url)})
     :value    (one-of (integer)             ;; plain numeric worth
                       {(keyword) (integer | percent)} ;; named values: {:def 5 :heal (percent 50)}
@@ -495,7 +518,25 @@
 ;; from the review step retires the original — the immutability decision
 ;; from the domain model (§5.1), surfaced as UX.
 
-;; ─── 6.3 Microcopy for the states the happy path never shows ────────────
+;; ─── 6.3 Responsive strategy ──────────────────────────────────────────────
+;; The charter's third open question, resolved 2026-07-07: one breakpoint,
+;; two contexts. A personal tool this small doesn't earn a tablet treatment.
+
+(w/responsive dice-workshop-app
+  :strategy    :breakpoint-based
+  :breakpoints [640]
+  :contexts    [:mobile :desktop]
+  :transform   {:mobile {:layout :single-column
+                         :reflow [{:from :appearance-token-grid :to :scrollable-row}
+                                  {:from :dice-list-grid          :to :single-column-list}]}}
+  :priority    :content
+  :manifest    workshop-responsive)
+;; ✓ editor-flow's :state-model :linear already presents one step at a time,
+;;   so the flow itself needs no mobile-specific structure — only two
+;;   genuinely dense widgets reflow: the appearance token grid (§6.2 step 4)
+;;   and the workshop's dice list, both of which assume desktop width today.
+
+;; ─── 6.4 Microcopy for the states the happy path never shows ────────────
 
 (w/copy dice-workshop-app
   :surfaces   [:empty-states :error-messages :buttons :confirmations]
@@ -510,7 +551,7 @@
 ;;   delete confirmation   — "Retire this die? Past rolls keep their record."
 ;;   roll button           — "Roll" (it does not need to be cleverer than that)
 
-;; ─── 6.4 The roll experience ─────────────────────────────────────────────
+;; ─── 6.5 The roll experience ─────────────────────────────────────────────
 
 (conjure roll-experience
   :requires [:outcome-display-per-semantics :keyboard-operable]
