@@ -284,6 +284,20 @@ The practical corollary: **separate the deterministic plan from the generative a
 
 ---
 
+## What Conjurer is
+
+Conjurer is **intent-sourced programming**: intent is the source, and code is the build.
+
+This inverts what "source code" has meant since the term was coined. The source has always been the text a compiler consumes; the build was its output. Conjurer moves the authority up one level. The `.cnj` file is the source — the durable statement of what should exist — and code is a build artefact projected from it: regenerable, retargetable, discardable. When source and build disagree, the source is right and the build is stale, exactly as a compiled binary is never the authority over the code that produced it. Selective materialisation follows directly: most of a project is better left as source, and only chosen surfaces are ever built into code at all.
+
+Four commitments make the paradigm more than a slogan. Execution is *semantic*, not syntactic — the runtime is a reader that resolves meaning against accumulated context, so the same intent survives many phrasings and correctness is judged by fidelity to it rather than by matching a grammar. The specification is the *authority*, not the scaffolding — it is not consumed and discarded by a one-shot generator but persists as the thing every future build is measured against. Uncertainty is *first-class* — how well you know something is part of the language, graded through calibrated certainty and the attested-versus-inferred distinction, so the spec never launders a guess into a fact. And the flow is *bidirectional* — intent manifests forward into artefacts, and artefacts are exhumed backward into intent: the source recovered from the build, decompilation aimed not at code but at meaning.
+
+The lineage is worth naming, because a paradigm is defined partly by what it refines. Conjurer is Model-Driven Architecture's ambition finally within reach, now that the transform engine can *understand* the model rather than mechanically stamp it out. It is Charles Simonyi's Intentional Programming with an intelligent projector in place of a syntax tree. And it is deliberately not Spec-Driven Development in that term's current sense: there the specification is scaffolding a generator consumes once and forgets; here the specification is the permanent source the build never outranks. The difference is not one of process but of ontology — what the program *is*.
+
+Stated in one line: **Conjurer is an intent-sourced, semantically executed paradigm — intent is the source, code is the build, the runtime is a reader, and how well you know something is part of the language.**
+
+---
+
 ## What Conjurer is not
 
 **Conjurer is not prompt engineering.** Prompts are flat, single-turn, and informal. Conjurer invocations are structured, composable, context-aware, and iterable. A prompt is a letter; a Conjurer session is a working relationship.

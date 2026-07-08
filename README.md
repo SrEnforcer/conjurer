@@ -12,6 +12,8 @@ not *how* to create it. Clojure-inspired syntax, composable grimoires, and
 semantic context accumulation let intent compress over time. The LLM is not
 an executor — it is a co-author that ascends to meet you.
 
+Its paradigm is **intent-sourced programming**: intent is the source, code is the build.
+
 ---
 
 ## The idea
