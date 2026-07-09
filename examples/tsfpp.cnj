@@ -1,0 +1,448 @@
+;; tsfpp.cnj — TSF++ coding standard, recovered from source
+;;
+;; This file is NOT hand-authored the way dice-forge.cnj is. It was recovered
+;; by reading the actual @tsfpp/* package source — not by summarising what the
+;; standard is *called*, but by reading what it *enforces*: eslint rule
+;; definitions, tsconfig compiler flags, the prelude's real exports, and two
+;; real consuming modules (boundary). This is a manual, LLM-performed pass over
+;; the exhume grimoire's recovery arc (x/recover-stack + x/infer-conventions),
+;; not a literal invocation of those constructs as tools — there is no `x/`
+;; runtime in this session, only the reasoning the grimoire describes, done by
+;; hand against real files.
+;;
+;; Why this file exists: dice-forge.cnj originally named `:tsfpp-standard` as
+;; an asset but gave it a fictional `:location` and a seven-bullet
+;; architectural summary. The generator honoured what it was actually given —
+;; functional core / imperative shell, Result<T,E> errors — and never received
+;; the idiom-level rules (`absurd()` on every exhaustive switch, `type` never
+;; `interface`) because those were named in prose, never given as enforceable
+;; content. This file is the fix: the standard, recovered from its own
+;; enforcement config and its own source code, so the next materialisation is
+;; handed the actual rules instead of a label pointing at them.
+;;
+;; Recovered from (private repositories, snapshotted into this repo's tmp/
+;; on 2026-07-09 for this recovery pass — not a public URL, see :location
+;; below):
+;;   @tsfpp/standard       v1.3.0   — CODING_STANDARD.md, REACT_CODING_STANDARD.md,
+;;                                    PHILOSOPHY.md, RATIONALE.md, DEVIATIONS.md
+;;   @tsfpp/prelude        v1.7.0   — src/fp.ts (the full FP vocabulary)
+;;   @tsfpp/boundary       v1.2.0   — src/boundary-types.ts, boundary-handler.ts,
+;;                                    boundary-idempotency.ts
+;;   @tsfpp/tsconfig       v1.0.0   — tsconfig.base/lib/app.json
+;;   @tsfpp/eslint-config  v1.0.1   — base.ts, react.ts, api.ts, README.md
+;;
+;; Evidence hierarchy honoured throughout (per exhume's :attested / :strongly-
+;; inferred / :speculative grading): an eslint rule that fails the build is
+;; firmer evidence than a doc's prose description of the same rule, which is
+;; firmer than a pattern merely observed in code. Every :enforces/:prohibits
+;; entry below traces to an enforcement-config line or a directly-read source
+;; file, not to a paraphrase of a paraphrase.
+;;
+;; On a practitioner grimoire: I considered packaging conformance-by-
+;; construction spells (e.g. a `tsfpp/adt` spell that always emits absurd(),
+;; a `tsfpp/boundary` spell that always emits the Result-shaped handler) as a
+;; third layer beyond this asset + lore. Deferred, deliberately — the two
+;; failures actually observed (missing absurd(), interface instead of type)
+;; are idiom-level rules that were simply never given to the generator, not
+;; failures of architectural scaffolding. A rich, honest asset plus load-
+;; bearing lore closes that gap; a spell library is machinery for a problem
+;; this file already solves. Perfect is the enemy of good — revisit only if
+;; the asset + lore combination is tried and still falls short in practice.
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 1 — THE BASE STANDARD
+;; ─────────────────────────────────────────────────────────────────────────
+
+(asset :tsfpp-standard
+  :type        :code-standard
+  :description "TSF++ (TypeScript Functional++) — a functional-core /
+                imperative-shell TypeScript standard in the JSF++/JPL Power-
+                of-Ten lineage, adapted for ML/Haskell-style totality and
+                exhaustiveness. Five axioms: correctness by construction,
+                totality, immutability, referential transparency,
+                exhaustiveness. Embodied (not just described) by the
+                @tsfpp/prelude and @tsfpp/boundary packages, and mechanically
+                enforced by @tsfpp/eslint-config and @tsfpp/tsconfig."
+  :language    :typescript
+  :location    "Private repositories: tsfpp/standard, tsfpp/prelude,
+                tsfpp/boundary, tsfpp/tsconfig, tsfpp/eslint-config —
+                not publicly fetchable; recovered from a source snapshot,
+                see provenance note above. Do not re-derive a public URL
+                for this asset without confirming one exists."
+  :version     "1.3.0 (spec) — prelude 1.7.0, boundary 1.2.0,
+                eslint-config 1.0.1, tsconfig 1.0.0"
+  :recovered-from "tmp/{standard,prelude,boundary,tsconfig,eslint-config}
+                   snapshot, recovery pass 2026-07-09"
+  :confidence  :attested   ;; read directly from enforcement config and source,
+                           ;; not inferred from usage patterns
+  :enforces    [
+    ;; ── Type system ──────────────────────────────────────────────────────
+    "Illegal states are unrepresentable: mutually exclusive data is modelled
+     as a discriminated union, never as independent optional flags (Rule 1.1)"
+    "Every switch over a discriminated union's tag is exhaustive, verified by
+     `@typescript-eslint/switch-exhaustiveness-check`, and its default/else
+     branch calls `absurd(x)` on the now-`never`-narrowed remainder — not a
+     bare `default: break`, not an unreachable-code comment (Rules 1.2/4.1,
+     backed by `absurd` from @tsfpp/prelude)"
+    "`type` aliases only for all object/union shapes — never `interface`,
+     enforced by `@typescript-eslint/consistent-type-definitions: ['error','type']`
+     (Rule 1.4)"
+    "No `any` (Rule 1.5, `@typescript-eslint/no-explicit-any`)"
+    "No `!` non-null assertions and no `as` type assertions, except inside a
+     single guarded smart-constructor function per branded type — the sole
+     permitted cast site, `eslint-disable`-flagged and commented
+     `DEVIATION(1.6)` (Rule 1.6, `consistent-type-assertions: 'never'`)"
+    "No `enum` — string-literal unions or `as const` objects instead (Rule 1.8)"
+    "No `namespace`, no `instanceof`, no `class`, no `this`, no `new` outside
+     an explicitly commented adapter boundary (Rule 1.9)"
+
+    ;; ── Immutability & function shape ────────────────────────────────────
+    "No `let` — `const` only (Rule 2.1, `functional/no-let`)"
+    "Deep `readonly` on every type; no property mutation, no array-mutation
+     methods, no parameter reassignment (Rules 2.2/2.3,
+     `functional/immutable-data`, `functional/prefer-readonly-type`)"
+    "Explicit return type on every exported function — never inferred
+     (Rule 3.1, `explicit-function-return-type`)"
+    "Function arity ≤ 3; a fourth-or-more parameter is a readonly options
+     record instead (Rule 3.2, `max-params: 3`)"
+    "Cyclomatic complexity ≤ 10, nesting depth ≤ 4, function body ≤ 40 lines,
+     one concern per function (Rule 3.4 — a bundled budget, not four separate
+     rules: `complexity`, `max-depth`, `max-lines-per-function`)"
+    "No imperative loops — `map`/`filter`/`reduce`/recursion or the prelude's
+     `List<A>` combinators (Rule 4.2, `functional/no-loop-statements`)"
+    "Strict boolean expressions (no truthiness-checking non-booleans) and
+     `===`/`!==` only, never `==`/`!=` (Rule 4.5)"
+
+    ;; ── Errors & effects ─────────────────────────────────────────────────
+    "No `throw` outside an explicitly commented adapter boundary — errors and
+     absence are modelled as `Result<T,E>` and `Option<A>` from @tsfpp/prelude,
+     not exceptions (Rule 6.2, `functional/no-throw-statements`)"
+    "No unhandled promise rejections; no misused promises (Rule 6.4,
+     `no-floating-promises`, `no-misused-promises`)"
+    "Effectful capabilities (logging, storage) are consumed through a
+     structurally-typed port (e.g. `Logger`) and injected at the composition
+     root — never imported as a concrete library at the point of use
+     (embodied by @tsfpp/prelude's Logger port, PHILOSOPHY.md's library-
+     compatibility stance)"
+    "Every sanctioned rule exception is a `// DEVIATION(rule-number):
+     <one-line reason>` comment at the callsite; a deviation that applies
+     project-wide additionally gets a dated, reviewed entry in DEVIATIONS.md,
+     with `active` / `superseded` / `revoked` status"
+
+    ;; ── File & module hygiene ────────────────────────────────────────────
+    "File length ≤ 400 lines, 800 as an absolute DEVIATION(11.2)-flagged
+     ceiling (Rule 11.2, `max-lines`)"
+    "`import type` for type-only imports (`consistent-type-imports`,
+     paired with `verbatimModuleSyntax`/`isolatedModules` in tsconfig.base)"]
+
+  :prohibits   [
+    "`interface` declarations without a DEVIATION(1.4) comment"
+    "`any`, bare `!`, and `as` type assertions outside a guarded smart-
+     constructor body"
+    "`enum`, `namespace`, `instanceof`, `new` outside an adapter facade,
+     `class`-based OOP, `this`"
+    "`let` or any local/shared mutable state"
+    "A `switch`/`if`-chain over a union's tag that does not end by narrowing
+     to `never` and calling `absurd()` — this is the single most common way
+     generated code silently drifts from this standard: the switch looks
+     exhaustive today and stops being exhaustive the moment a union member
+     is added, with no compiler error, because nothing forced the default
+     branch to prove there was nothing left"
+    "`throw` in business logic"
+    "Concrete library types (a logger, a store) imported directly into
+     domain/application code instead of behind a port"]
+
+  :applies-to  [:library :spa :test-suite]
+  :agent       :typescript-specialist-agent
+  :active-in   :project)
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 2 — THE REACT PROFILE
+;; ─────────────────────────────────────────────────────────────────────────
+;; A separate asset, not folded into :tsfpp-standard, because it is a
+;; distinct document (REACT_CODING_STANDARD.md) with its own rule numbering
+;; (1.1–18.4) layered ON TOP of the base standard — every base rule still
+;; applies unchanged to .tsx code. Keeping it separate means a target that
+;; is pure TypeScript (no React) references only :tsfpp-standard, and a
+;; target with a UI layer references both.
+
+(asset :tsfpp-react
+  :type        :code-standard
+  :description "TSF++/React — the React profile of TSF++. Six axioms specific
+                to UI code: render is a pure function of props/state; state is
+                a liability, justify every piece against an elimination
+                ladder; the component tree is a value; `useEffect` is React's
+                `goto`; state management is a hierarchy, not a choice; the
+                compiler/types/linter prove what tests cannot."
+  :language    :typescript
+  :location    "Private repository tsfpp/standard, spec/REACT_CODING_STANDARD.md —
+                see :tsfpp-standard's :location note; same provenance."
+  :version     "1.0.0"
+  :recovered-from "tmp/standard/spec/REACT_CODING_STANDARD.md, read in full,
+                   recovery pass 2026-07-09"
+  :confidence  :attested
+  :enforces    [
+    ;; A target names exactly one :standard asset (see core.md's target
+    ;; signature — no multi-standard slot exists), so this asset restates
+    ;; the two base-standard rules most load-bearing for UI code rather than
+    ;; only cross-referencing :tsfpp-standard. The base standard still
+    ;; applies in full to .tsx files; these two are repeated here because
+    ;; they are exactly the ones a generator misses when a target's
+    ;; :standard points only at the React profile.
+    "Exhaustive switches over a discriminated union end in `absurd(x)` on the
+     `never`-narrowed default — identical discipline to base Rule 1.2/4.1,
+     restated because it applies to render logic and reducers too"
+    "`type` aliases only, never `interface` — identical to base Rule 1.4,
+     restated for the same reason"
+
+    "Components are `const` arrow functions with an explicit
+     `ReactElement | ReactNode | null` return type — never `function`
+     declarations or classes (React Rules 1.1/1.2)"
+    "Props are `type` aliases suffixed `Props`, every field `readonly`; a
+     variant-driven component's mutually exclusive prop sets are a
+     discriminated union, never independent optional flags — the same
+     illegal-states-unrepresentable discipline as base Rule 1.1, applied to
+     props (React Rules 2.1/2.2)"
+    "Every piece of state is justified against the elimination ladder before
+     introduction: derivable from props/state → URL → server data (TanStack
+     Query) → form state (React Hook Form) → local `useState` → lifted to a
+     parent → context/store — in that order, skipping a rung only with a
+     `DEVIATION(3.1)` comment (React Rule 3.1)"
+    "`useEffect` only synchronises with systems outside React (subscriptions,
+     browser APIs, imperative third-party libraries); it must never derive
+     state, fetch data, or react to a user event, and every subscribing
+     effect returns a cleanup function with an exhaustive dependency array
+     (React Rules 4.1–4.6)"
+    "`useMemo`/`useCallback`/`React.memo` require one of three documented
+     reasons (referential identity for a memoized consumer, profiled expense,
+     a hook dependency) — never speculative (React Rule 5.1)"
+    "Server reads go through TanStack Query with a typed query-key factory;
+     mutations return `Result<T,E>`-shaped outcomes; no raw `fetch` in
+     component code (React Rules 7.1–7.3)"
+    "Non-trivial forms use React Hook Form with a Zod schema as the single
+     source of truth; submit handlers return `Promise<Result<T, FormError>>`,
+     never throw (React Rules 8.1/8.2)"
+    "Global state exists only after the elimination ladder is exhausted;
+     Zustand for store-shaped state, Jotai for fine-grained atomic state;
+     consumers select narrowly, never the whole store (React Rules 3.6,
+     10.1–10.5)"
+    "Tailwind utilities for layout/spacing/colour; variants via `cva`, never
+     inline class-string concatenation; design tokens only, never hex codes
+     or magic pixel values inline (React Rules 11.1–11.4)"
+    "Interactive elements are semantic HTML, never a `div` with a click
+     handler; every form control has an associated label; keyboard
+     navigation works for every flow (React Rules 16.1–16.3)"
+    "Component tests query by accessible role via React Testing Library;
+     network is mocked with MSW, never by stubbing `fetch` (React Rules
+     17.1/17.3)"]
+
+  :prohibits   [
+    "Class components or `function`-declared components"
+    "Optional-flag props for mutually exclusive variants"
+    "Server state or URL-shaped state in `useState`"
+    "`useEffect` for derived state, data fetching, or user-event reactions"
+    "An effect that subscribes without returning a cleanup function"
+    "Speculative memoisation with no documented reason"
+    "Per-field `useState` in forms"
+    "Whole-store selection (`useStore((s) => s)`)"
+    "Inline hex codes or pixel literals in `className`"
+    "A `div`/`span` with an `onClick` standing in for a semantic interactive
+     element"]
+
+  :applies-to  [:spa]
+  :agent       :typescript-specialist-agent
+  :active-in   :project)
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 3 — IDIOM LORE
+;; ─────────────────────────────────────────────────────────────────────────
+;; Where the assets above state RULES, this lore states IDIOMS — the shape
+;; those rules take in practice, evidenced by real code. This is the layer
+;; that was missing before: dice-forge.cnj's old asset said "exhaustive
+;; switches" in prose; nothing ever showed the generator what an exhaustive
+;; switch that actually satisfies the rule looks like, in real TSF++ code,
+;; contrasted with the failure mode actually observed.
+
+(lore tsfpp-idioms
+  :observed-in ["tmp/prelude/src/fp.ts (absurd, Option/Result, pipe/comp/flow,
+                 Map/Set combinators, Logger port)"
+                "tmp/boundary/src/boundary-idempotency.ts (live absurd() usage
+                 in a real discriminated-union switch)"
+                "tmp/boundary/src/boundary-types.ts (branded-ID smart
+                 constructors, ApiError taxonomy, RFC 9457 ProblemDetails)"
+                "tmp/eslint-config/base.ts + README.md (every rule's
+                 enforcement mechanism and canonical DEVIATION examples)"
+                "tmp/standard/spec/{PHILOSOPHY,RATIONALE,DEVIATIONS}.md"]
+
+  :patterns [
+    {:name      :exhaustive-switch-via-absurd
+     :when      "branching over a discriminated union's tag/kind field"
+     :apply     "switch on the tag; every case returns; the default branch
+                 calls `absurd(value)` on the now-`never`-narrowed remainder.
+                 Real example (boundary-idempotency.ts):
+
+                   switch (lookup.kind) {
+                     case 'replay':        return mkReplayResponse(lookup.response);
+                     case 'in_flight':     return mkInFlightResponse(parsedInput.input.traceId);
+                     case 'key_conflict':  return mkConflictResponse(parsedInput.input.traceId);
+                     case 'first_request': return executeFirstRequest({ store, handler, req, input: parsedInput.input });
+                     default:              return absurd(lookup);
+                   }
+
+                 Never a bare `default: break`, never an unreachable-code
+                 comment, never an omitted default relying on the linter alone."
+     :rationale "`switch-exhaustiveness-check` catches a missing case at lint
+                 time, but only if the default branch narrows to `never` —
+                 `absurd(x: never): never` is that narrowing, made a runtime
+                 assertion too. Adding a fifth `lookup.kind` variant later and
+                 forgetting to handle it becomes a compile error at the
+                 `absurd()` call site, not a silent fall-through. This is the
+                 exact idiom the earlier dice-forge asset named
+                 ('exhaustive switches') without ever showing — the generator
+                 wrote switches, just not ones that end this way."}
+
+    {:name      :type-over-interface
+     :when      "declaring any object shape — props, DTOs, domain records,
+                 branded IDs, discriminated unions"
+     :apply     "a `type` alias, always. `interface` requires a
+                 `// DEVIATION(1.4): <reason>` comment plus an eslint-disable,
+                 and is reserved for the rare case of a genuine structural-
+                 extension contract (e.g. augmenting a third-party ambient
+                 type) — not a stylistic default."
+     :rationale "`type` composes with unions and mapped types the way
+                 discriminated-union modelling requires; `interface`'s
+                 declaration-merging is exactly the kind of implicit,
+                 order-dependent extension the standard's correctness-by-
+                 construction axiom rules out. This is the second concrete
+                 failure the earlier dice-forge asset caused: 'the code was
+                 generated with interface' happened because nothing told the
+                 generator this was a hard rule with a mechanical enforcement,
+                 not a style preference."}
+
+    {:name      :smart-constructor-centralises-the-cast
+     :when      "constructing a branded/nominal type (e.g. `TraceId`,
+                 `IdempotencyKey`) from a raw, unvalidated primitive"
+     :apply     "exactly one function per branded type performs the `as`
+                 cast, immediately after a runtime validation, flagged
+                 `eslint-disable-next-line` and commented `DEVIATION(1.6)`.
+                 Real example (boundary-types.ts):
+
+                   export const mkTraceId = (raw: string): Option<TraceId> =>
+                     raw.length > 0 ? some(raw as TraceId) : none;
+                     // eslint-disable-line @typescript-eslint/consistent-type-assertions
+                     // -- DEVIATION(1.6): smart-constructor body
+
+                 Every other call site receives a `TraceId`, never a raw
+                 `string`, and never casts one itself."
+     :rationale "Centralising the one escape hatch (the cast) behind a
+                 validated constructor means the type system can be trusted
+                 everywhere else in the codebase — a `TraceId` in hand really
+                 was validated, because there is exactly one place it could
+                 have been minted. The same centralising instinct recurs for
+                 collections: @tsfpp/prelude's `intoMap`/`intoSet` are the
+                 sole sanctioned `new Map()`/`new Set()` call sites; everyone
+                 else consumes the immutable result."}
+
+    {:name      :ports-not-libraries
+     :when      "a boundary needs an effectful capability — logging, a
+                 store, a clock"
+     :apply     "declare a small structurally-typed port (@tsfpp/prelude's
+                 `Logger` — `{debug, info, warn, error}` typed methods over a
+                 `LogEntry`) and depend on the port type; inject a concrete
+                 implementation (pino, console, a test double) at the
+                 composition root, never import the concrete library into
+                 domain or application code."
+     :rationale "A port is duck-typed against structure, not a class hierarchy
+                 — swapping the concrete logger requires no code change where
+                 the port is consumed, and a test can inject a silent logger
+                 with no mocking framework. This is the standard's
+                 correctness-by-construction axiom applied to dependencies:
+                 the compiler enforces the contract, not a convention."}]
+
+  :anti-patterns [
+    {:name    :switch-without-absurd
+     :avoid   "a `default` branch that returns a fallback value, breaks
+               silently, or is omitted and left to the linter alone"
+     :because "the single most common way generated TSF++-flavoured code
+               silently stops being TSF++: it compiles, it runs, it looks
+               exhaustive — until a union member is added, and nothing
+               catches the gap because nothing forced the default to prove
+               there was nothing left to handle"}
+
+    {:name    :interface-for-convenience
+     :avoid   "reaching for `interface` because a shape 'might need to
+               extend later' or out of habit from non-TSF++ TypeScript"
+     :because "declaration merging is implicit, order-dependent extension —
+               exactly the class of surprise the standard's axioms exist to
+               rule out. If genuine structural extension is needed, that is
+               a DEVIATION(1.4), decided and commented, not a default"}
+
+    {:name    :scattered-type-assertions
+     :avoid   "an `as Brand` (or any `as`) appearing anywhere outside a
+               single, named, guarded smart-constructor function"
+     :because "every scattered cast is an unaudited claim that bypassed
+               validation; centralising to one constructor per brand means
+               there is exactly one place to check when a bad value turns up"}
+
+    {:name    :effect-for-derived-or-fetched-state
+     :avoid   "a `useEffect` that computes a value from props/state, calls
+               `fetch`, or reacts to a click"
+     :because "(React profile) all three have direct, effect-free
+               alternatives — compute during render, TanStack Query, an
+               event handler — and reaching for `useEffect` first is the
+               React profile's named anti-pattern: 'useEffect is the goto
+               of React'"}]
+
+  :active-in :session)
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; SECTION 4 — RECOVERED FINDINGS (drift, recorded honestly, not resolved)
+;; ─────────────────────────────────────────────────────────────────────────
+;; Per the exhume grimoire's discipline: when the evidence disagrees with
+;; itself, the disagreement is the finding. These are NOT silently corrected
+;; here — that would be improving-while-exhuming, the grimoire's named anti-
+;; pattern. They are recorded so a practitioner applying this standard knows
+;; where the source itself is inconsistent.
+
+;; FINDING 1 — a real DEVIATION-comment mislabelling inside @tsfpp/prelude.
+;;
+;; @tsfpp/eslint-config's base.ts (line 59) and its own README.md (line 191)
+;; both attest, unambiguously: Rule 1.4 is "prefer type over interface";
+;; Rule 1.6 is "no `as`". @tsfpp/boundary's boundary-types.ts correctly cites
+;; DEVIATION(1.6) at all five of its smart-constructor `as`-casts. But
+;; @tsfpp/prelude's fp.ts cites DEVIATION(1.4) at its three equivalent
+;; `as`-casts — `mkEvery` (line 219), `mkAny` (line 224), and `toObject`
+;; (line 849) — for the identical pattern. Confidence: :attested (direct
+;; three-way comparison of base.ts's own rule comments, the README's
+;; canonical example, and both packages' actual source). This looks like a
+;; copy-paste labelling slip in the prelude package that was never caught,
+;; not a documented, deliberate deviation from the boundary package's
+;; convention. Left as a finding, not fixed here — @tsfpp/prelude is not
+;; this repository's to edit.
+
+;; FINDING 2 — a version-pin drift between boundary and prelude.
+;;
+;; @tsfpp/boundary's package.json pins @tsfpp/prelude at ^1.6.0; prelude's
+;; own CHANGELOG shows 1.7.0 released (adds `isDefined` and `toObject`).
+;; Confidence: :attested that the pin and the release both exist;
+;; :speculative whether boundary's code actually needs anything 1.7.0-only —
+;; not verified here. Recorded as x/recover-stack's :detect-drift would:
+;; the declared constraint and the available release disagree; the
+;; disagreement is the finding, not silently resolved either way.
+
+;; ─────────────────────────────────────────────────────────────────────────
+;; How a consuming .cnj should reference this file
+;; ─────────────────────────────────────────────────────────────────────────
+;;
+;; `target`'s `:standard` parameter names exactly one asset (core.md's
+;; signature has no multi-standard slot) — so pick the one asset that
+;; actually governs each target's artefacts:
+;;
+;; A target that produces pure TypeScript library code:
+;;   (target :core :standard :tsfpp-standard ...)
+;;
+;; A target that produces a React SPA — :tsfpp-react is self-contained for
+;; this purpose: it restates the two base rules most often missed (absurd,
+;; type-over-interface) alongside its own React-specific rules, so a single
+;; :standard reference is sufficient:
+;;   (target :app :standard :tsfpp-react ...)
