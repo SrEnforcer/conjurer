@@ -36,7 +36,7 @@
 (charter "The Dice Forge"
   :version  "0.1.0"
   :created  "2026-07-05"
-  :updated  "2026-07-09"
+  :updated  "2026-07-10"
   :domain   "Polyhedral dice: their geometry, faces, values, and rolling —
              presented as a browser workshop for defining and rolling dice"
 
@@ -105,7 +105,22 @@
                 the generator the enforceable rule content. Replaced with
                 :tsfpp-standard and :tsfpp-react, recovered directly from the
                 @tsfpp/* packages' own source and enforcement config (see
-                tsfpp.cnj). :app now references :tsfpp-react."}]
+                tsfpp.cnj). :app now references :tsfpp-react."}
+    {:date "2026-07-10"
+     :decision "Second materialise preflight surfaced two spec gaps and four
+                tooling ambiguities, resolved as: (a) :dice-set-persistence
+                was scoped in :app but manifested nowhere — now specified as
+                the §6.6 conjure; first run is EMPTY, not seeded with the
+                starter set, because §6.4's first-run copy is load-bearing.
+                (b) workshop-responsive was manifested (§6.3) but missing
+                from :app's :scope — scope corrected. (c) @tsfpp/* packages
+                are private/unpublished, so core vendors a minimal prelude
+                (absurd, Option, Result, pipe) and mirrors the eslint/tsconfig
+                enforcement locally. (d) :app stays test-free — :produces
+                [:spa] is the contract; app tests would be a spec change, not
+                a generation-time override. (e) shadcn primitives are
+                hand-vendored per the React profile's Rule 11.5. (f) Tooling
+                pinned: npm workspaces, Vitest, fast-check."}]
 
   :open []
 
@@ -652,6 +667,43 @@
 ;; ✓ All three certainty markers in one :style map, each where it belongs:
 ;;   the a11y behaviour is bound, the timing is a lean, the library is open.
 
+;; ─── 6.6 Persistence: the one state that outlives a session ─────────────
+;; Added 2026-07-10: :app's scope always listed :dice-set-persistence, but
+;; nothing in the file manifested it — the only scope item without a spec.
+;; Caught by materialise preflight (:on-unresolved :halt did its job);
+;; specified here rather than left to generation-time inference.
+
+(conjure dice-set-persistence
+  :requires [
+    :versioned-envelope        ;; {:version 1 :dice [...]} — the schema is
+                               ;; versioned BEFORE history accretes, per the
+                               ;; roll-history candidate's own note (§8)
+    :forged-and-retired-only   ;; drafts are ephemeral — editor-flow's
+                               ;; :persistence :session already covers them;
+                               ;; retired dice ARE persisted, so forge-lineage
+                               ;; (§5.1: editing forges a successor) survives
+                               ;; a reload
+    :validate-on-load]         ;; malformed or absent storage must never
+                               ;; crash the app or throw
+  :forbids [
+    :destructive-migration]    ;; never overwrite an envelope this code
+                               ;; cannot read (an unknown, newer :version) —
+                               ;; fall back to in-memory empty, leave the
+                               ;; stored value untouched
+  :style {
+    :medium       (certain :localstorage)     ;; charter: no backend, ever
+    :key          (prefer "dice-forge.dice.v1")
+    :on-first-run (certain :empty)}  ;; absent storage = empty collection —
+                                     ;; §6.4's first-run copy ("No dice yet.
+                                     ;; Forge your first.") is load-bearing;
+                                     ;; seeding the starter set would make
+                                     ;; that state unreachable
+  :returns "load: Result<ReadonlyArray<Die>, PersistenceError>;
+            save: Result<Unit, PersistenceError> — a quota or serialisation
+            failure surfaces as an Err the UI can show; the in-memory forge
+            still succeeds"
+  :manifest dice-set-persistence)
+
 ;; ─────────────────────────────────────────────────────────────────────────
 ;; SECTION 7 — TARGETS (selective materialisation)
 ;; ─────────────────────────────────────────────────────────────────────────
@@ -665,7 +717,17 @@
   :produces  [:library :types :test-suite]
   :scope     [:polyhedron :die :face :roll-engine :dice-facets]
   :from      dice-domain
-  :style     {:errors :result-type :rng :injected-interface}
+  :style     {:errors :result-type :rng :injected-interface
+              ;; The @tsfpp/* packages are private and unpublished (see
+              ;; tsfpp.cnj's :location note), so the standard's vocabulary is
+              ;; vendored, not installed: a minimal local prelude implementing
+              ;; exactly what this code uses (absurd, Option, Result, pipe),
+              ;; with the standard's rules applied via a local eslint
+              ;; flat-config + tsconfig mirroring @tsfpp/eslint-config's
+              ;; base.ts and @tsfpp/tsconfig's base flags.
+              :prelude        :vendored-minimal
+              :test-runner    :vitest
+              :property-tests :fast-check}
   :via       :direct
   :manifest  target-core)
 
@@ -676,9 +738,14 @@
   :standard  :tsfpp-react
   :produces  [:spa]
   :scope     [:editor-flow :roll-experience :forge-theme :workshop-copy
-              :dice-set-persistence]
+              :workshop-responsive :dice-set-persistence]
   :from      dice-domain
   :style     {:build :vite :css :tailwind :components :shadcn
+              ;; shadcn primitives are hand-vendored local components in the
+              ;; shadcn idiom (no CLI/registry fetch at materialise time) —
+              ;; which is also what the React profile's own Rule 11.5 asks:
+              ;; vendored into the repo, subject to the same rules as
+              ;; application code.
               :persistence :localstorage}
   :via       :direct
   :manifest  target-app)
