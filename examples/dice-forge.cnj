@@ -36,7 +36,7 @@
 (charter "The Dice Forge"
   :version  "0.1.0"
   :created  "2026-07-05"
-  :updated  "2026-07-05"
+  :updated  "2026-07-09"
   :domain   "Polyhedral dice: their geometry, faces, values, and rolling —
              presented as a browser workshop for defining and rolling dice"
 
@@ -94,7 +94,18 @@
                 personal tool with this small a surface. The editor flow's
                 existing :linear model already shows one step at a time, so
                 it needs no structural change; only the appearance swatch
-                grid and the dice list reflow. See §6.3."}]
+                grid and the dice list reflow. See §6.3."}
+    {:date "2026-07-09"
+     :decision "The first materialisation of :core and :app followed the
+                TSF++ architecture (functional core, Result-typed errors) but
+                not its idioms: generated switches lacked absurd(), and
+                interface was used where the standard requires type. The
+                :tsfpp-standard asset had only named the standard, with a
+                fictional :location and a seven-bullet summary — never given
+                the generator the enforceable rule content. Replaced with
+                :tsfpp-standard and :tsfpp-react, recovered directly from the
+                @tsfpp/* packages' own source and enforcement config (see
+                tsfpp.cnj). :app now references :tsfpp-react."}]
 
   :open []
 
@@ -110,24 +121,101 @@
 ;; SECTION 2 — ASSETS
 ;; ─────────────────────────────────────────────────────────────────────────
 
+;; :tsfpp-standard and :tsfpp-react below are recovered assets, not hand
+;; summarised ones — see tsfpp.cnj (sibling file) for the full recovery:
+;; read directly from the @tsfpp/* packages' own enforcement config and
+;; source (eslint rules, tsconfig flags, prelude exports, boundary usage),
+;; not from a description of what the standard is called. This replaces an
+;; earlier version of this asset that named a fictional :location and gave
+;; only a seven-bullet architectural summary — which is why the first
+;; materialisation of this file produced switches without absurd() and
+;; interface instead of type: those are idiom-level rules, and idiom-level
+;; rules only get followed when they are actually given to the generator,
+;; not merely named.
+
 (asset :tsfpp-standard
   :type        :code-standard
-  :description "TSF++ — TypeScript functional-core / imperative-shell standard,
-                embodied by the @tsfpp/* packages. The core package is pure;
-                effects live only in the shell."
+  :description "TSF++ (TypeScript Functional++) — a functional-core /
+                imperative-shell TypeScript standard: correctness by
+                construction, totality, immutability, referential
+                transparency, exhaustiveness. Embodied by @tsfpp/prelude and
+                @tsfpp/boundary; mechanically enforced by @tsfpp/eslint-config
+                and @tsfpp/tsconfig. Recovered in full in tsfpp.cnj."
   :language    :typescript
-  :location    "https://github.com/tsfpp/standard"
-  :version     "2.x"
+  :location    "tsfpp.cnj"
+  :version     "1.3.0 (spec) — prelude 1.7.0, boundary 1.2.0,
+                eslint-config 1.0.1, tsconfig 1.0.0"
   :enforces    [
-    "Functional core: every function in the core package is pure"
-    "Effects (RNG entropy, storage, DOM) live only in the app shell"
-    "Errors as Result<T, E> unions — no thrown exceptions in business logic"
-    "No implicit any; explicit return types on exported functions"]
+    "Illegal states unrepresentable: discriminated unions, never independent
+     optional flags, for mutually exclusive data (Rule 1.1)"
+    "Every switch over a discriminated union ends its default/else branch
+     with `absurd(x)` on the `never`-narrowed remainder — not a bare
+     `default: break`, not an unreachable-code comment (Rules 1.2/4.1)"
+    "`type` aliases only — never `interface` — for every object/union shape
+     (Rule 1.4)"
+    "No `any`; no `!` non-null assertions; no `as` type assertions outside a
+     single guarded smart-constructor per branded type (Rules 1.5/1.6)"
+    "No `class`, `this`, `enum`, `namespace`, or `new` outside a commented
+     adapter boundary (Rules 1.8/1.9)"
+    "`const` only, deep `readonly`, no mutation (Rules 2.1–2.3)"
+    "Explicit return type on every exported function; arity ≤ 3; complexity
+     ≤ 10, nesting ≤ 4, ≤ 40 lines, one concern per function (Rules 3.1–3.4)"
+    "No imperative loops — map/filter/reduce/recursion (Rule 4.2)"
+    "Errors and absence as `Result<T,E>`/`Option<A>`, not exceptions; no
+     `throw` outside an adapter boundary (Rule 6.2)"
+    "Effectful capabilities (RNG entropy, storage) consumed through a
+     structurally-typed port, injected at the composition root — never a
+     concrete library imported into core logic"]
   :prohibits   [
+    "`interface` declarations without a DEVIATION(1.4) comment"
+    "A switch/if-chain over a union tag that does not narrow to `never` and
+     call `absurd()` — the way generated code silently stops being
+     exhaustive the moment a case is added"
+    "`any`, bare `!`/`as`, `enum`, `namespace`, `class`, `this`"
     "Math.random or Date.now inside the core package"
     "Imperative mutation of shared state"
     "Default exports"]
-  :applies-to  [:library :spa :test-suite]
+  :applies-to  [:library :test-suite]
+  :active-in   :project)
+
+(asset :tsfpp-react
+  :type        :code-standard
+  :description "TSF++/React — the React profile layered on TSF++: render is a
+                pure function of props/state; state is a liability, justified
+                against an elimination ladder; `useEffect` is React's `goto`.
+                Self-contained for a target's single :standard slot — restates
+                the base rules most load-bearing for UI code. Recovered in
+                full in tsfpp.cnj."
+  :language    :typescript
+  :location    "tsfpp.cnj"
+  :version     "1.0.0"
+  :enforces    [
+    "Exhaustive switches end in `absurd(x)` — identical to base Rule 1.2/4.1,
+     restated because it governs render branches and reducers too"
+    "`type` aliases only, never `interface` — identical to base Rule 1.4"
+    "Components are `const` arrow functions with explicit `ReactElement`
+     return types — never `function` declarations or classes"
+    "Props are `readonly`-fielded `type` aliases; mutually exclusive variants
+     are a discriminated union, never optional flags"
+    "Every piece of state is justified against the elimination ladder before
+     introduction: derivable → URL → server data → form state → local
+     `useState` → lifted → context/store"
+    "`useEffect` only synchronises with systems outside React; never derives
+     state, fetches data, or reacts to a user event; every subscribing effect
+     returns a cleanup function"
+    "Tailwind utilities and design tokens only — never hex codes or magic
+     pixel values inline; variants via `cva`, never class-string
+     concatenation"
+    "Interactive elements are semantic HTML; every control has an associated
+     label; keyboard navigation works for every flow"]
+  :prohibits   [
+    "Class components or `function`-declared components"
+    "Optional-flag props for mutually exclusive variants"
+    "`useEffect` for derived state, data fetching, or user-event reactions"
+    "An effect that subscribes without returning a cleanup function"
+    "Inline hex codes or pixel literals in `className`"
+    "A `div`/`span` with an `onClick` standing in for a semantic element"]
+  :applies-to  [:spa]
   :active-in   :project)
 
 (asset :shadcn-tailwind
@@ -585,7 +673,7 @@
   :language  :typescript
   :framework :react
   :runtime   :browser
-  :standard  :tsfpp-standard
+  :standard  :tsfpp-react
   :produces  [:spa]
   :scope     [:editor-flow :roll-experience :forge-theme :workshop-copy
               :dice-set-persistence]
