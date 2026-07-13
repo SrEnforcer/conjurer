@@ -36,7 +36,7 @@
 (charter "The Dice Forge"
   :version  "0.1.0"
   :created  "2026-07-05"
-  :updated  "2026-07-10"
+  :updated  "2026-07-13"
   :domain   "Polyhedral dice: their geometry, faces, values, and rolling —
              presented as a browser workshop for defining and rolling dice"
 
@@ -120,7 +120,24 @@
                 [:spa] is the contract; app tests would be a spec change, not
                 a generation-time override. (e) shadcn primitives are
                 hand-vendored per the React profile's Rule 11.5. (f) Tooling
-                pinned: npm workspaces, Vitest, fast-check."}]
+                pinned: npm workspaces, Vitest, fast-check."}
+    {:date "2026-07-13"
+     :decision "The first materialised app was visually flat — correctly so:
+                the spec modelled appearance as one flat body token plus one
+                pip token, and 'physical' roll feel was a style lean, not a
+                requirement. Saying 'disappointing' to the generator would be
+                blaming the build for the source. Upgraded with real dice as
+                the bar (two-tone marble, metallic gold pips): appearance
+                gains :finish (solid | gradient | marbled) with an optional
+                :accent token; gold/amber primitives and three-stop ramps
+                enter the theme; the contrast ensure now holds at every stop.
+                Tumble animation and user-configurable roll effects moved
+                from style leans to :requires; effect settings persist under
+                their own versioned key; :reduced-motion still binds over
+                every user setting. The :physics-3d candidate stays deferred
+                — this is 2D CSS craft, not meshes. Core impact is one
+                surgical delta (the die appearance type + its validation);
+                only :app regenerates."}]
 
   :open []
 
@@ -405,15 +422,28 @@
                         :pentagonal-trapezohedron :dodecahedron :icosahedron)
     :faces      (list :of face)
     :semantics  (one-of :numeric :symbolic)
-    :appearance {:body (design-token) :pips (design-token)}}
+    :appearance {:finish (one-of :solid :gradient :marbled)  ;; default :solid
+                 :body   (design-token)
+                 :accent (design-token :optional)   ;; the second colour of a
+                                                    ;; :gradient or :marbled
+                                                    ;; finish; ignored by :solid
+                 :pips   (design-token)}}
   :invariants [
     "faces count matches the polyhedron's face-count"
     ":numeric dice have an integer value on every face"
-    "appearance references tokens, never raw colour values"]
+    "appearance references tokens, never raw colour values"
+    ":gradient and :marbled finishes require an :accent token"
+    "pips stay readable at every stop of the finish — contrast holds against
+     body AND accent, not just the average"]
   :examples [
     {:name "Classic d6" :polyhedron :cube :semantics :numeric
      :faces "pips 1–6, opposite faces summing to 7"
-     :appearance {:body :die.ivory :pips :die.pip-on-light}}])
+     :appearance {:finish :solid :body :die.ivory :pips :die.pip-on-light}}
+    ;; the two-tone-marble-with-gold-pips look of a real resin die:
+    {:name "Gemini jade" :polyhedron :cube :semantics :numeric
+     :faces "pips 1–6, opposite faces summing to 7"
+     :appearance {:finish :marbled :body :die.jade :accent :die.onyx
+                  :pips :die.pip-gold}}])
 
 (shape roll-outcome
   :fields {
@@ -457,8 +487,9 @@
 (spell forge-die [polyhedron & {:keys [face-style semantics appearance]
                                 :or   {face-style :numerals
                                        semantics  :numeric
-                                       appearance {:body :die.ivory
-                                                   :pips :die.pip-on-light}}}]
+                                       appearance {:finish :solid
+                                                   :body   :die.ivory
+                                                   :pips   :die.pip-on-light}}}]
   :doc "Forge a die of the given solid with the workshop's defaults baked in:
         balanced numbering per the dice-craft lore, token-based appearance,
         and faces generated to match the polyhedron's face count."
@@ -489,7 +520,9 @@
                          {:glyph "⛨" :meaning :defend :value {:def 5 :heal (percent 50)}}
                          {:glyph "★" :meaning :critical}]}
   :semantics :symbolic
-  :appearance {:body :die.crimson :pips :die.pip-on-dark}) ;; a combat die
+  :appearance {:finish :marbled :body :die.crimson :accent :die.onyx
+               :pips :die.pip-gold})     ;; a combat die — crimson/onyx marble,
+                                         ;; gold glyphs, like the real thing
 
 ;; ─── 5.6 The incantation: the standard set from one expansion ────────────
 
@@ -570,26 +603,59 @@
 
 ;; ─── 6.1 Tokens: die appearance as a design system ──────────────────────
 
+;; Upgraded 2026-07-13: the first materialised app was visually flat because
+;; this token set could only EXPRESS flat — one body colour, one pip colour.
+;; Real dice (the bar for this workshop) are two-tone marble, swirled resin,
+;; metallic gold pips. Three-stop ramps make depth and gradients expressible;
+;; gold and amber join the palette; finishes become named token-layer
+;; treatments. All CSS — layered gradients and blends, no image assets.
+
 (w/tokens "Forge Theme"
-  :primitives {:color {:ivory   {500 "#f5f0e6"}
-                       :crimson {500 "#9b1c31"}
-                       :indigo  {500 "#3b4a8c"}
-                       :jade    {500 "#2e6e5e"}
-                       :onyx    {500 "#1c1c22"}}
+  :primitives {:color {:ivory   {300 "#faf7f0" 500 "#f5f0e6" 700 "#e6dcc8"}
+                       :crimson {300 "#c04a5e" 500 "#9b1c31" 700 "#6e1424"}
+                       :indigo  {300 "#5c6cae" 500 "#3b4a8c" 700 "#2a3567"}
+                       :jade    {300 "#4d9583" 500 "#2e6e5e" 700 "#1f4f43"}
+                       :onyx    {300 "#3a3a44" 500 "#1c1c22" 700 "#111116"}
+                       :gold    {300 "#e8c96a" 500 "#c9a227" 700 "#96771a"}
+                       :amber   {300 "#d99a4e" 500 "#b8742c" 700 "#8a561f"}}
                :space  [0 4 8 16 24 32]
                :radius [8 12 16]}
-  :semantic   {:die {:ivory        "@color.ivory.500"
-                     :crimson      "@color.crimson.500"
-                     :indigo       "@color.indigo.500"
-                     :jade         "@color.jade.500"
-                     :onyx         "@color.onyx.500"
-                     :pip-on-light "@color.onyx.500"
-                     :pip-on-dark  "@color.ivory.500"}}
-  :components {:die-face {:radius "@radius.2" :glyph-scale 0.62}}
+  :semantic   {:die     {:ivory        "@color.ivory.500"
+                         :crimson      "@color.crimson.500"
+                         :indigo       "@color.indigo.500"
+                         :jade         "@color.jade.500"
+                         :onyx         "@color.onyx.500"
+                         :amber        "@color.amber.500"
+                         :pip-on-light "@color.onyx.500"
+                         :pip-on-dark  "@color.ivory.500"
+                         :pip-gold     "@color.gold.500"}
+               ;; the app chrome around the dice — a bench, not a dashboard
+               :surface {:bench-from "@color.onyx.700"
+                         :bench-to   "@color.indigo.700"
+                         :card       "@color.onyx.500"
+                         :edge       "@color.gold.700"}}
+  :components {:die-face {:radius "@radius.2" :glyph-scale 0.62
+                          ;; finishes are token-layer treatments, so the
+                          ;; contrast ensure below governs them too:
+                          :finishes {:solid    "body colour with a soft
+                                                top-light vignette (300 stop
+                                                catching the light, 700 in
+                                                the shadow) — flat fills read
+                                                as plastic, not resin"
+                                     :gradient "linear 135°, body → accent"
+                                     :marbled  "body base with accent veins —
+                                                layered CSS gradients and
+                                                blend modes, no images"}
+                          :pip-metallic "pips/numerals in @die.pip-gold carry
+                                         a radial highlight (gold.300 core →
+                                         gold.700 rim) — gold must read as
+                                         metal, not mustard"}}
   :export-as  [:css-custom-properties :tailwind-config]
   :within (ensure
     :structural   ["every (body, pip) pairing offered by the picker meets
-                    4.5:1 contrast"]
+                    4.5:1 contrast — and for :gradient and :marbled finishes
+                    the rule holds at EVERY stop: the pip must clear both the
+                    body colour and the accent colour"]
     :verify-via   [:tests]
     :on-violation :halt)
   :manifest forge-theme)
@@ -609,8 +675,11 @@
     {:name :values-meanings :screen "Assign values or meanings per face"
      :validates [:every-face-assigned :numeric-dice-fully-valued]
      :on-error :inline-correction}
-    {:name :appearance      :screen "Body and pip colours from the legal pairings"
-     :validates [:tokens-only]                      :on-error :inline-correction}
+    {:name :appearance      :screen "Finish first — solid, gradient, or marbled,
+                                     previewed live on the die — then body,
+                                     accent, and pip material from the legal
+                                     pairings"
+     :validates [:tokens-only :contrast-at-every-stop] :on-error :inline-correction}
     {:name :review-forge    :screen "The die, rendered and rollable once for feel"
      :on-error :save-and-recover}]
   :persistence :session          ;; a half-forged die survives navigation
@@ -656,16 +725,37 @@
 
 ;; ─── 6.5 The roll experience ─────────────────────────────────────────────
 
+;; Upgraded 2026-07-13: "physical" was a :style lean before, and the first
+;; materialisation read it minimally — a colour flash, no tumble. What makes
+;; a roll feel like a roll is now :requires, not vibes.
+
 (conjure roll-experience
-  :requires [:outcome-display-per-semantics :keyboard-operable]
+  :requires [
+    :outcome-display-per-semantics
+    :keyboard-operable
+    :tumble-animation       ;; dice visibly shake, tumble with FACES CYCLING
+                            ;; while airborne (a rotate alone is not a
+                            ;; tumble), then settle into the outcome
+    :configurable-effects]  ;; the user tunes the roll from a small settings
+                            ;; surface next to the roll button: speed, motion
+                            ;; intensity, glow on/off
   :style {
     :feel      "physical — dice tumble, settle, then the outcome line appears"
-    :duration  (prefer (ms 600))          ;; tunable; snappy beats cinematic
+    :duration  (prefer (ms 900))          ;; default; user-tunable ~300–1500
+    :effects   {:settle  (prefer :overshoot-wobble)   ;; lands with a bounce
+                :stagger (prefer :per-die-offset)     ;; pools land one by one
+                :glow    (prefer :soft-glow-on-final-face)}  ;; token-coloured
+    :settings-persistence (prefer "dice-forge.settings.v1")
+                            ;; own versioned localStorage key, same discipline
+                            ;; as §6.6 — never inside the dice envelope
     :library   (allow :framer-motion)     ;; illustrative — any capable lib
-    :reduced-motion (certain :fade-only)} ;; binding — a11y is not negotiable
+    :reduced-motion (certain :fade-only)} ;; binding — and it overrides EVERY
+                                          ;; user effect setting; a11y is not
+                                          ;; a preference among preferences
   :manifest roll-experience)
 ;; ✓ All three certainty markers in one :style map, each where it belongs:
-;;   the a11y behaviour is bound, the timing is a lean, the library is open.
+;;   the a11y behaviour is bound, the timing and effects are leans, the
+;;   library is open. The tumble itself is :requires — load-bearing.
 
 ;; ─── 6.6 Persistence: the one state that outlives a session ─────────────
 ;; Added 2026-07-10: :app's scope always listed :dice-set-persistence, but
@@ -746,7 +836,11 @@
               ;; which is also what the React profile's own Rule 11.5 asks:
               ;; vendored into the repo, subject to the same rules as
               ;; application code.
-              :persistence :localstorage}
+              :persistence :localstorage
+              :aesthetic "a craftsman's bench, not a dashboard: deep
+                          bench-gradient surfaces (@surface tokens), gold
+                          edge accents, soft shadows, generous radius — the
+                          dice are the jewellery, the chrome recedes"}
   :via       :direct
   :manifest  target-app)
 
@@ -790,6 +884,9 @@
               delight ceiling; deferred because everything else is cheaper."
   :conditions ["outcome-from-engine, animation-as-replay architecture proven"]
   :cluster :experience)
+;; Boundary note, 2026-07-13: the roll-experience upgrade (§6.5 — required
+;; tumble, configurable effects) is deliberately still the CSS side of this
+;; line. It raises the 2D craft; it does not sneak this candidate in early.
 
 (f/candidate :percentile-d100
   :label   "The percentile pair: two d10s read as one 00–99 outcome"
