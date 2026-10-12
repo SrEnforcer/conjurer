@@ -52,7 +52,10 @@ operations relate*. `orchestrate` provides workflow-level abstractions built
 on these primitives: named workflows with versioning, state management across
 long execution spans, saga compensation patterns, circuit breakers, scheduled
 execution, and human-in-the-loop integration. The boundary is: core for
-primitive composition; orchestrate for workflow-level coordination.
+primitive composition; orchestrate for workflow-level coordination. Every
+`o/` form describes coordination for a system to be built or run; a core
+primitive describes when it stands inside a manifestation and is performed
+when it stands alone (`core.md` · Part III).
 
 ### Five design principles
 
@@ -1264,7 +1267,7 @@ but the pattern is universal.
 ```clojure
 {:grimoire    "orchestrate"
  :namespace   "o/"
- :version     "2.1.1"
+ :version     "2.1.2"
  :description "Workflow definition, coordination patterns, event-driven and
                scheduled triggering, dynamic fan-out, error recovery, and
                observability for complex multi-service operations"

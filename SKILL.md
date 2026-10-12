@@ -118,24 +118,33 @@ is what gets saved; everything else flows from it.
 ### Execution primitives
 
 ```clojure
+;; Inside a manifestation (:behaviour) a primitive describes the artefact;
+;; standing alone it is performed in the session.
+
 ;; Sequential with saga compensation
-(sequence order-saga
-  :operations [
-    (conjure reserve-inventory :compensate :release-reservation)
-    (conjure charge-payment    :compensate :void-authorisation)]
-  :on-error :compensate)
+(conjure checkout-service
+  :behaviour
+    (sequence order-saga
+      :operations [
+        (conjure reserve-inventory :compensate :release-reservation)
+        (conjure charge-payment    :compensate :void-authorisation)]
+      :on-error :compensate))
 
 ;; Concurrent with result combining
-(parallel enrich-user
-  :operations [(conjure fetch-orders) (conjure fetch-preferences) (conjure fetch-recommendations)]
-  :combine-results :merge :wait-for :all :on-error :best-effort)
+(conjure user-profile-endpoint
+  :behaviour
+    (parallel enrich-user
+      :operations [(conjure fetch-orders) (conjure fetch-preferences) (conjure fetch-recommendations)]
+      :combine-results :merge :wait-for :all :on-error :best-effort))
 
 ;; Graceful degradation
-(ward recommendations
-  :protect  (conjure ml-recommendations :timeout 200)
-  :recover  [timeout?           (conjure cached-recommendations)
-             model-unavailable? (conjure popularity-recommendations)]
-  :degrade-gracefully true)
+(conjure recommendations-widget
+  :behaviour
+    (ward recommendations
+      :protect  (conjure ml-recommendations :timeout 200)
+      :recover  [timeout?           (conjure cached-recommendations)
+                 model-unavailable? (conjure popularity-recommendations)]
+      :degrade-gracefully true))
 ```
 
 ### Ecosystem layer (`.cnj` project files)

@@ -99,14 +99,16 @@ And the flow runs both ways. Intent becomes artefact through manifestation — b
 **Contain failure gracefully:**
 
 ```clojure
-(ward product-recommendations
-  :protect (conjure fetch-ml-recommendations :user-id current-user :timeout 200)
-  :recover [
-    timeout?            (conjure cached-recommendations :from :redis)
-    model-unavailable?  (conjure popularity-based-recommendations)
-    feature-store-error? (conjure editorial-picks :list :homepage-defaults)]
-  :degrade-gracefully true
-  :escalate-when (> consecutive-model-failures 50))
+(conjure recommendations-widget
+  :behaviour
+    (ward product-recommendations
+      :protect (conjure fetch-ml-recommendations :user-id current-user :timeout 200)
+      :recover [
+        timeout?            (conjure cached-recommendations :from :redis)
+        model-unavailable?  (conjure popularity-based-recommendations)
+        feature-store-error? (conjure editorial-picks :list :homepage-defaults)]
+      :degrade-gracefully true
+      :escalate-when (> consecutive-model-failures 50)))
 ```
 
 **Declare certainty explicitly:**

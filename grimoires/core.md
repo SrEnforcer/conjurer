@@ -96,6 +96,7 @@ brings it into being.
   :returns   output-description
   :examples  {input output ...}
   :within    (ensure ...)
+  :behaviour execution-primitive
   :output    :format-keyword
   :manifest  result-binding)
 ```
@@ -139,6 +140,11 @@ normalisation behaviour.
 **`:within`** — An `ensure` form: the postconditions this manifestation must
 satisfy and the layers that verify them (Part IV). Every invocation that
 manifests an artefact accepts it.
+
+**`:behaviour`** — How the manifested artefact behaves at runtime, written
+with the execution primitives of Part III. A primitive given here describes
+the artefact: the processor generates that behaviour rather than performing
+it.
 
 **`:output`** — Desired output format: `:code`, `:edn`, `:json`, `:markdown`,
 `:artefact`, etc.
@@ -1198,6 +1204,16 @@ execution primitives compose them in time and behaviour: ordering,
 concurrency, conditionality, resilience, cross-cutting concerns, and
 graceful failure.
 
+The same primitive can be read in two times, and its position decides which.
+A primitive that stands on its own — at top level, in a `~>` pipeline, in a
+`ritual` — is *performed*: the processor carries out its operations now, as
+it would a contract review or a set of analyses. A primitive that stands
+inside a manifestation — as the `:behaviour` of a `conjure`, or within a
+`weave` or an `o/` workflow — *describes* the artefact being manifested: a
+saga, a retry policy or a fallback ladder becomes behaviour of the generated
+system. The examples below that concern a system's runtime are written inside
+the `conjure` they describe.
+
 ---
 
 ### `sequence`
@@ -1253,19 +1269,21 @@ workflows need selective access to specific earlier outputs.
 #### Example 2: Saga with compensation
 
 ```clojure
-(sequence order-saga
-  :operations [
-    (conjure reserve-inventory :items order-items
-      :compensate :release-reservation)
-    (conjure authorise-payment :amount total :method card
-      :compensate :void-authorisation)
-    (conjure send-confirmation :to customer-email
-      :compensate :send-cancellation-notice)
-    (conjure initiate-shipment :order order-id
-      :compensate :cancel-with-carrier)]
-  :pass-results :selective
-  :on-error     :compensate
-  :manifest     order-result)
+(conjure checkout-service
+  :behaviour
+    (sequence order-saga
+      :operations [
+        (conjure reserve-inventory :items order-items
+          :compensate :release-reservation)
+        (conjure authorise-payment :amount total :method card
+          :compensate :void-authorisation)
+        (conjure send-confirmation :to customer-email
+          :compensate :send-cancellation-notice)
+        (conjure initiate-shipment :order order-id
+          :compensate :cancel-with-carrier)]
+      :pass-results :selective
+      :on-error     :compensate
+      :manifest     order-result))
 
 ;; If initiate-shipment fails after all prior steps succeeded,
 ;; compensation runs in reverse: cancel-with-carrier is skipped
@@ -1332,49 +1350,55 @@ trick.
 #### Example 1: Data enrichment from independent sources
 
 ```clojure
-(parallel enrich-user-profile
-  :operations [
-    (conjure fetch-orders          :from order-service    :user-id uid :limit 10)
-    (conjure fetch-preferences     :from settings-service :user-id uid)
-    (conjure fetch-recommendations :from ml-service       :user-id uid :count 5)
-    (conjure fetch-support-history :from crm-service      :user-id uid)]
-  :combine-results :merge
-  :wait-for        :all
-  :timeout         2000
-  :on-error        :best-effort   ;; partial profile beats no profile
-  :manifest        dashboard-data)
+(conjure user-profile-endpoint
+  :behaviour
+    (parallel enrich-user-profile
+      :operations [
+        (conjure fetch-orders          :from order-service    :user-id uid :limit 10)
+        (conjure fetch-preferences     :from settings-service :user-id uid)
+        (conjure fetch-recommendations :from ml-service       :user-id uid :count 5)
+        (conjure fetch-support-history :from crm-service      :user-id uid)]
+      :combine-results :merge
+      :wait-for        :all
+      :timeout         2000
+      :on-error        :best-effort   ;; partial profile beats no profile
+      :manifest        dashboard-data))
 ```
 
 #### Example 2: Racing providers
 
 ```clojure
-(parallel geocode-address
-  :operations [
-    (conjure geocode :provider :google :address input-address)
-    (conjure geocode :provider :mapbox :address input-address)
-    (conjure geocode :provider :here   :address input-address)]
-  :wait-for :any      ;; first response wins; others cancelled
-  :timeout  3000
-  :on-error :collect-errors
-  :manifest geocoding-result)
+(conjure address-geocoder
+  :behaviour
+    (parallel geocode-address
+      :operations [
+        (conjure geocode :provider :google :address input-address)
+        (conjure geocode :provider :mapbox :address input-address)
+        (conjure geocode :provider :here   :address input-address)]
+      :wait-for :any      ;; first response wins; others cancelled
+      :timeout  3000
+      :on-error :collect-errors
+      :manifest geocoding-result))
 ```
 
 #### Example 3: Comprehensive parallel validation
 
 ```clojure
-(parallel validate-registration
-  :operations [
-    (conjure validate-schema     :data input :schema user-schema)
-    (conjure validate-uniqueness :data input :check [:email :username])
-    (conjure validate-security   :data input :check [:injection :xss])
-    (conjure validate-business   :data input :rules [:age-of-consent :restricted-regions])]
-  :wait-for        :all
-  :on-error        :collect-errors    ;; surface all violations, not just the first
-  :combine-results (charm [results]
-                     (conjure validation-verdict
-                       :valid  "true only when every individual check passed"
-                       :errors "all violations from all checks, concatenated"))
-  :manifest        validation-result)
+(conjure registration-endpoint
+  :behaviour
+    (parallel validate-registration
+      :operations [
+        (conjure validate-schema     :data input :schema user-schema)
+        (conjure validate-uniqueness :data input :check [:email :username])
+        (conjure validate-security   :data input :check [:injection :xss])
+        (conjure validate-business   :data input :rules [:age-of-consent :restricted-regions])]
+      :wait-for        :all
+      :on-error        :collect-errors    ;; surface all violations, not just the first
+      :combine-results (charm [results]
+                         (conjure validation-verdict
+                           :valid  "true only when every individual check passed"
+                           :errors "all violations from all checks, concatenated"))
+      :manifest        validation-result))
 ```
 
 ---
@@ -1426,42 +1450,46 @@ so choose names that make the referent unmistakable.
 #### Example 1: Risk-based routing
 
 ```clojure
-(branch payment-routing
-  :on     (score-transaction transaction)
-  :cases  [
-    (< score 0.3) (conjure auto-approve    :transaction transaction)
-    (< score 0.7) (conjure standard-review :transaction transaction
-                   :checks [:velocity :device-fingerprint])
-    (< score 0.9) (conjure enhanced-review :transaction transaction
-                   :checks :all :include-biometric true)
-    :else         (conjure manual-review   :transaction transaction
-                   :freeze-account true :notify :fraud-team)]
-  :evaluate :lazy
-  :manifest routing-decision)
+(conjure payment-router
+  :behaviour
+    (branch payment-routing
+      :on     (score-transaction transaction)
+      :cases  [
+        (< score 0.3) (conjure auto-approve    :transaction transaction)
+        (< score 0.7) (conjure standard-review :transaction transaction
+                       :checks [:velocity :device-fingerprint])
+        (< score 0.9) (conjure enhanced-review :transaction transaction
+                       :checks :all :include-biometric true)
+        :else         (conjure manual-review   :transaction transaction
+                       :freeze-account true :notify :fraud-team)]
+      :evaluate :lazy
+      :manifest routing-decision))
 ```
 
 #### Example 2: Structural pattern matching
 
 ```clojure
-(branch support-routing
-  :on    incoming-issue
-  :cases [
-    {:category :technical :severity :critical}
-    (conjure escalate :to :senior-engineer :sla "1h" :notify [:eng-lead :on-call])
+(conjure support-intake
+  :behaviour
+    (branch support-routing
+      :on    incoming-issue
+      :cases [
+        {:category :technical :severity :critical}
+        (conjure escalate :to :senior-engineer :sla "1h" :notify [:eng-lead :on-call])
 
-    {:category :technical :severity :high}
-    (conjure assign :to :technical-support :sla "4h")
+        {:category :technical :severity :high}
+        (conjure assign :to :technical-support :sla "4h")
 
-    {:category :billing :amount (> amount 1000)}
-    (conjure assign :to :account-manager :priority :high)
+        {:category :billing :amount (> amount 1000)}
+        (conjure assign :to :account-manager :priority :high)
 
-    {:category :billing}
-    (conjure assign :to :billing-support)
+        {:category :billing}
+        (conjure assign :to :billing-support)
 
-    :else
-    (conjure assign :to :general-queue :consider-ai-triage true)]
-  :evaluate :lazy
-  :manifest assignment)
+        :else
+        (conjure assign :to :general-queue :consider-ai-triage true)]
+      :evaluate :lazy
+      :manifest assignment))
 ```
 
 ---
@@ -1506,29 +1534,31 @@ practitioner to be deliberate — is a feature.
 #### Example
 
 ```clojure
-(retry payment-gateway-call
-  :operation     (conjure charge-payment
-                   :amount          order-total
-                   :method          payment-method
-                   :idempotency-key client-generated-key)
-  :attempts      5
-  :backoff       :jittered-exponential
-  :initial-delay 1000
-  :max-delay     30000
-  :retry-on      [(= status 429)       ;; rate limited — retry with backoff
-                  (= status 503)       ;; gateway unavailable
-                  timeout?
-                  network-error?]
-  :give-up-on    [(= status 400)       ;; bad request — not retriable
-                  (= status 401)       ;; auth failure — fix the credentials
-                  (= status 402)]      ;; payment declined — not a transient error
-  :on-retry      (charm [retry-event]
-                   (conjure retry-telemetry
-                     :log    {:level :warn :event "payment-gateway-retry"
-                              :attempt (:attempt retry-event)
-                              :error-type (:error-type retry-event)}
-                     :metric "payment.gateway.retries"))
-  :manifest      charge-result)
+(conjure payment-gateway-client
+  :behaviour
+    (retry payment-gateway-call
+      :operation     (conjure charge-payment
+                       :amount          order-total
+                       :method          payment-method
+                       :idempotency-key client-generated-key)
+      :attempts      5
+      :backoff       :jittered-exponential
+      :initial-delay 1000
+      :max-delay     30000
+      :retry-on      [(= status 429)       ;; rate limited — retry with backoff
+                      (= status 503)       ;; gateway unavailable
+                      timeout?
+                      network-error?]
+      :give-up-on    [(= status 400)       ;; bad request — not retriable
+                      (= status 401)       ;; auth failure — fix the credentials
+                      (= status 402)]      ;; payment declined — not a transient error
+      :on-retry      (charm [retry-event]
+                       (conjure retry-telemetry
+                         :log    {:level :warn :event "payment-gateway-retry"
+                                  :attempt (:attempt retry-event)
+                                  :error-type (:error-type retry-event)}
+                         :metric "payment.gateway.retries"))
+      :manifest      charge-result))
 ```
 
 ---
@@ -1547,7 +1577,7 @@ implementation. Logging, authentication, timing, caching, transactions.
   :around    [interceptor ...]
   :after     [interceptor ...]
   :on-error  [interceptor ...]
-  :transform {:request transform-fn :response transform-fn}
+  :transform {:request charm :response charm}
   :manifest  result-binding)
 ```
 
@@ -1581,32 +1611,34 @@ opens a transaction is the last to close it.
 #### Example
 
 ```clojure
-(intercept handle-payment-update
-  :operation (conjure update-payment-method
-               :customer-id customer-id
-               :new-method  payment-data)
+(conjure payment-method-api
+  :behaviour
+    (intercept handle-payment-update
+      :operation (conjure update-payment-method
+                   :customer-id customer-id
+                   :new-method  payment-data)
 
-  :before [
-    (conjure verify-jwt       :require [:not-expired :correct-audience])
-    (conjure verify-ownership :customer-id customer-id :actor current-user)
-    (conjure validate-schema  :data payment-data :schema payment-method-schema)
-    (conjure check-rate-limit :customer-id customer-id :limit (per-hour 10))]
+      :before [
+        (conjure verify-jwt       :require [:not-expired :correct-audience])
+        (conjure verify-ownership :customer-id customer-id :actor current-user)
+        (conjure validate-schema  :data payment-data :schema payment-method-schema)
+        (conjure check-rate-limit :customer-id customer-id :limit (per-hour 10))]
 
-  :around [
-    (conjure measure-latency  :record-to :metrics :labels {:op "payment-update"})
-    (conjure db-transaction   :isolation :serializable :timeout 5000)]
+      :around [
+        (conjure measure-latency  :record-to :metrics :labels {:op "payment-update"})
+        (conjure db-transaction   :isolation :serializable :timeout 5000)]
 
-  :after [
-    (conjure audit-log        :action :payment-method-updated :actor current-user)
-    (conjure publish-event    :topic "payment.method.updated" :payload {:customer-id customer-id})
-    (conjure invalidate-cache :keys [[:payment-methods customer-id]])]
+      :after [
+        (conjure audit-log        :action :payment-method-updated :actor current-user)
+        (conjure publish-event    :topic "payment.method.updated" :payload {:customer-id customer-id})
+        (conjure invalidate-cache :keys [[:payment-methods customer-id]])]
 
-  :on-error [
-    (conjure log-error        :severity :error :context {:customer-id customer-id})
-    (conjure alert            :if (= (type error) :database-failure) :notify :on-call)
-    (conjure format-error     :sanitise-pii true :include-request-id true)]
+      :on-error [
+        (conjure log-error        :severity :error :context {:customer-id customer-id})
+        (conjure alert            :if (= (type error) :database-failure) :notify :on-call)
+        (conjure format-error     :sanitise-pii true :include-request-id true)]
 
-  :manifest api-response)
+      :manifest api-response))
 ```
 
 ---
@@ -1648,33 +1680,35 @@ rung in the order written — rather than scattered across catch blocks.
 #### Example 1: Graceful recommendations degradation
 
 ```clojure
-(ward recommendations
-  :protect (conjure ml-recommendations
-             :user-id current-user
-             :timeout 200             ;; strict latency budget
-             :count   10)
+(conjure recommendations-widget
+  :behaviour
+    (ward recommendations
+      :protect (conjure ml-recommendations
+                 :user-id current-user
+                 :timeout 200             ;; strict latency budget
+                 :count   10)
 
-  :from [timeout? model-unavailable? feature-store-error?]
+      :from [timeout? model-unavailable? feature-store-error?]
 
-  :recover [
-    timeout?
-    (conjure cached-recommendations
-      :user-id current-user
-      :from    :redis
-      :max-age 3600)
+      :recover [
+        timeout?
+        (conjure cached-recommendations
+          :user-id current-user
+          :from    :redis
+          :max-age 3600)
 
-    model-unavailable?
-    (conjure popularity-recommendations
-      :category user-preferred-category
-      :count    10)
+        model-unavailable?
+        (conjure popularity-recommendations
+          :category user-preferred-category
+          :count    10)
 
-    feature-store-error?
-    (conjure editorial-picks
-      :list :homepage-defaults)]
+        feature-store-error?
+        (conjure editorial-picks
+          :list :homepage-defaults)]
 
-  :degrade-gracefully true
-  :escalate-when      (> consecutive-model-failures 50)
-  :manifest           recommendations)
+      :degrade-gracefully true
+      :escalate-when      (> consecutive-model-failures 50)
+      :manifest           recommendations))
 
 ;; The widget always renders something useful.
 ;; Personalised → cached → popular → editorial — the ladder is explicit.
@@ -1684,27 +1718,29 @@ rung in the order written — rather than scattered across catch blocks.
 #### Example 2: Ward within a sequence
 
 ```clojure
-(sequence checkout
-  :operations [
-    (data/validate cart :against cart-schema :on-failure :stop)
+(conjure checkout-service
+  :behaviour
+    (sequence checkout
+      :operations [
+        (data/validate cart :against cart-schema :on-failure :stop)
 
-    (ward payment-charge
-      :protect (conjure charge :amount total :method card)
-      :from    [gateway-timeout? network-error?]
-      :recover [
-        gateway-timeout?
-        (conjure queue-async-charge
-          :order-id order-id
-          :customer-message "Payment is processing — you won't be charged twice.")
-        network-error?
-        (retry charge-retry
-          :operation (conjure charge :amount total :method card)
-          :attempts  2
-          :backoff   :exponential)]
-      :escalate-when (> consecutive-gateway-timeouts 3))
+        (ward payment-charge
+          :protect (conjure charge :amount total :method card)
+          :from    [gateway-timeout? network-error?]
+          :recover [
+            gateway-timeout?
+            (conjure queue-async-charge
+              :order-id order-id
+              :customer-message "Payment is processing — you won't be charged twice.")
+            network-error?
+            (retry charge-retry
+              :operation (conjure charge :amount total :method card)
+              :attempts  2
+              :backoff   :exponential)]
+          :escalate-when (> consecutive-gateway-timeouts 3))
 
-    (conjure send-order-confirmation)]
-  :on-error :compensate)
+        (conjure send-order-confirmation)]
+      :on-error :compensate))
 ```
 
 ---
@@ -3490,19 +3526,21 @@ appropriate scope.
 
 ```clojure
 ;; Clear layering: infrastructure wraps structure wraps resilience
-(intercept with-auth-and-observability
-  :operation (sequence data-pipeline
-    :operations [
-      (retry fetch-source
-        :operation (conjure fetch-source-data :from :ledger-export)
-        :attempts  3
-        :backoff   :exponential)
-      (parallel enrichment
-        :operations [(conjure enrich-merchant) (conjure enrich-geography) (conjure enrich-risk)]
-        :combine-results :merge)
-      (ward persist-results
-        :protect (conjure write :to primary-store)
-        :recover [unavailable? (conjure write :to fallback-queue)])]))
+(conjure ingestion-service
+  :behaviour
+    (intercept with-auth-and-observability
+      :operation (sequence data-pipeline
+        :operations [
+          (retry fetch-source
+            :operation (conjure fetch-source-data :from :ledger-export)
+            :attempts  3
+            :backoff   :exponential)
+          (parallel enrichment
+            :operations [(conjure enrich-merchant) (conjure enrich-geography) (conjure enrich-risk)]
+            :combine-results :merge)
+          (ward persist-results
+            :protect (conjure write :to primary-store)
+            :recover [unavailable? (conjure write :to fallback-queue)])])))
 ```
 
 ### Use `witness` to build decision trails
@@ -3888,6 +3926,17 @@ apply the refinement but record it as a pending conditional refinement in the
 manifestation's metadata. If the predicate is not evaluable at invocation time,
 record the refinement as dormant — note the condition under which it will
 activate.
+
+### Execution primitives: performing or describing
+
+Decide the time of every `sequence`, `parallel`, `branch`, `retry`,
+`intercept` and `ward` by its position. Standing alone, it is performed: run
+its operations in this session. Inside a manifestation (`conjure :behaviour`,
+`weave`, an `o/` workflow), it describes: generate the behaviour in the
+artefact, honour its parameters as requirements of that artefact, and do not
+run its operations. Runtime parameters such as `:timeout`, `:attempts` or
+`:wait-for` are then properties of the generated system, enforced by the
+code that is generated and named as such.
 
 ### Threading (`~>`)
 
