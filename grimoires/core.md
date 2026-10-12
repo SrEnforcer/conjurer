@@ -82,6 +82,7 @@ brings it into being.
   :accepts   input-description
   :returns   output-description
   :examples  {input output ...}
+  :within    (ensure ...)
   :output    :format-keyword
   :manifest  result-binding)
 ```
@@ -121,6 +122,10 @@ premature complexity without losing intent.
 **`:examples`** — Concrete input/output pairs. Often more precise than prose
 descriptions; the system uses them to calibrate intent for edge cases and
 normalisation behaviour.
+
+**`:within`** — An `ensure` form: the postconditions this manifestation must
+satisfy and the layers that verify them (Part IV). Every invocation that
+manifests an artefact accepts it.
 
 **`:output`** — Desired output format: `:code`, `:edn`, `:json`, `:markdown`,
 `:artefact`, etc.
@@ -239,14 +244,17 @@ parameters, removes elements, or deepens analysis — without starting over.
   :add      [:capability ...]
   :adjust   {:parameter new-value ...}
   :without  [:capability-to-remove ...]
-  :deepen   :by n-levels
+  :deepen   n-levels
   :when     predicate
+  :because  "why this refinement is made"
   :manifest refined-result)
 ```
 
 #### Parameters
 
-**`existing-manifestation`** — The artefact to enhance.
+**`existing-manifestation`** — The artefact to enhance, or a `spell`. Refining
+a spell produces a new version of the pattern that every later cast uses;
+what earlier casts manifested is not regenerated.
 
 **`:focus-on`** — Narrows refinement to specific aspects. Without it, the
 entire manifestation is refined. With it, only the named aspects change —
@@ -266,6 +274,10 @@ Deepening by 2 means two additional layers of decomposition or analysis.
 *conditional*: it applies only when the predicate holds. Enables
 aspirationally complete specifications — future refinements recorded in
 dormant form, activated when conditions are met.
+
+**`:because`** — Why the refinement is made. Recorded with the refined
+result; a reason that settles a design question belongs in the charter's
+`:decisions` log as well.
 
 **`:manifest`** — Binds the refined result.
 
@@ -327,7 +339,7 @@ refinement is held dormant and applies once the condition is shown to hold.
 
 (refine overview
   :focus-on "data-subject-rights"
-  :deepen   :by 3
+  :deepen   3
   :add      [:enforcement-precedents :national-implementation-variations]
   :manifest rights-deep-dive)
 
@@ -381,8 +393,8 @@ HIPAA activates PHI protection and audit logging on all PHI access.
 **`:assumptions`** — Things the practitioner takes for granted that the system
 should too. Making assumptions visible makes them inspectable and correctable.
 
-**`:active-in`** — `:session` (entire conversation) or `:block` (until
-explicitly closed, or when the enclosing `using` block exits).
+**`:active-in`** — `:session` (entire conversation) or `:block` (only within
+the `using` form that applies it).
 
 #### Design rationale
 
@@ -638,7 +650,7 @@ making the approach inspectable, reproducible, and teachable.
      :produce :resource-map}
 
     {:name    :specify
-     :do      (conjure endpoint-specs :for-each resource-in resource-map
+     :do      (conjure endpoint-specs :for-each resource-map
                 :include [:methods :parameters :error-responses :examples])
      :produce :api-spec}
 
@@ -1362,9 +1374,9 @@ Executes operations conditionally based on predicates.
 ```clojure
 (branch name
   :on       predicate-or-value
-  :cases    {pattern-1 operation-1
+  :cases    [pattern-1 operation-1
              pattern-2 operation-2
-             :else     default-operation}
+             :else     default-operation]
   :evaluate :eager | :lazy
   :manifest result-binding)
 ```
@@ -1387,6 +1399,11 @@ everything from simple dispatch to multi-factor decision trees. The `:else`
 clause provides mandatory default behaviour — unhandled cases are never
 silently ignored.
 
+`:cases` is a vector of pattern–operation pairs, not a map. Patterns are tried
+in the order written and the first match wins, so overlapping predicates such
+as `(< score 0.3)` and `(< score 0.7)` mean exactly what they say; an EDN map
+has no order a processor could rely on. `:else` comes last.
+
 Predicate patterns close over the value under test by convention: `score` in
 the cases below denotes the result of `:on`, just as `status` in `retry`'s
 `:retry-on` denotes the failure being classified. The binding is implicit,
@@ -1397,14 +1414,14 @@ so choose names that make the referent unmistakable.
 ```clojure
 (branch payment-routing
   :on     (score-transaction transaction)
-  :cases  {
+  :cases  [
     (< score 0.3) (conjure auto-approve    :transaction transaction)
     (< score 0.7) (conjure standard-review :transaction transaction
                    :checks [:velocity :device-fingerprint])
     (< score 0.9) (conjure enhanced-review :transaction transaction
                    :checks :all :include-biometric true)
     :else         (conjure manual-review   :transaction transaction
-                   :freeze-account true :notify :fraud-team)}
+                   :freeze-account true :notify :fraud-team)]
   :evaluate :lazy
   :manifest routing-decision)
 ```
@@ -1414,7 +1431,7 @@ so choose names that make the referent unmistakable.
 ```clojure
 (branch support-routing
   :on    incoming-issue
-  :cases {
+  :cases [
     {:category :technical :severity :critical}
     (conjure escalate :to :senior-engineer :sla "1h" :notify [:eng-lead :on-call])
 
@@ -1428,7 +1445,7 @@ so choose names that make the referent unmistakable.
     (conjure assign :to :billing-support)
 
     :else
-    (conjure assign :to :general-queue :consider-ai-triage true)}
+    (conjure assign :to :general-queue :consider-ai-triage true)]
   :evaluate :lazy
   :manifest assignment)
 ```
@@ -1593,9 +1610,9 @@ complementary to `intercept` (which handles cross-cutting infrastructure).
 (ward name
   :protect            operation
   :from               [failure-predicate ...]
-  :recover            {failure-pattern recovery-operation ...}
+  :recover            [failure-pattern recovery-operation ...]
   :degrade-gracefully boolean
-  :escalate           :when escalation-predicate
+  :escalate-when      escalation-predicate
   :manifest           result-binding)
 ```
 
@@ -1610,9 +1627,9 @@ humans when automated recovery has been exhausted.
 
 `ward` models this richer resilience space. The metaphor is precise: a ward
 is a protective boundary. What enters the ward is guarded; what threatens it
-is handled according to explicit, inspectable strategy. The `:recover` map
-makes the degradation ladder visible and intentional rather than scattered
-across catch blocks.
+is handled according to explicit, inspectable strategy. The `:recover`
+vector makes the degradation ladder visible and intentional — tried rung by
+rung in the order written — rather than scattered across catch blocks.
 
 #### Example 1: Graceful recommendations degradation
 
@@ -1625,7 +1642,7 @@ across catch blocks.
 
   :from [timeout? model-unavailable? feature-store-error?]
 
-  :recover {
+  :recover [
     timeout?
     (conjure cached-recommendations
       :user-id current-user
@@ -1639,10 +1656,10 @@ across catch blocks.
 
     feature-store-error?
     (conjure editorial-picks
-      :list :homepage-defaults)}
+      :list :homepage-defaults)]
 
   :degrade-gracefully true
-  :escalate           :when (> consecutive-model-failures 50)
+  :escalate-when      (> consecutive-model-failures 50)
   :manifest           recommendations)
 
 ;; The widget always renders something useful.
@@ -1660,7 +1677,7 @@ across catch blocks.
     (ward payment-charge
       :protect (conjure charge :amount total :method card)
       :from    [gateway-timeout? network-error?]
-      :recover {
+      :recover [
         gateway-timeout?
         (conjure queue-async-charge
           :order-id order-id
@@ -1669,8 +1686,8 @@ across catch blocks.
         (retry charge-retry
           :operation (conjure charge :amount total :method card)
           :attempts  2
-          :backoff   :exponential)}
-      :escalate :when (> consecutive-gateway-timeouts 3))
+          :backoff   :exponential)]
+      :escalate-when (> consecutive-gateway-timeouts 3))
 
     (conjure send-order-confirmation)]
   :on-error :compensate)
@@ -1859,7 +1876,7 @@ as verified preconditions.
 
 **`:scope`** — Determines how long the preconditions hold:
 - `:invocation` — only for the next form
-- `:block` — for the surrounding `do`/`sequence`/`~>` block
+- `:block` — for the enclosing `using`, `sequence`, `ritual` or `~>` form
 - `:session` — for the remainder of the session
 
 #### Design rationale
@@ -1943,6 +1960,10 @@ Declares postconditions: properties that must hold of the *manifested
 output*. Where `given` describes truths entering an invocation, `ensure`
 describes truths leaving it.
 
+An `ensure` is attached through `:within` to the invocation whose output it
+constrains. `given` stands on its own because input state can hold for several
+invocations; a postcondition belongs to one output.
+
 #### Signature
 
 ```clojure
@@ -1971,13 +1992,18 @@ the strongest form: examples are more precise than abstract predicates.
 
 **`:verify-via`** — Which enforcement layers the practitioner expects to
 participate. Honest enumeration prevents over-claiming:
-- `:mcp` — Conjurer MCP server validates against structural checks
+- `:mcp` — a structural checker exposed by the MCP server verifies the
+  predicate against the proposed artefact. Name it only where the server offers
+  such a checker for this kind of artefact; where it does not, the processor
+  says so and the predicate falls back to `:llm`
 - `:llm` — the executing client (Copilot, Antigravity) honours as instruction
 - `:tests` — generated tests in the target language verify post-materialisation
 - `:lint` — linter rules in the target language verify post-materialisation
 
 **`:on-violation`** — What happens if a postcondition fails:
-- `:halt` — refuse to manifest; surface the failure
+- `:halt` — do not deliver the artefact; surface the failure. Layers that run
+  after materialisation (`:tests`, `:lint`) find the artefact already written:
+  it is reported as failed, and nothing downstream proceeds from it
 - `:warn` — manifest but flag the violation prominently
 - `:document` — manifest and record the unmet postcondition for review
 
@@ -2045,9 +2071,10 @@ is only as strong as the model's commitment.
     :verify-via [:mcp]
     :on-violation :halt))
 
-;; The MCP server can validate these structurally before manifestation.
-;; If the LLM proposes 500 requests/minute, the configuration is rejected
-;; before it ever reaches the target system.
+;; Where the MCP server offers a structural checker for this configuration,
+;; it validates the proposal before it is written: 500 requests/minute is
+;; rejected before it reaches the target system. Without such a checker the
+;; processor reports that only :llm enforcement applied.
 ```
 
 #### Example 3: Composing `given` and `ensure` around a transformation
@@ -3470,7 +3497,7 @@ appropriate scope.
         :combine-results :merge)
       (ward persist-results
         :protect (conjure write :to primary-store)
-        :recover {unavailable? (conjure write :to fallback-queue)})]))
+        :recover [unavailable? (conjure write :to fallback-queue)])]))
 ```
 
 ### Use `witness` to build decision trails
@@ -3562,7 +3589,7 @@ vocabulary on which domain-specific abstractions are built.
 ```clojure
 {:grimoire    "core"
  :namespace   nil   ;; core constructs are unprefixed — conjure, refine, ~>, not c/conjure
- :version     "2.3.1"
+ :version     "2.4.0"
  :description "Foundational constructs, composition machinery, abstraction
                (spells, charms, incantations), execution primitives, and
                ecosystem connectives for the Conjurer language"
@@ -3693,7 +3720,7 @@ vocabulary on which domain-specific abstractions are built.
                  without modifying the manifestation itself."}
    {:term "Ward"
     :definition "Structured error containment with explicit degradation
-                 strategy. The :recover map is the degradation ladder, made
+                 strategy. The :recover vector is the degradation ladder, made
                  visible."}
 
    ;; ─── Ecosystem and persistence ─────────────────────────────────────
@@ -3802,6 +3829,8 @@ silently prioritising one. Ask the practitioner to adjudicate.
 ### Spells, charms, and incantations
 
 When processing a `spell` definition, record the pattern; manifest nothing.
+Refining a spell replaces the pattern for later casts; what earlier casts
+manifested is not regenerated.
 When a spell is cast, treat caller arguments as `(prefer v)` unless the caller
 wrapped them in `certain` — never silently upgrade a caller's commitment. Apply
 the context active at the *invocation site*, not the definition site.
@@ -3876,12 +3905,20 @@ Note any that require runtime mechanisms (eventual consistency, distributed
 transactions, unified error taxonomies) to be architecturally visible and
 explicitly designed, not assumed.
 
+### Branch
+
+Evaluate `:on` once. Try the `:cases` patterns in the order written and run
+the operation of the first that matches: an exact value by equality, a map by
+matching every key it names, a predicate by evaluating it against the value
+under test. `:else` matches anything and must come last. With `:evaluate
+:lazy`, only the chosen operation runs.
+
 ### Ward and graceful degradation
 
 Attempt `:protect` first. On failure, match against `:recover` patterns in
-declaration order; execute the first matching recovery operation. If
+the order written; execute the first matching recovery operation. If
 `:degrade-gracefully` is true, a partial or degraded result is a valid outcome
-— prefer it to an empty result. If the `:escalate` predicate is met, signal
+— prefer it to an empty result. If the `:escalate-when` predicate is met, signal
 that human intervention is required *in addition to* executing the recovery
 operation, not instead of it.
 
@@ -3956,7 +3993,8 @@ Do not present derived conclusions as if they followed from verified inputs.
 
 Apply `:scope` strictly. Preconditions from an `:invocation`-scoped `given`
 do not propagate beyond the next form. `:session`-scoped preconditions
-persist until explicitly retracted.
+persist until a later `given` states a contrary fact, which supersedes them
+from that point on; the earlier `given` stays in the record.
 
 ### `ensure`
 
@@ -3975,14 +4013,18 @@ Where it does not, document the scenarios in inline comments at the
 relevant code site so reviewers can verify them by inspection.
 
 Honour `:verify-via` as a contract about enforcement layers. Do not claim
-mechanical verification when only semantic enforcement applies. When
+mechanical verification when only semantic enforcement applies. If `:mcp`
+is listed and no structural checker is available for the artefact, say so
+and treat the predicate as `:llm`-enforced. When
 `:tests` is listed, materialise the tests as part of the artefact, not as
 a separate suggestion. When `:lint` is listed, produce a linter
 configuration or rule snippet alongside the primary artefact.
 
 `:on-violation :halt` is unconditional. A halted manifestation produces a
 structured failure report — the violated predicate, the proposed value, and
-the reason — not a partial artefact with caveats.
+the reason — not a partial artefact with caveats. When `:tests` or `:lint`
+find the violation after materialisation, the report marks the written
+artefact as failed, and nothing downstream proceeds from it.
 
 ### Charter as context bootstrap
 

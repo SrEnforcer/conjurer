@@ -3,7 +3,7 @@
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces
 
-{:version    "1.6.0"
+{:version    "1.7.0"
  :grimoires  [
    {:name "core"       :file "grimoires/core.md"       :namespace nil}
    {:name "domain"     :file "grimoires/domain.md"     :namespace "d/"}
@@ -30,7 +30,7 @@
    :synopsis  "Primary manifestation: describe what should exist; the system brings it into being"
    :accepts   [:name-or-description]
    :produces  [:any-artefact]
-   :key-params [:requires :forbids :prefers :style :deferred :accepts :returns :examples :output :manifest]}
+   :key-params [:requires :forbids :prefers :style :deferred :accepts :returns :examples :within :output :manifest]}
 
   refine
   {:grimoire  "core"
@@ -38,7 +38,7 @@
    :synopsis  "Iteratively enhances an existing manifestation without starting over"
    :accepts   [:existing-manifestation]
    :produces  [:enhanced-manifestation]
-   :key-params [:focus-on :add :adjust :without :deepen :when :manifest]}
+   :key-params [:focus-on :add :adjust :without :deepen :when :because :manifest]}
 
   context
   {:grimoire  "core"
@@ -206,7 +206,7 @@
    :synopsis  "Structured error containment with explicit degradation ladder; richer than retry"
    :accepts   [:operation]
    :produces  [:guarded-result]
-   :key-params [:protect :from :recover :degrade-gracefully :escalate :manifest]}
+   :key-params [:protect :from :recover :degrade-gracefully :escalate-when :manifest]}
 
   certain
   {:grimoire  "core"

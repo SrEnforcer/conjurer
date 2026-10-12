@@ -668,8 +668,8 @@ difference between honest and procrustean placement.
   (t/classify :using data-sensitivity :mode :strict :surface [:confidence :boundary-cases])
   (branch route-by-confidence
     :on    classification-confidence
-    :cases {:high (conjure auto-apply-handling)
-            :else (conjure queue-for-human-review :with :boundary-case-notes)}))
+    :cases [:high (conjure auto-apply-handling)
+            :else (conjure queue-for-human-review :with :boundary-case-notes)]))
 
 ;; Multi-label classification against a faceted taxonomy
 (t/classify product-items :using apparel-facets :mode :multi-label)
@@ -1313,7 +1313,7 @@ migration.
 ```clojure
 {:grimoire    "taxonomy"
  :namespace   "t/"
- :version     "1.1.0"
+ :version     "1.1.1"
  :description "Definition, construction, application, alignment, validation,
                navigation, and evolution of classification systems —
                enumerative and faceted"
