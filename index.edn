@@ -446,7 +446,7 @@
    :synopsis  "Defines a formal schema: fields, types, constraints, relationships, compliance"
    :accepts   [:entity-name]
    :produces  [:schema-definition]
-   :key-params [:fields :required :unique :indexes :constraints :relationships :compliance :phi-fields :output]}
+   :key-params [:fields :required :unique :indexes :constraints :relationships :compliance :sensitive-fields :output]}
 
   data/generate
   {:grimoire  "data"

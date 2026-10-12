@@ -22,7 +22,8 @@ Earlier exploratory evolution is treated as pre-history.
 - **Time by position.** A core execution primitive is performed when it stands alone and describes the artefact when it stands inside a manifestation; `conjure` gains `:behaviour`, and runtime examples moved inside the `conjure` they describe.
 - **Confidence.** Two axes, provenance and degree, with shorthand for either and numbers only with a named basis. *Breaking:* `x/recover-model` and `x/reconstruct-decisions` take `:grade :each` instead of `:confidence :grade-each`; `a/define :style` takes `:disposition` instead of `:confidence`.
 - **Practitioner grimoires.** Spells enter a namespace by name, a practitioner grimoire is a `.cnj` file, `asset :type :grimoire` is listed, and the namespace rule in `template.md` matches `data/`.
-- **`shape`** gains `:extends` and `:sensitive-fields` by class (`:phi`, `:pii`, `:pci`); `:phi-fields` remains as shorthand.
+- **`shape`** gains `:extends` and `:sensitive-fields` by class (`:phi`, `:pii`, `:pci`).
+- **Sensitive fields.** *Breaking:* `data/schema` takes `:sensitive-fields` with the same classes as `shape` instead of `:phi-fields` and `:pci-fields`, and drops the per-field `:phi true` and `:pci true` markers; the `:phi-fields` shorthand on `shape` is removed. `:gdpr` now applies to `:pii` fields, not PHI. data 2.1.1 → 3.0.0.
 - **Three version lines** are stated in `template.md` and `README.md`: release, catalogue, grimoire.
 - Template example rule relaxed to at least one example per construct; `s/synthesise` gains its example; example corrections in core and foresight (a candidate's own `:status` is never edited; its current status is read from `:history`).
 

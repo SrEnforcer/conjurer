@@ -149,8 +149,7 @@ what it means.
   :relationships [{:field :target-entity :type :one-to-many | :many-to-one | :many-to-many
                    :cascade :delete | :preserve | :nullify} ...]
   :compliance   [:gdpr :hipaa :pci-dss ...]
-  :phi-fields   [:field ...]
-  :pci-fields   [:field ...]
+  :sensitive-fields {:phi [:field ...] :pii [:field ...] :pci [:field ...]}
   :immutable    [:field ...]
   :output       :edn | :json-schema | :sql-ddl | :graphql-schema | :openapi
   :manifest     schema-binding)
@@ -171,15 +170,20 @@ format, constraints, and semantic markers:
   `:locale`)
 - Constraints: `:min`, `:max`, `:min-length`, `:max-length`, `:pattern`,
   `:unique`, `:optional`, `:immutable`
-- Semantics: `:phi true`, `:pci true`, `:encrypted true`, `:generated true`
+- Semantics: `:encrypted true`, `:generated true`
 
 **`:compliance`** — Compliance frameworks that apply to this entity. Named
-frameworks activate implied behaviours: `:gdpr` marks PHI fields and adds
-right-to-erasure support; `:hipaa` adds audit-logging requirements; `:pci-dss`
-marks cardholder data fields for encryption.
+frameworks activate implied behaviours: `:gdpr` adds right-to-erasure support
+to `:pii` fields; `:hipaa` adds audit-logging requirements to `:phi` fields;
+`:pci-dss` requires tokenisation of `:pci` fields.
 
-**`:phi-fields`** — Fields containing protected health information. Triggers
-HIPAA-appropriate handling regardless of whether `:hipaa` is in `:compliance`.
+**`:sensitive-fields`** — Fields by sensitivity class, with the same classes
+and handling as core's `shape`: `:phi` (protected health information: access
+logging, encryption at rest and in transit), `:pii` (personal data:
+minimisation and right-to-erasure support), `:pci` (payment-card data:
+tokenisation, no storage of the full number). The class triggers its handling
+regardless of what `:compliance` lists. Sensitivity is stated here only,
+not per field.
 
 **`:immutable`** — Fields that must never change after initial creation.
 `:created-at`, `:id`, and audit fields are common candidates.
@@ -202,10 +206,10 @@ satisfy to remain coherent. This is why constraints carry `:message` and
 `:severity` — a violated constraint is a false belief, and the schema must say
 how serious that falsehood is.
 
-Second, **compliance is structural, not bolted on**. The `:compliance`,
-`:phi-fields`, and `:pci-fields` parameters make regulatory obligations part of
+Second, **compliance is structural, not bolted on**. The `:compliance` and
+`:sensitive-fields` parameters make regulatory obligations part of
 the schema rather than scattered through application code. When a field is
-marked `:phi true`, every construct that touches it — generation, masking,
+listed under `:phi`, every construct that touches it — generation, masking,
 validation, lineage — inherits the obligation to handle it appropriately. The
 schema is where "this data is regulated" is stated once and honoured everywhere.
 
@@ -276,22 +280,21 @@ needs, rather than hand-maintaining five drifting copies.
 (data/schema :patient
   :fields {
     :patient-id  {:type :uuid :generated true :immutable true}
-    :mrn         {:type :string :pattern "^MRN[0-9]{10}$" :unique true :phi true}
-    :first-name  {:type :string :min-length 1 :max-length 100 :phi true}
-    :last-name   {:type :string :min-length 1 :max-length 100 :phi true}
-    :dob         {:type :date :min "1900-01-01" :max :today :phi true :immutable true}
-    :ssn         {:type :string :pattern "^[0-9]{3}-[0-9]{2}-[0-9]{4}$"
-                  :encrypted true :phi true}
+    :mrn         {:type :string :pattern "^MRN[0-9]{10}$" :unique true}
+    :first-name  {:type :string :min-length 1 :max-length 100}
+    :last-name   {:type :string :min-length 1 :max-length 100}
+    :dob         {:type :date :min "1900-01-01" :max :today :immutable true}
+    :ssn         {:type :string :pattern "^[0-9]{3}-[0-9]{2}-[0-9]{4}$" :encrypted true}
     :gender      {:type :enum :values [:male :female :other :unknown]}
-    :email       {:type :email :optional true :phi true}
-    :phone       {:type :phone :optional true :phi true}
+    :email       {:type :email :optional true}
+    :phone       {:type :phone :optional true}
     :consent-given {:type :boolean :required true}
     :created-at  {:type :timestamp :default :now :immutable true}
     :updated-at  {:type :timestamp :default :now :auto-update true}}
 
   :required  [:patient-id :mrn :first-name :last-name :dob :gender :consent-given]
   :unique    [:patient-id :mrn :ssn]
-  :phi-fields [:first-name :last-name :dob :ssn :email :phone :mrn]
+  :sensitive-fields {:phi [:first-name :last-name :dob :ssn :email :phone :mrn]}
 
   :constraints [
     {:rule    (or email phone)
@@ -1606,7 +1609,7 @@ definition in a domain model should map directly to a `data/schema`.
 ```clojure
 {:grimoire    "data"
  :namespace   "data/"
- :version     "2.1.1"
+ :version     "3.0.0"
  :description "Complete data lifecycle: schema definition, generation,
                transformation, validation, expectations, contracts,
                profiling, lineage, and privacy"
@@ -1683,7 +1686,7 @@ definition in a domain model should map directly to a `data/schema`.
 ### Schema interpretation
 
 When processing `data/schema`, treat `:compliance` as a multiplier on the
-field-level annotations: `:hipaa` in `:compliance` means all `:phi true`
+field-level annotations: `:hipaa` in `:compliance` means all `:phi`
 fields automatically require audit logging, encryption at rest, and
 minimum-necessary access controls — even if not explicitly stated per field.
 `:gdpr` means all fields containing personal data must support right-to-erasure
