@@ -110,13 +110,10 @@
                 The project has one user."}
     {:id :validation-depth-v2
      :date "2026-10-12"
-     :decision "v2 validation adds check_references first: every :references
-                file, :decision/<id> in :supersedes and f/hoist :into, and target
-                named in materialise or :from resolves, under the name-equivalence
-                rule. validate_symbol_usage follows, checking parameters against
-                index.edn :key-params and expressions against the prelude.
-                lint_conventions is not planned: style belongs in review, not in
-                a validator that blocks."}]
+     :decision "v2 validation depth in three phases: validate_symbol_usage
+                (warnings), check_references (errors: a broken reference is a
+                hard gap), then lint_conventions (warnings only, promoted to
+                errors only once signal quality is confirmed)."}]
 
   :open []
 
