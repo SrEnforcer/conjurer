@@ -230,8 +230,9 @@ pipeline crosses grimoire boundaries; the notes do not travel across them.
 
 These rules apply to every grimoire without exception:
 
-**Naming** — All construct names use lowercase with hyphens. Namespace
-aliases are one or two letters, lowercase. No abbreviations in parameter
+**Naming** — All construct names use lowercase with hyphens. Standard
+namespaces are one or two lowercase letters, or `data/`; a practitioner
+namespace is at least two characters and never a standard prefix. No abbreviations in parameter
 names that a domain expert would not recognise immediately.
 
 **Prose style** — Sentences are complete. Paragraphs make one point.
@@ -529,7 +530,7 @@ Before a grimoire or `.cnj` file is considered complete, verify:
 - [ ] Philosophy section answers all three required questions (why it exists,
       what principles govern it, what the names mean)
 - [ ] Every construct has a signature, parameters section, design rationale,
-      and at least two examples
+      and at least one example — two where the second shows a different aspect
 - [ ] All example values are concrete and realistic — no `"foo"` or `"bar"`
 - [ ] All example outputs are annotated with `; ✓` comments explaining
       significant behaviours

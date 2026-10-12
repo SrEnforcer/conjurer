@@ -1074,9 +1074,8 @@ sealed environment.
 
 ```clojure
 ;; Spells compose like any invocation — inside pipelines, wards, rituals:
-(~> quarterly-close
-  (compliant-endpoint)
-  (e/compose :audience :executive))
+(~> (d/scope insurance-domain :include [:claim])
+  (compliant-endpoint :audience :compliance-officer))
 
 ;; Refine the spell, not the twenty casts: every future cast inherits it
 (refine compliant-endpoint
@@ -1281,7 +1280,7 @@ workflows need selective access to specific earlier outputs.
           :compensate :send-cancellation-notice)
         (conjure initiate-shipment :order order-id
           :compensate :cancel-with-carrier)]
-      :pass-results :selective
+      :pass-results :accumulate
       :on-error     :compensate
       :manifest     order-result))
 
@@ -2250,8 +2249,9 @@ system can reason about semantically.
 ```clojure
 (shape name
   :fields      {field-name type-or-constraint ...}
+  :extends     shape-name
   :invariants  ["natural-language invariant" ...]
-  :phi-fields  [:field ...]
+  :sensitive-fields {:phi [:field ...] :pii [:field ...] :pci [:field ...]}
   :examples    [{...} ...]
   :derived-from source-schema)
 ```
@@ -2265,9 +2265,16 @@ primitive types. Types can carry domain constraints: `(uuid :globally-unique)`,
 **`:invariants`** — Natural-language statements of correctness that must hold
 across the shape. The system translates these into concrete validation logic.
 
-**`:phi-fields`** — Fields containing personally-identifiable information.
-Marked fields trigger appropriate handling: access logging, encryption
-requirements, right-to-erasure support.
+**`:extends`** — A shape this one builds on. Its fields, invariants and
+sensitive fields are inherited; the extending shape may add to them and
+tighten them, never loosen them.
+
+**`:sensitive-fields`** — Fields by sensitivity class, each class triggering
+its own handling: `:phi` (protected health information: access logging,
+encryption at rest and in transit), `:pii` (personal data: minimisation and
+right-to-erasure support), `:pci` (payment-card data: tokenisation, no
+storage of the full number). `:phi-fields [...]` is accepted as shorthand for
+`:sensitive-fields {:phi [...]}`.
 
 **`:examples`** — Valid instances of the shape. Used to calibrate the system's
 understanding of what the shape actually represents.
@@ -2303,9 +2310,9 @@ concept; a schema is an implementation of it.
     "mrn must be unique within the originating facility"
     "primary-diagnosis must correspond to a current ICD-10 code"
     "medications must not contain clinically contraindicated combinations"
-    "all phi-fields must have an access-event logged whenever read or written"]
+    "all phi fields must have an access-event logged whenever read or written"]
 
-  :phi-fields [:date-of-birth :mrn :id]
+  :sensitive-fields {:phi [:date-of-birth :mrn :id]}
 
   :examples [
     {:id "f47ac10b-58cc-4372-a567-0e02b2c3d479"
@@ -2335,6 +2342,23 @@ concept; a schema is an implementation of it.
     {:value 9999 :currency "EUR" :scale 2}   ;; €99.99
     {:value 10000 :currency "JPY" :scale 0}  ;; ¥10,000 — no minor units in JPY
     {:value 150 :currency "GBP" :scale 2}])  ;; £1.50
+```
+
+#### Example 3: Composition with `:extends`
+
+```clojure
+(shape refund-amount
+  :extends monetary-amount
+  :fields {
+    :original-transaction (uuid)
+    :reason               (one-of :duplicate :fraudulent :customer-request)}
+  :invariants [
+    "value never exceeds the value of the original transaction"
+    "currency equals the currency of the original transaction"])
+
+;; ✓ refund-amount carries every field and invariant of monetary-amount —
+;;   minor units, integer arithmetic, ISO-4217 — without restating them.
+;; ✓ It adds two fields and tightens the contract; it cannot loosen it.
 ```
 
 ---
@@ -2970,6 +2994,7 @@ opaque to agents joining the session.
 (asset name
   :type        :code-standard | :style-guide | :component-library
                | :domain-vocabulary | :agent-definition | :api-specification
+               | :grimoire
   :description "what this asset is and what it governs"
   :language    :language-keyword
   :location    "relative path or URL to the asset file"
@@ -3368,18 +3393,24 @@ project like any registered standard.
   :doc       "what domain this spellbook serves"
   :provides  [prefix/spell ...]
   :lore      [lore-references ...]    ;; optional
-  :shapes    [prefix/Shape ...])      ;; optional
+  :shapes    [prefix/shape ...])      ;; optional
 ```
 
 #### Parameters
 
-**`:namespace`** — The grimoire's prefix. User namespaces must be at least two
-characters and must not shadow any of the eleven standard prefixes — the
-single-character namespaces (and `data/`) are reserved for the standard
-library.
+**`:namespace`** — The grimoire's prefix. Standard namespaces are one or two
+lowercase letters, or `data/`; a practitioner namespace is at least two
+characters and never shadows a standard prefix.
 
 **`:provides`** — The spells the grimoire exports. A grimoire with nothing to
-bundle is empty; `spell` is the unit of content.
+bundle is empty; `spell` is the unit of content. A spell enters the namespace
+by being named in it — `(spell acme/compliant-endpoint ...)` — and a provided
+name outside the declared namespace is an error.
+
+**File format** — A practitioner grimoire is a `.cnj` file holding the
+`grimoire` form together with its spells, lore and shapes: executable source,
+registered with `asset :type :grimoire`. The standard library stays literate
+markdown.
 
 **`:lore`**, **`:shapes`** — Optional accompanying pattern libraries and
 semantic types, so a domain's idioms and vocabulary travel with its spells.
@@ -3408,7 +3439,7 @@ accumulated in a project can graduate into a spellbook of its own.
   :doc       "Acme's payment-domain spellbook: our defaults, our vocabulary"
   :provides  [acme/compliant-endpoint acme/settlement-report acme/refund-flow]
   :lore      [payment-system-patterns]
-  :shapes    [acme/Transaction acme/Settlement])
+  :shapes    [acme/transaction acme/settlement])
 
 ;; Registered like any other standard — agents receive it in a handover:
 (asset :acme-payments-grimoire
@@ -3655,7 +3686,7 @@ vocabulary on which domain-specific abstractions are built.
 ```clojure
 {:grimoire    "core"
  :namespace   nil   ;; core constructs are unprefixed — conjure, refine, ~>, not c/conjure
- :version     "2.4.0"
+ :version     "3.0.0"
  :description "Foundational constructs, composition machinery, abstraction
                (spells, charms, incantations), execution primitives, and
                ecosystem connectives for the Conjurer language"
@@ -3928,8 +3959,9 @@ to the declared name. If a charm grows complex enough to warrant
 documentation, suggest promoting it to a `spell`.
 
 When processing a user `grimoire`, validate that its `:namespace` is at least
-two characters and does not shadow a standard prefix; reject collisions
-explicitly rather than silently re-prefixing.
+two characters and does not shadow a standard prefix, and that every name in
+`:provides` lies within that namespace; reject violations explicitly rather
+than silently re-prefixing.
 
 ### Context and semantic gravity
 
@@ -4037,9 +4069,11 @@ Use shape definitions to inform all manifestation decisions involving that
 data type: validation logic, serialisation format, display formatting, error
 messages, and persistence constraints. `:invariants` written in natural
 language should be translated into concrete validation rules applied wherever
-the shape is handled. `:phi-fields` always trigger appropriate data-handling
-requirements regardless of whether the active context has named the relevant
-regulation.
+the shape is handled. `:sensitive-fields` always trigger their class's
+data-handling requirements, whether or not the active context has named the
+relevant regulation. A shape that `:extends` another inherits its fields,
+invariants and sensitive fields; reject an extension that loosens any of
+them.
 
 ### Result quality
 

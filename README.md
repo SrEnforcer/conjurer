@@ -121,7 +121,7 @@ And the flow runs both ways. Intent becomes artefact through manifestation — b
     :anomaly-score-cut (allow   0.75)}         ;; illustrative — system may recalibrate
 
   :within (ensure
-    :structural [(<= :daily-limit (eur 10000))]
+    :structural [(<= daily-limit (eur 10000))]
     :semantic   ["alerts are actionable, not alarming"]
     :verify-via [:mcp :tests :llm]
     :on-violation :halt))

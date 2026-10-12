@@ -5,7 +5,7 @@
 ;; :prelude lists the expression forms a deterministic processor may evaluate
 ;; (core.md, Part V, The prelude); every other head is a semantic function.
 
-{:version    "1.8.0"
+{:version    "2.0.0"
  :prelude    {:literals   [:string :number :ratio :keyword :boolean :nil :vector :map :set]
               :units      :open-family
               :types      [string integer decimal boolean keyword date datetime uuid url list one-of]
@@ -262,7 +262,7 @@
    :synopsis  "Defines semantic type contracts — what data means, not just what it structurally is"
    :accepts   []
    :produces  [:semantic-type-definition]
-   :key-params [:fields :invariants :phi-fields :examples :derived-from]}
+   :key-params [:fields :extends :invariants :sensitive-fields :examples :derived-from]}
 
   charter
   {:grimoire  "core"

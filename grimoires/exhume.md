@@ -1116,7 +1116,7 @@ again.
 ```clojure
 {:grimoire    "exhume"
  :namespace   "x/"
- :version     "1.1.2"
+ :version     "2.0.0"
  :description "Code and artefact archaeology: recovering Conjurer specification —
                domain models, the declared technical stack, conventions, decisions,
                and a continuable .cnj — from existing codebases never written in

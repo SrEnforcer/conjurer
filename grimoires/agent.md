@@ -1547,7 +1547,7 @@ of each agent's contribution without modifying what the agents produce.
 ```clojure
 {:grimoire    "agent"
  :namespace   "a/"
- :version     "1.1.1"
+ :version     "2.0.0"
  :description "Autonomous agent definition, equipment and tool access, invocation,
                delegation, multi-agent coordination, and quality assurance patterns"
 
