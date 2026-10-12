@@ -190,6 +190,7 @@ conjurer/
 ├── README.md              ← you are here
 ├── CHANGELOG.md           ← design history and decisions
 ├── conjurer.md            ← philosophy, naming rationale, full principles
+├── architecture.md        ← high-level overview: the determinism boundary, with diagrams
 ├── template.md            ← canonical structure for grimoires and .cnj files
 ├── index.edn              ← machine-readable symbol catalogue
 ├── quick-reference.md     ← every symbol at a glance

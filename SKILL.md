@@ -291,6 +291,7 @@ SKILL.md                ← this file (entrypoint)
 index.edn               ← machine-readable symbol catalogue (routing layer)
 quick-reference.md      ← every symbol at a glance
 conjurer.md             ← language philosophy and principles
+architecture.md         ← high-level overview of the system, with diagrams
 template.md             ← grimoire and .cnj file structure specification
 grimoires/
   core.md               ← all core constructs with full signatures

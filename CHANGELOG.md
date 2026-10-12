@@ -9,6 +9,7 @@ Earlier exploratory evolution is treated as pre-history.
 
 ### Added
 
+- `architecture.md`: a high-level overview with diagrams — vocabulary, the determinism boundary between the specification, conjurer-mcp and the model, the specification stack, processing an invocation, plan before act, the round trip, and conjurer-mcp. Referenced from the end of `conjurer.md`.
 - Specification evaluation of October 2026 (`proposals/2026-10-spec-evaluation.md`): the design questions left after the consistency and semantic passes — expression prelude, the time of execution primitives, names and decision identifiers, the confidence vocabulary, ownership of the `.cnj` structure, practitioner grimoires, `shape`, and the version model — graded as twelve `f/candidate` forms, three of them alternatives recommended against.
 
 ### Changed

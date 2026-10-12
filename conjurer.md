@@ -397,6 +397,8 @@ These are the skills of a good systems thinker, a good designer, a good product 
 
 **Use the `.cnj` file spec in `template.md`.** Before starting a project, read the canonical `.cnj` file structure. The `charter` construct is where every project begins; everything else grows from it.
 
+**See the system whole in `architecture.md`.** A high-level overview with diagrams: how the work divides between a deterministic plan and a semantic act, where each part runs, how an invocation is processed, and how a project moves between intent and artefact.
+
 ---
 
-*Continue to [`grimoires/core.md`](grimoires/core.md) for the language's foundational constructs, or to [`template.md`](template.md) for the canonical structure of grimoires and `.cnj` project files.*
+*Continue to [`grimoires/core.md`](grimoires/core.md) for the language's foundational constructs, to [`template.md`](template.md) for the canonical structure of grimoires and `.cnj` project files, or to [`architecture.md`](architecture.md) for an overview of the system as a whole.*
