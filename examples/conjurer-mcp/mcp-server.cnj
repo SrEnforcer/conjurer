@@ -7,7 +7,7 @@
 (charter "Conjurer MCP Server"
   :version  "0.1.0"
   :created  "2026-06-05"
-  :updated  "2026-06-05"
+  :updated  "2026-10-12"
   :domain   "A deterministic stdio MCP server exposing retrieval, parsing, and
              validation tools over the Conjurer specification, built on a shared
              TypeScript core."
@@ -28,15 +28,34 @@
      :decision "The shared core is split into five modules by responsibility —
                 edn-parser, spec-reader, symbol-index, cnj-model, validation —
                 each well under 400 lines. The prior 4000-line index.ts is
-                explicitly decomposed, not ported."}]
-  :open [
-    "spec-source-resolution: precedence among CONJURER_SPEC_PATH env var, a
-     --spec CLI flag, a config file, and upward directory search. Leaning toward:
-     flag > env > config > upward-search, first match wins."
-    "Whether get_grimoire_section addresses sections by heading text, by a
-     stable section id, or both."
-    "Whether to expose grimoires additionally as MCP resources
-     (conjurer://grimoire/<name>) — scored as D4, not yet decided."]
+                explicitly decomposed, not ported."}
+    {:id :spec-source-resolution
+     :date "2026-10-12"
+     :decision "The spec source is the first match of: --spec CLI flag,
+                CONJURER_SPEC_PATH, config file, upward directory search for
+                index.edn. Explicit beats implicit; the search is the fallback."}
+    {:id :section-addressing
+     :date "2026-10-12"
+     :decision "get_grimoire_section addresses a section by id: the slug of its
+                heading (\"design-rationale\"), or the symbol for a construct
+                section (\"r/analogise\"). Heading text is accepted and normalised
+                to the same slug, so there is one key and a lenient lookup. On a
+                miss the tool returns the grimoire's section ids."}
+    {:id :grimoires-as-resources
+     :date "2026-10-12"
+     :decision "Grimoires are also exposed as MCP resources,
+                conjurer://grimoire/<name>, with index.edn as conjurer://index.
+                Tools stay the targeted path; resources let a client attach a
+                whole grimoire."}
+    {:id :prelude-evaluator
+     :date "2026-10-12"
+     :decision "The shared core gains an evaluator for the prelude (core Part V,
+                index.edn :prelude): literals, units, types, comparison and
+                boolean predicates, keyword lookup, and the expansion forms. It
+                backs incantation expansion and structural ensure predicates.
+                Any other head is a semantic function: the evaluator reports it
+                as such, never guesses."}]
+  :open []
   :outputs {
     :tool-contracts :conjurer-only
     :shared-core    (target :typescript :standard :tsf-plus-plus)
@@ -88,8 +107,9 @@
   :purpose     "Return one section of a grimoire (a rationale, an example block,
                 a Part) instead of the whole file"
   :accepts     {:grimoire "string — grimoire name, e.g. \"reasoning\""
-                :section  "string — heading or section id, e.g. \"r/analogise\"
-                           or \"Design rationale\""
+                :section  "string — section id or heading text, e.g.
+                           \"r/analogise\" or \"design-rationale\"
+                           (see :decision/section-addressing)"
                 :part     "optional — :rationale | :examples | :parameters | :all"}
   :returns     {:format :markdown}
   :backed-by   :spec-reader

@@ -7,7 +7,7 @@
 (charter "Conjurer VS Code Extension"
   :version  "0.1.0"
   :created  "2026-06-05"
-  :updated  "2026-06-05"
+  :updated  "2026-10-12"
   :domain   "A VS Code extension giving .cnj and Conjurer authors inline,
              editor-native access to the spec — CodeLens actions, hover docs, and
              commands — built on the same @conjurer/core as the MCP server."
@@ -29,12 +29,15 @@
                 lookup/parse/validate), NOT by spawning the MCP server. Rationale:
                 simpler, no subprocess lifecycle, and the core is already the shared
                 home of the logic. Talking MCP to a spawned server is a later option
-                if the extension ever needs tool parity with external agents."}]
-  :open [
-    "Should CodeLens validate run on every save (live) or only on demand
-     (command/lens click)? Live is nicer but needs debouncing."
-    "Marketplace publication vs local VSIX install for v1 — likely local-only,
-     matching the solo, local-first stance."]
+                if the extension ever needs tool parity with external agents."}
+    {:id :validate-on-save
+     :date "2026-10-12"
+     :decision "Validation runs on every save of a .cnj, debounced; the CodeLens
+                and command stay for an on-demand run."}
+    {:id :local-vsix
+     :date "2026-10-12"
+     :decision "v1 installs as a local VSIX; no Marketplace publication."}]
+  :open []
   :outputs {
     :vscode-extension (target :typescript :standard :tsf-plus-plus)}
   :references ["conjurer-mcp.cnj"]
@@ -83,7 +86,7 @@
   :feature     "Command: Conjurer — Validate current .cnj"
   :purpose     "Validate the active .cnj and surface violations as editor
                 diagnostics (squiggles + Problems panel)"
-  :trigger     "command palette or on-save (see :open)"
+  :trigger     "on save, debounced; or the command palette (see :decision/validate-on-save)"
   :backed-by   :validation
   :produces    [:diagnostics]
   :determinism :pure)

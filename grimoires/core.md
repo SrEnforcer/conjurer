@@ -2273,8 +2273,7 @@ tighten them, never loosen them.
 its own handling: `:phi` (protected health information: access logging,
 encryption at rest and in transit), `:pii` (personal data: minimisation and
 right-to-erasure support), `:pci` (payment-card data: tokenisation, no
-storage of the full number). `:phi-fields [...]` is accepted as shorthand for
-`:sensitive-fields {:phi [...]}`.
+storage of the full number). `data/schema` uses the same classes.
 
 **`:examples`** — Valid instances of the shape. Used to calibrate the system's
 understanding of what the shape actually represents.
