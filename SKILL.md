@@ -58,6 +58,10 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 5. **Produce a production-ready manifestation** — no placeholders, no TODOs, no stubs
 6. **Explain significant interpretive choices** transparently in accompanying prose
 
+Expressions: only prelude forms (`core.md`, Part V; `index.edn` `:prelude`) are
+evaluated deterministically; any other head is a semantic function the model
+resolves, and a check that rests on one is reported as `:llm`-level.
+
 When layers disagree: the invocation's explicit parameters win over a
 grimoire's implementation notes (except where a note declares a binding
 exception), and implementation notes win over inferences drawn from examples.
@@ -114,24 +118,33 @@ is what gets saved; everything else flows from it.
 ### Execution primitives
 
 ```clojure
+;; Inside a manifestation (:behaviour) a primitive describes the artefact;
+;; standing alone it is performed in the session.
+
 ;; Sequential with saga compensation
-(sequence order-saga
-  :operations [
-    (conjure reserve-inventory :compensate :release-reservation)
-    (conjure charge-payment    :compensate :void-authorisation)]
-  :on-error :compensate)
+(conjure checkout-service
+  :behaviour
+    (sequence order-saga
+      :operations [
+        (conjure reserve-inventory :compensate :release-reservation)
+        (conjure charge-payment    :compensate :void-authorisation)]
+      :on-error :compensate))
 
 ;; Concurrent with result combining
-(parallel enrich-user
-  :operations [(conjure fetch-orders) (conjure fetch-preferences) (conjure fetch-recommendations)]
-  :combine-results :merge :wait-for :all :on-error :best-effort)
+(conjure user-profile-endpoint
+  :behaviour
+    (parallel enrich-user
+      :operations [(conjure fetch-orders) (conjure fetch-preferences) (conjure fetch-recommendations)]
+      :combine-results :merge :wait-for :all :on-error :best-effort))
 
 ;; Graceful degradation
-(ward recommendations
-  :protect  (conjure ml-recommendations :timeout 200)
-  :recover  [timeout?           (conjure cached-recommendations)
-             model-unavailable? (conjure popularity-recommendations)]
-  :degrade-gracefully true)
+(conjure recommendations-widget
+  :behaviour
+    (ward recommendations
+      :protect  (conjure ml-recommendations :timeout 200)
+      :recover  [timeout?           (conjure cached-recommendations)
+                 model-unavailable? (conjure popularity-recommendations)]
+      :degrade-gracefully true))
 ```
 
 ### Ecosystem layer (`.cnj` project files)

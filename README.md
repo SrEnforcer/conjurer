@@ -99,14 +99,16 @@ And the flow runs both ways. Intent becomes artefact through manifestation — b
 **Contain failure gracefully:**
 
 ```clojure
-(ward product-recommendations
-  :protect (conjure fetch-ml-recommendations :user-id current-user :timeout 200)
-  :recover [
-    timeout?            (conjure cached-recommendations :from :redis)
-    model-unavailable?  (conjure popularity-based-recommendations)
-    feature-store-error? (conjure editorial-picks :list :homepage-defaults)]
-  :degrade-gracefully true
-  :escalate-when (> consecutive-model-failures 50))
+(conjure recommendations-widget
+  :behaviour
+    (ward product-recommendations
+      :protect (conjure fetch-ml-recommendations :user-id current-user :timeout 200)
+      :recover [
+        timeout?            (conjure cached-recommendations :from :redis)
+        model-unavailable?  (conjure popularity-based-recommendations)
+        feature-store-error? (conjure editorial-picks :list :homepage-defaults)]
+      :degrade-gracefully true
+      :escalate-when (> consecutive-model-failures 50)))
 ```
 
 **Declare certainty explicitly:**
@@ -119,7 +121,7 @@ And the flow runs both ways. Intent becomes artefact through manifestation — b
     :anomaly-score-cut (allow   0.75)}         ;; illustrative — system may recalibrate
 
   :within (ensure
-    :structural [(<= :daily-limit (eur 10000))]
+    :structural [(<= daily-limit (eur 10000))]
     :semantic   ["alerts are actionable, not alarming"]
     :verify-via [:mcp :tests :llm]
     :on-violation :halt))
@@ -213,6 +215,6 @@ Start with [`conjurer.md`](conjurer.md) for the philosophical foundation, then [
 
 ## Status
 
-Conjurer is in **active design phase**. The specifications are conceptual artefacts — they define language semantics for LLM processors, not a compiled runtime. Nothing is published or versioned yet; the design is evolving.
+Conjurer is in **active design phase**. The specifications are conceptual artefacts — they define language semantics for LLM processors, not a compiled runtime. Three version lines run independently: the specification release (the package version, set by release-please and followed by `CHANGELOG.md`), the symbol catalogue (`index.edn`) and each grimoire's own version. The design is still evolving.
 
 MIT

@@ -591,7 +591,8 @@ and the path through the decision structure that reached it.
 #### Parameters
 
 **`:from-candidates`** — Optional. When a decision evaluates a set of matured
-`f/candidate`s from the `foresight` grimoire, name their ids here. This closes the
+`f/candidate`s from the `foresight` grimoire, name their ids here; they are
+then the alternatives, and `:among` may be omitted. This closes the
 deliberation loop: the decision records which backlog it grew from, so each
 candidate's graded history (its original scores, its dated reassessments)
 connects forward to the decision that resolved it — the mirror of `f/hoist`'s
@@ -1609,7 +1610,7 @@ into audience-appropriate communication.
 ```clojure
 {:grimoire    "reasoning"
  :namespace   "r/"
- :version     "1.2.2"
+ :version     "1.2.3"
  :description "Explicit logical inference: deductive, inductive, abductive, and
                analogical reasoning with full derivation tracing, belief revision,
                and chain-of-custody provenance"

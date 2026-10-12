@@ -238,7 +238,7 @@ each recovered element as attested or inferred. The code-facing twin of
   :from        [:types :functions :schemas :tests :api-surface]
   :recover     [:entities :relationships :operations :invariants :vocabulary]
   :focus       [module-or-path ...]        ;; narrow to where the model lives
-  :confidence  :grade-each                 ;; attach an evidential grade per element
+  :grade       :each                       ;; attach an evidential grade per element
   :emit        :domain-model | :d-explore-compatible
   :manifest    recovered-model)
 ```
@@ -257,7 +257,7 @@ recovery by source reliability.
 the code enforces — often the most valuable and most buried), `:vocabulary` (the
 names the codebase actually uses, which become a recovered ubiquitous language).
 
-**`:confidence :grade-each`** — Attach an evidential grade to every recovered
+**`:grade :each`** — Attach an evidential grade to every recovered
 element. An entity read from a type declaration is `:attested`; a relationship
 inferred from how two functions are called together is `:strongly-inferred`; an
 invariant guessed from a single validation check is `:speculative`. This is the
@@ -304,7 +304,7 @@ never wrote down.
 (x/recover-model "../old-conjurer-mcp/src"
   :from       [:types :functions :tests :api-surface]
   :recover    [:entities :relationships :operations :invariants :vocabulary]
-  :confidence :grade-each
+  :grade :each
   :emit       :d-explore-compatible
   :manifest   recovered-mcp-model)
 
@@ -704,7 +704,7 @@ that bears the marks of a decision. Recovers the reasoning that a charter's
 (x/reconstruct-decisions source
   :from        [:git-history :comments :structure :code-shape :dependencies]
   :recover     [:what :why :alternatives-rejected :when]
-  :confidence  :grade-each
+  :grade       :each
   :emit        :charter-decisions | :decision-report
   :manifest    reconstructed-decisions)
 ```
@@ -722,7 +722,7 @@ partially — the hardest and most valuable), `:alternatives-rejected` (rarely
 recoverable, occasionally visible in comments or reverted commits), and `:when`
 (from git, usually attested).
 
-**`:confidence :grade-each`** — Decisions are the *least* certain recovery,
+**`:grade :each`** — Decisions are the *least* certain recovery,
 because intent behind a choice is the most deeply buried thing in a codebase.
 The grading here matters most: `:what` and `:when` are often `:attested`; `:why`
 is usually `:strongly-inferred` at best and frequently `:speculative`.
@@ -765,7 +765,7 @@ for these traces and marks them honestly as the rare finds they are.
 (x/reconstruct-decisions "../old-conjurer-mcp"
   :from       [:git-history :comments :structure :code-shape :dependencies]
   :recover    [:what :why :alternatives-rejected :when]
-  :confidence :grade-each
+  :grade :each
   :emit       :charter-decisions
   :manifest   reconstructed-mcp-decisions)
 
@@ -1116,7 +1116,7 @@ again.
 ```clojure
 {:grimoire    "exhume"
  :namespace   "x/"
- :version     "1.1.2"
+ :version     "2.0.0"
  :description "Code and artefact archaeology: recovering Conjurer specification —
                domain models, the declared technical stack, conventions, decisions,
                and a continuable .cnj — from existing codebases never written in

@@ -272,7 +272,10 @@ error) and why the assessment moved. "The parser landed, so feasibility rose fro
 an edit, and edits erase history.
 
 **`:status`** — Optional. A reassessment may move the lifecycle (e.g.
-`:proposed` → `:planned`) when the changed assessment warrants it.
+`:proposed` → `:planned`) when the changed assessment warrants it. The
+candidate's own `:status` records where it started and is never edited; its
+current status is the most recent `:status` in its `:history`, or `:hoisted`
+once an `f/hoist` names it.
 
 #### Design rationale
 
@@ -306,7 +309,7 @@ possible if reassessment happens by editing the original in place.
 (f/candidate :diff-intent
   :label  "x/diff-intent — detect drift between a .cnj and the code it produced"
   :added  "2026-06-07"
-  :status :planned
+  :status :proposed                                              ;; original, preserved
   :scores {:feasibility 6 :elegance 8 :containment 7 :value 8}   ;; original, preserved
   :rationale "…"
   :history [
@@ -323,7 +326,8 @@ possible if reassessment happens by editing the original in place.
       :rationale "A second team started consuming recovered .cnj files; drift
                   between spec and code now bites more than one project, so value
                   rose from 8 to 9.")])
-;; ✓ The original scores are untouched; each reassessment is dated, scoped to what
+;; ✓ The original status and scores are untouched (the current status, :planned,
+;;   is read from the latest reassessment); each reassessment is dated, scoped to what
 ;;   changed, and carries its own rationale. The trajectory (feasibility 6→9,
 ;;   value 8→9) is visible and explains WHY the team's view rose — none of which
 ;;   survives if you just edit the original numbers.
@@ -358,8 +362,9 @@ After an `f/hoist`, the candidate's `:status` is considered `:hoisted`.
 
 **`:date`** — When the promotion happened.
 
-**`:into`** — A reference to the artefact the candidate became: a `charter`
-decision entry, a new `target`, a new spell. This is the forward binding — it lets
+**`:into`** — A reference to the artefact the candidate became, written as a
+namespaced keyword: a `charter` decision (`:decision/<id>`), a new target
+(`:target/<name>`), a new spell (`:spell/<name>`) or construct (`:core/<name>`). This is the forward binding — it lets
 a future reader follow the candidate's history *forward* to the thing that closed
 it, rather than losing the thread at the moment of promotion.
 
@@ -404,7 +409,7 @@ would add a form that records nothing the candidate's own status does not.
 ```clojure
 (f/hoist :of :diff-intent
   :date     "2026-11-20"
-  :into     :charter-decision/x-diff-intent-accepted
+  :into     :decision/x-diff-intent-accepted
   :outcomes [:new-construct :exhume-version-bump :catalog-update]
   :note     "Two consumers and a stable recovery layer made the drift tool worth
              building; promoted into a charter decision to add x/diff-intent to
@@ -490,8 +495,7 @@ set a decision evaluates.
 ```clojure
 ;; When the time comes to commit, the candidates become live alternatives
 (r/decide
-  :among         [:diff-intent :salvage :counter-manifest-tooling]
-  :from-candidates [:diff-intent :salvage :counter-manifest-tooling]   ;; the f/candidate ids
+  :from-candidates [:diff-intent :salvage :counter-manifest-tooling]   ;; the alternatives
   :criteria      [:value :feasibility :strategic-fit]
   :manifest      v2-direction)
 ;; :from-candidates closes the loop: the decision records which deliberation it
@@ -505,11 +509,13 @@ A hoisted candidate becomes a charter decision, and the `:into` binding makes th
 candidate's whole history a traceable preamble to that decision.
 
 ```clojure
-(~> (f/hoist :of :diff-intent :into :charter-decision/x-diff-intent-accepted
-      :outcomes [:new-construct])
-  ;; the charter gains a decision; the candidate's graded history explains how it
-  ;; got there — deferral, reassessments, and the conditions that finally tipped it
-  )
+(f/hoist :of :diff-intent
+  :date     "2026-11-20"
+  :into     :decision/x-diff-intent-accepted
+  :outcomes [:new-construct])
+;; The charter gains the decision with :id :x-diff-intent-accepted; the candidate's
+;; graded history explains how it got there — deferral, reassessments, and the
+;; conditions that finally tipped it.
 ```
 
 ### Foresight and conjure :deferred
@@ -544,7 +550,7 @@ they arise during manifestation, then promote the ones worth tracking into
 ```clojure
 {:grimoire    "foresight"
  :namespace   "f/"
- :version     "1.0.0"
+ :version     "1.1.0"
  :description "Forward-looking structured opinion: graded deferred candidates,
                dated reassessment that preserves the trajectory of judgment, and
                the lifecycle promotion that closes a candidate into a decision"

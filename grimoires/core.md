@@ -38,7 +38,7 @@ distinct concern; together they form the complete core vocabulary.
 | II   | Composition and transformation | `ritual` · `~>` · `transmute` · `weave` · `lore` · `spell` · `charm` · `incantation` |
 | III  | Execution primitives           | `sequence` · `parallel` · `branch` · `retry` · `intercept` · `ward`     |
 | IV   | Certainty and contracts        | `certain` · `prefer` · `allow` · `given` · `ensure`                     |
-| V    | Semantic typing                | `shape`                                                                 |
+| V    | Semantic typing and expressions | `shape` · the prelude                                                  |
 | VI   | Reflection and perspective     | `explain` · `meta-query` · `witness` · `as`                             |
 | VII  | Session and ecosystem          | `charter` · `target` · `asset` · `handover` · `materialise` · `grimoire` |
 
@@ -55,6 +55,19 @@ deliberate: core is the language itself, not a library within it. Its
 constructs read as keywords of Conjurer rather than as calls into a grimoire,
 and prefixing them would imply they are optional in the way a domain library
 is. They are not.
+
+### Names and references
+
+A construct's name may be written as a symbol or as a keyword: `(target :api
+...)` and `(materialise api)` name the same target. A reference resolves by
+name, never by spelling.
+
+Where one form refers to another of a given kind, it writes a keyword
+namespaced by that kind: `:decision/amendment-approval`, `:target/api`,
+`:asset/team-coding-standard`, `:spell/compliant-endpoint`,
+`:shape/monetary-amount`, `:candidate/diff-intent`, and `:core/spell` for a
+construct of the language itself. Every such reference can be checked
+against the declarations in the project by a deterministic processor.
 
 ---
 
@@ -83,6 +96,7 @@ brings it into being.
   :returns   output-description
   :examples  {input output ...}
   :within    (ensure ...)
+  :behaviour execution-primitive
   :output    :format-keyword
   :manifest  result-binding)
 ```
@@ -126,6 +140,11 @@ normalisation behaviour.
 **`:within`** — An `ensure` form: the postconditions this manifestation must
 satisfy and the layers that verify them (Part IV). Every invocation that
 manifests an artefact accepts it.
+
+**`:behaviour`** — How the manifested artefact behaves at runtime, written
+with the execution primitives of Part III. A primitive given here describes
+the artefact: the processor generates that behaviour rather than performing
+it.
 
 **`:output`** — Desired output format: `:code`, `:edn`, `:json`, `:markdown`,
 `:artefact`, etc.
@@ -1055,9 +1074,8 @@ sealed environment.
 
 ```clojure
 ;; Spells compose like any invocation — inside pipelines, wards, rituals:
-(~> quarterly-close
-  (compliant-endpoint)
-  (e/compose :audience :executive))
+(~> (d/scope insurance-domain :include [:claim])
+  (compliant-endpoint :audience :compliance-officer))
 
 ;; Refine the spell, not the twenty casts: every future cast inherits it
 (refine compliant-endpoint
@@ -1127,8 +1145,9 @@ language already enforces in `materialise`, applied to abstraction.
 #### Parameters
 
 **`:expands-to`** — A deterministic expression over the incantation's
-parameters that produces a sequence of invocations. Expansion may reference
-only its parameters and constructs already registered in the session — never
+parameters that produces a sequence of invocations. Expansion may use only
+prelude forms (Part V), its parameters and spells already registered in the
+session — never
 perform manifestation itself. An incantation may generate spells and
 invocations; it may not generate other incantations.
 
@@ -1183,6 +1202,16 @@ Where the constructs of Part II compose artefacts in structure and form,
 execution primitives compose them in time and behaviour: ordering,
 concurrency, conditionality, resilience, cross-cutting concerns, and
 graceful failure.
+
+The same primitive can be read in two times, and its position decides which.
+A primitive that stands on its own — at top level, in a `~>` pipeline, in a
+`ritual` — is *performed*: the processor carries out its operations now, as
+it would a contract review or a set of analyses. A primitive that stands
+inside a manifestation — as the `:behaviour` of a `conjure`, or within a
+`weave` or an `o/` workflow — *describes* the artefact being manifested: a
+saga, a retry policy or a fallback ladder becomes behaviour of the generated
+system. The examples below that concern a system's runtime are written inside
+the `conjure` they describe.
 
 ---
 
@@ -1239,19 +1268,21 @@ workflows need selective access to specific earlier outputs.
 #### Example 2: Saga with compensation
 
 ```clojure
-(sequence order-saga
-  :operations [
-    (conjure reserve-inventory :items order-items
-      :compensate :release-reservation)
-    (conjure authorise-payment :amount total :method card
-      :compensate :void-authorisation)
-    (conjure send-confirmation :to customer-email
-      :compensate :send-cancellation-notice)
-    (conjure initiate-shipment :order order-id
-      :compensate :cancel-with-carrier)]
-  :pass-results :selective
-  :on-error     :compensate
-  :manifest     order-result)
+(conjure checkout-service
+  :behaviour
+    (sequence order-saga
+      :operations [
+        (conjure reserve-inventory :items order-items
+          :compensate :release-reservation)
+        (conjure authorise-payment :amount total :method card
+          :compensate :void-authorisation)
+        (conjure send-confirmation :to customer-email
+          :compensate :send-cancellation-notice)
+        (conjure initiate-shipment :order order-id
+          :compensate :cancel-with-carrier)]
+      :pass-results :accumulate
+      :on-error     :compensate
+      :manifest     order-result))
 
 ;; If initiate-shipment fails after all prior steps succeeded,
 ;; compensation runs in reverse: cancel-with-carrier is skipped
@@ -1318,49 +1349,55 @@ trick.
 #### Example 1: Data enrichment from independent sources
 
 ```clojure
-(parallel enrich-user-profile
-  :operations [
-    (conjure fetch-orders          :from order-service    :user-id uid :limit 10)
-    (conjure fetch-preferences     :from settings-service :user-id uid)
-    (conjure fetch-recommendations :from ml-service       :user-id uid :count 5)
-    (conjure fetch-support-history :from crm-service      :user-id uid)]
-  :combine-results :merge
-  :wait-for        :all
-  :timeout         2000
-  :on-error        :best-effort   ;; partial profile beats no profile
-  :manifest        dashboard-data)
+(conjure user-profile-endpoint
+  :behaviour
+    (parallel enrich-user-profile
+      :operations [
+        (conjure fetch-orders          :from order-service    :user-id uid :limit 10)
+        (conjure fetch-preferences     :from settings-service :user-id uid)
+        (conjure fetch-recommendations :from ml-service       :user-id uid :count 5)
+        (conjure fetch-support-history :from crm-service      :user-id uid)]
+      :combine-results :merge
+      :wait-for        :all
+      :timeout         2000
+      :on-error        :best-effort   ;; partial profile beats no profile
+      :manifest        dashboard-data))
 ```
 
 #### Example 2: Racing providers
 
 ```clojure
-(parallel geocode-address
-  :operations [
-    (conjure geocode :provider :google :address input-address)
-    (conjure geocode :provider :mapbox :address input-address)
-    (conjure geocode :provider :here   :address input-address)]
-  :wait-for :any      ;; first response wins; others cancelled
-  :timeout  3000
-  :on-error :collect-errors
-  :manifest geocoding-result)
+(conjure address-geocoder
+  :behaviour
+    (parallel geocode-address
+      :operations [
+        (conjure geocode :provider :google :address input-address)
+        (conjure geocode :provider :mapbox :address input-address)
+        (conjure geocode :provider :here   :address input-address)]
+      :wait-for :any      ;; first response wins; others cancelled
+      :timeout  3000
+      :on-error :collect-errors
+      :manifest geocoding-result))
 ```
 
 #### Example 3: Comprehensive parallel validation
 
 ```clojure
-(parallel validate-registration
-  :operations [
-    (conjure validate-schema     :data input :schema user-schema)
-    (conjure validate-uniqueness :data input :check [:email :username])
-    (conjure validate-security   :data input :check [:injection :xss])
-    (conjure validate-business   :data input :rules [:age-of-consent :restricted-regions])]
-  :wait-for        :all
-  :on-error        :collect-errors    ;; surface all violations, not just the first
-  :combine-results (charm [results]
-                     (conjure validation-verdict
-                       :valid  "true only when every individual check passed"
-                       :errors "all violations from all checks, concatenated"))
-  :manifest        validation-result)
+(conjure registration-endpoint
+  :behaviour
+    (parallel validate-registration
+      :operations [
+        (conjure validate-schema     :data input :schema user-schema)
+        (conjure validate-uniqueness :data input :check [:email :username])
+        (conjure validate-security   :data input :check [:injection :xss])
+        (conjure validate-business   :data input :rules [:age-of-consent :restricted-regions])]
+      :wait-for        :all
+      :on-error        :collect-errors    ;; surface all violations, not just the first
+      :combine-results (charm [results]
+                         (conjure validation-verdict
+                           :valid  "true only when every individual check passed"
+                           :errors "all violations from all checks, concatenated"))
+      :manifest        validation-result))
 ```
 
 ---
@@ -1412,42 +1449,46 @@ so choose names that make the referent unmistakable.
 #### Example 1: Risk-based routing
 
 ```clojure
-(branch payment-routing
-  :on     (score-transaction transaction)
-  :cases  [
-    (< score 0.3) (conjure auto-approve    :transaction transaction)
-    (< score 0.7) (conjure standard-review :transaction transaction
-                   :checks [:velocity :device-fingerprint])
-    (< score 0.9) (conjure enhanced-review :transaction transaction
-                   :checks :all :include-biometric true)
-    :else         (conjure manual-review   :transaction transaction
-                   :freeze-account true :notify :fraud-team)]
-  :evaluate :lazy
-  :manifest routing-decision)
+(conjure payment-router
+  :behaviour
+    (branch payment-routing
+      :on     (score-transaction transaction)
+      :cases  [
+        (< score 0.3) (conjure auto-approve    :transaction transaction)
+        (< score 0.7) (conjure standard-review :transaction transaction
+                       :checks [:velocity :device-fingerprint])
+        (< score 0.9) (conjure enhanced-review :transaction transaction
+                       :checks :all :include-biometric true)
+        :else         (conjure manual-review   :transaction transaction
+                       :freeze-account true :notify :fraud-team)]
+      :evaluate :lazy
+      :manifest routing-decision))
 ```
 
 #### Example 2: Structural pattern matching
 
 ```clojure
-(branch support-routing
-  :on    incoming-issue
-  :cases [
-    {:category :technical :severity :critical}
-    (conjure escalate :to :senior-engineer :sla "1h" :notify [:eng-lead :on-call])
+(conjure support-intake
+  :behaviour
+    (branch support-routing
+      :on    incoming-issue
+      :cases [
+        {:category :technical :severity :critical}
+        (conjure escalate :to :senior-engineer :sla "1h" :notify [:eng-lead :on-call])
 
-    {:category :technical :severity :high}
-    (conjure assign :to :technical-support :sla "4h")
+        {:category :technical :severity :high}
+        (conjure assign :to :technical-support :sla "4h")
 
-    {:category :billing :amount (> amount 1000)}
-    (conjure assign :to :account-manager :priority :high)
+        {:category :billing :amount (> amount 1000)}
+        (conjure assign :to :account-manager :priority :high)
 
-    {:category :billing}
-    (conjure assign :to :billing-support)
+        {:category :billing}
+        (conjure assign :to :billing-support)
 
-    :else
-    (conjure assign :to :general-queue :consider-ai-triage true)]
-  :evaluate :lazy
-  :manifest assignment)
+        :else
+        (conjure assign :to :general-queue :consider-ai-triage true)]
+      :evaluate :lazy
+      :manifest assignment))
 ```
 
 ---
@@ -1492,29 +1533,31 @@ practitioner to be deliberate — is a feature.
 #### Example
 
 ```clojure
-(retry payment-gateway-call
-  :operation     (conjure charge-payment
-                   :amount          order-total
-                   :method          payment-method
-                   :idempotency-key client-generated-key)
-  :attempts      5
-  :backoff       :jittered-exponential
-  :initial-delay 1000
-  :max-delay     30000
-  :retry-on      [(= status 429)       ;; rate limited — retry with backoff
-                  (= status 503)       ;; gateway unavailable
-                  timeout?
-                  network-error?]
-  :give-up-on    [(= status 400)       ;; bad request — not retriable
-                  (= status 401)       ;; auth failure — fix the credentials
-                  (= status 402)]      ;; payment declined — not a transient error
-  :on-retry      (charm [retry-event]
-                   (conjure retry-telemetry
-                     :log    {:level :warn :event "payment-gateway-retry"
-                              :attempt (:attempt retry-event)
-                              :error-type (:error-type retry-event)}
-                     :metric "payment.gateway.retries"))
-  :manifest      charge-result)
+(conjure payment-gateway-client
+  :behaviour
+    (retry payment-gateway-call
+      :operation     (conjure charge-payment
+                       :amount          order-total
+                       :method          payment-method
+                       :idempotency-key client-generated-key)
+      :attempts      5
+      :backoff       :jittered-exponential
+      :initial-delay 1000
+      :max-delay     30000
+      :retry-on      [(= status 429)       ;; rate limited — retry with backoff
+                      (= status 503)       ;; gateway unavailable
+                      timeout?
+                      network-error?]
+      :give-up-on    [(= status 400)       ;; bad request — not retriable
+                      (= status 401)       ;; auth failure — fix the credentials
+                      (= status 402)]      ;; payment declined — not a transient error
+      :on-retry      (charm [retry-event]
+                       (conjure retry-telemetry
+                         :log    {:level :warn :event "payment-gateway-retry"
+                                  :attempt (:attempt retry-event)
+                                  :error-type (:error-type retry-event)}
+                         :metric "payment.gateway.retries"))
+      :manifest      charge-result))
 ```
 
 ---
@@ -1533,7 +1576,7 @@ implementation. Logging, authentication, timing, caching, transactions.
   :around    [interceptor ...]
   :after     [interceptor ...]
   :on-error  [interceptor ...]
-  :transform {:request transform-fn :response transform-fn}
+  :transform {:request charm :response charm}
   :manifest  result-binding)
 ```
 
@@ -1567,32 +1610,34 @@ opens a transaction is the last to close it.
 #### Example
 
 ```clojure
-(intercept handle-payment-update
-  :operation (conjure update-payment-method
-               :customer-id customer-id
-               :new-method  payment-data)
+(conjure payment-method-api
+  :behaviour
+    (intercept handle-payment-update
+      :operation (conjure update-payment-method
+                   :customer-id customer-id
+                   :new-method  payment-data)
 
-  :before [
-    (conjure verify-jwt       :require [:not-expired :correct-audience])
-    (conjure verify-ownership :customer-id customer-id :actor current-user)
-    (conjure validate-schema  :data payment-data :schema payment-method-schema)
-    (conjure check-rate-limit :customer-id customer-id :limit (per-hour 10))]
+      :before [
+        (conjure verify-jwt       :require [:not-expired :correct-audience])
+        (conjure verify-ownership :customer-id customer-id :actor current-user)
+        (conjure validate-schema  :data payment-data :schema payment-method-schema)
+        (conjure check-rate-limit :customer-id customer-id :limit (per-hour 10))]
 
-  :around [
-    (conjure measure-latency  :record-to :metrics :labels {:op "payment-update"})
-    (conjure db-transaction   :isolation :serializable :timeout 5000)]
+      :around [
+        (conjure measure-latency  :record-to :metrics :labels {:op "payment-update"})
+        (conjure db-transaction   :isolation :serializable :timeout 5000)]
 
-  :after [
-    (conjure audit-log        :action :payment-method-updated :actor current-user)
-    (conjure publish-event    :topic "payment.method.updated" :payload {:customer-id customer-id})
-    (conjure invalidate-cache :keys [[:payment-methods customer-id]])]
+      :after [
+        (conjure audit-log        :action :payment-method-updated :actor current-user)
+        (conjure publish-event    :topic "payment.method.updated" :payload {:customer-id customer-id})
+        (conjure invalidate-cache :keys [[:payment-methods customer-id]])]
 
-  :on-error [
-    (conjure log-error        :severity :error :context {:customer-id customer-id})
-    (conjure alert            :if (= (type error) :database-failure) :notify :on-call)
-    (conjure format-error     :sanitise-pii true :include-request-id true)]
+      :on-error [
+        (conjure log-error        :severity :error :context {:customer-id customer-id})
+        (conjure alert            :if (= (type error) :database-failure) :notify :on-call)
+        (conjure format-error     :sanitise-pii true :include-request-id true)]
 
-  :manifest api-response)
+      :manifest api-response))
 ```
 
 ---
@@ -1634,33 +1679,35 @@ rung in the order written — rather than scattered across catch blocks.
 #### Example 1: Graceful recommendations degradation
 
 ```clojure
-(ward recommendations
-  :protect (conjure ml-recommendations
-             :user-id current-user
-             :timeout 200             ;; strict latency budget
-             :count   10)
+(conjure recommendations-widget
+  :behaviour
+    (ward recommendations
+      :protect (conjure ml-recommendations
+                 :user-id current-user
+                 :timeout 200             ;; strict latency budget
+                 :count   10)
 
-  :from [timeout? model-unavailable? feature-store-error?]
+      :from [timeout? model-unavailable? feature-store-error?]
 
-  :recover [
-    timeout?
-    (conjure cached-recommendations
-      :user-id current-user
-      :from    :redis
-      :max-age 3600)
+      :recover [
+        timeout?
+        (conjure cached-recommendations
+          :user-id current-user
+          :from    :redis
+          :max-age 3600)
 
-    model-unavailable?
-    (conjure popularity-recommendations
-      :category user-preferred-category
-      :count    10)
+        model-unavailable?
+        (conjure popularity-recommendations
+          :category user-preferred-category
+          :count    10)
 
-    feature-store-error?
-    (conjure editorial-picks
-      :list :homepage-defaults)]
+        feature-store-error?
+        (conjure editorial-picks
+          :list :homepage-defaults)]
 
-  :degrade-gracefully true
-  :escalate-when      (> consecutive-model-failures 50)
-  :manifest           recommendations)
+      :degrade-gracefully true
+      :escalate-when      (> consecutive-model-failures 50)
+      :manifest           recommendations))
 
 ;; The widget always renders something useful.
 ;; Personalised → cached → popular → editorial — the ladder is explicit.
@@ -1670,27 +1717,29 @@ rung in the order written — rather than scattered across catch blocks.
 #### Example 2: Ward within a sequence
 
 ```clojure
-(sequence checkout
-  :operations [
-    (data/validate cart :against cart-schema :on-failure :stop)
+(conjure checkout-service
+  :behaviour
+    (sequence checkout
+      :operations [
+        (data/validate cart :against cart-schema :on-failure :stop)
 
-    (ward payment-charge
-      :protect (conjure charge :amount total :method card)
-      :from    [gateway-timeout? network-error?]
-      :recover [
-        gateway-timeout?
-        (conjure queue-async-charge
-          :order-id order-id
-          :customer-message "Payment is processing — you won't be charged twice.")
-        network-error?
-        (retry charge-retry
-          :operation (conjure charge :amount total :method card)
-          :attempts  2
-          :backoff   :exponential)]
-      :escalate-when (> consecutive-gateway-timeouts 3))
+        (ward payment-charge
+          :protect (conjure charge :amount total :method card)
+          :from    [gateway-timeout? network-error?]
+          :recover [
+            gateway-timeout?
+            (conjure queue-async-charge
+              :order-id order-id
+              :customer-message "Payment is processing — you won't be charged twice.")
+            network-error?
+            (retry charge-retry
+              :operation (conjure charge :amount total :method card)
+              :attempts  2
+              :backoff   :exponential)]
+          :escalate-when (> consecutive-gateway-timeouts 3))
 
-    (conjure send-order-confirmation)]
-  :on-error :compensate)
+        (conjure send-order-confirmation)]
+      :on-error :compensate))
 ```
 
 ---
@@ -1980,7 +2029,9 @@ invocations; a postcondition belongs to one output.
 **`:structural`** — Properties verifiable by inspecting the artefact:
 file structure, type signatures, presence of required fields, numeric bounds
 on configuration values. These are the *hardest* postconditions because
-they can be checked mechanically.
+they can be checked mechanically — provided they are written in the prelude
+(Part V). A structural predicate outside the prelude is a semantic function
+and is honoured at the `:llm` layer.
 
 **`:semantic`** — Properties expressible in natural language but not
 mechanically verifiable from structure alone: "error messages are
@@ -2041,7 +2092,7 @@ is only as strong as the model's commitment.
   :within (ensure
     :structural [
       (every-field-has-label?)
-      (form-action-is :post)
+      (= form-action :post)
       (csrf-token-included?)]
     :semantic [
       "error messages are kind and actionable, not blaming"
@@ -2065,9 +2116,9 @@ is only as strong as the model's commitment.
   :tier :standard
   :within (ensure
     :structural [
-      (<= :requests-per-minute 300)
-      (>= :burst-allowance     30)
-      (in? :algorithm #{:token-bucket :sliding-window})]
+      (<= requests-per-minute 300)
+      (>= burst-allowance     30)
+      (in? algorithm #{:token-bucket :sliding-window})]
     :verify-via [:mcp]
     :on-violation :halt))
 
@@ -2093,7 +2144,7 @@ is only as strong as the model's commitment.
     :structural [
       (no-destructive-step-without :dual-write-window)
       (every-step-has :rollback)
-      (total-locked-time <= (seconds 5))]
+      (<= total-locked-time (seconds 5))]
     :semantic [
       "operational runbook is written for a 3am page, not a planning meeting"]
     :behavioural [
@@ -2151,13 +2202,38 @@ invocation runs, postconditions hold of the result. The dotted arrow marks
 that qualifiers are not part of that time-flow — they apply *inside* the
 invocation, at the granularity of individual values.
 
+### Confidence
+
+Qualifiers and contracts state how firmly the *practitioner* is committed.
+Results state how firmly the *system* knows what it reports, and the language
+uses one vocabulary for that, on two axes.
+
+| Axis | Question | Values |
+|---|---|---|
+| Provenance | How was this obtained? | `:attested` (read directly from a source), `:strongly-inferred` (inferred from converging evidence), `:speculative` (a plausible reading the evidence does not settle) |
+| Degree | How sure is the claim? | `:high`, `:medium`, `:low` |
+
+A result reports `:confidence {:provenance :strongly-inferred :degree :high}`.
+Because the two value sets do not overlap, either axis alone may be written
+as shorthand: `:confidence :attested`, `:confidence :medium`. A number may
+stand for degree only with its basis named — `:confidence {:degree 0.83 :basis
+:historical-false-positives}` — because an unexplained figure is the false
+precision the ground truths warn against.
+
+`:confidence` is never an instruction. A request to grade output uses
+`:grade` (`x/recover-model :grade :each`); an agent's stance towards its own
+uncertainty is its `:disposition` (`a/define :style {:disposition
+:calibrated}`).
+
 ---
 
-## Part V: Semantic typing
+## Part V: Semantic typing and expressions
 
 The `shape` construct describes what data *means*, not just the form it
 takes. It is the bridge between Conjurer's declarative surface and the
-type-aware tooling of materialised targets.
+type-aware tooling of materialised targets. The prelude, which closes this
+part, lists the expressions every processor understands and says which of
+them a deterministic processor may evaluate.
 
 ---
 
@@ -2173,8 +2249,9 @@ system can reason about semantically.
 ```clojure
 (shape name
   :fields      {field-name type-or-constraint ...}
+  :extends     shape-name
   :invariants  ["natural-language invariant" ...]
-  :phi-fields  [:field ...]
+  :sensitive-fields {:phi [:field ...] :pii [:field ...] :pci [:field ...]}
   :examples    [{...} ...]
   :derived-from source-schema)
 ```
@@ -2188,9 +2265,16 @@ primitive types. Types can carry domain constraints: `(uuid :globally-unique)`,
 **`:invariants`** — Natural-language statements of correctness that must hold
 across the shape. The system translates these into concrete validation logic.
 
-**`:phi-fields`** — Fields containing personally-identifiable information.
-Marked fields trigger appropriate handling: access logging, encryption
-requirements, right-to-erasure support.
+**`:extends`** — A shape this one builds on. Its fields, invariants and
+sensitive fields are inherited; the extending shape may add to them and
+tighten them, never loosen them.
+
+**`:sensitive-fields`** — Fields by sensitivity class, each class triggering
+its own handling: `:phi` (protected health information: access logging,
+encryption at rest and in transit), `:pii` (personal data: minimisation and
+right-to-erasure support), `:pci` (payment-card data: tokenisation, no
+storage of the full number). `:phi-fields [...]` is accepted as shorthand for
+`:sensitive-fields {:phi [...]}`.
 
 **`:examples`** — Valid instances of the shape. Used to calibrate the system's
 understanding of what the shape actually represents.
@@ -2226,9 +2310,9 @@ concept; a schema is an implementation of it.
     "mrn must be unique within the originating facility"
     "primary-diagnosis must correspond to a current ICD-10 code"
     "medications must not contain clinically contraindicated combinations"
-    "all phi-fields must have an access-event logged whenever read or written"]
+    "all phi fields must have an access-event logged whenever read or written"]
 
-  :phi-fields [:date-of-birth :mrn :id]
+  :sensitive-fields {:phi [:date-of-birth :mrn :id]}
 
   :examples [
     {:id "f47ac10b-58cc-4372-a567-0e02b2c3d479"
@@ -2259,6 +2343,58 @@ concept; a schema is an implementation of it.
     {:value 10000 :currency "JPY" :scale 0}  ;; ¥10,000 — no minor units in JPY
     {:value 150 :currency "GBP" :scale 2}])  ;; £1.50
 ```
+
+#### Example 3: Composition with `:extends`
+
+```clojure
+(shape refund-amount
+  :extends monetary-amount
+  :fields {
+    :original-transaction (uuid)
+    :reason               (one-of :duplicate :fraudulent :customer-request)}
+  :invariants [
+    "value never exceeds the value of the original transaction"
+    "currency equals the currency of the original transaction"])
+
+;; ✓ refund-amount carries every field and invariant of monetary-amount —
+;;   minor units, integer arithmetic, ISO-4217 — without restating them.
+;; ✓ It adds two fields and tightens the contract; it cannot loosen it.
+```
+
+---
+
+### The prelude
+
+Conjurer has no general-purpose expression language, and does not want one.
+It has a prelude: a short, closed list of forms that every processor
+understands and that a deterministic processor — the MCP server, an
+incantation expander, a structural postcondition check — may evaluate.
+Every other head is a *semantic function*, resolved by the model.
+
+| Family | Forms | Examples |
+|---|---|---|
+| Literals | strings, numbers and ratios, keywords, booleans, `nil`, vectors, maps, sets | `"EUR"`, `1/5`, `:shipped`, `#{:token-bucket :sliding-window}` |
+| Unit forms | a head naming a unit or currency, one magnitude; the family is open, the shape is fixed | `(eur 10000)`, `(minutes 5)`, `(ms 12)`, `(px 200)`, `(percent 50)` |
+| Type forms | `string` `integer` `decimal` `boolean` `keyword` `date` `datetime` `uuid` `url` `list` `one-of`, followed by modifiers (flags or pairs) | `(integer :min 1 :max 9)`, `(string :iso-4217)`, `(list :of medication-record)`, `(one-of :gradient :marbled)` |
+| Predicates | prefix only, free-variable convention: `=` `not=` `<` `<=` `>` `>=` `in?` `and` `or` `not` | `(<= requests-per-minute 300)`, `(in? algorithm #{:token-bucket :sliding-window})` |
+| Access | keyword lookup on a value | `(:worst-anomaly profile)` |
+| Expansion | `for` over a collection, `str`, and accessors over a domain-model binding: `entities-of`, `fields-of`, `relations-of` | `(for [entity (entities-of model)] ...)` |
+
+A free variable in a predicate names a field of the value under test:
+`(<= requests-per-minute 300)` reads the `requests-per-minute` of the
+configuration being checked. Predicates are written in prefix form only.
+
+A domain type such as `(icd-10-code :valid :current)`, and any head not in
+the table — `(every-field-has-label?)`, `(score-transaction transaction)`,
+`(read-file "src/payments/processor.ts")` — is a semantic function. That is
+not a defect: most of what Conjurer expresses is semantic. The prelude only
+marks where determinism ends, and two rules follow from it. An incantation's
+`:expands-to` may use prelude forms, its parameters and registered spells,
+and nothing else. A structural `ensure` predicate is mechanically checkable
+only when it is written in the prelude; otherwise it is honoured at the
+`:llm` layer, whatever `:verify-via` names, and the processor says so.
+
+The prelude is listed for tools under `:prelude` in `index.edn`.
 
 ---
 
@@ -2320,7 +2456,7 @@ practitioner asks why, understanding develops, the specification sharpens.
     :rejected  "Requires offline training batch; incompatible with real-time
                 scoring requirement from domain context"}]
 
- :confidence 0.83
+ :confidence {:provenance :strongly-inferred :degree :high}
  :note "High confidence on scoring logic; moderate on alert thresholds —
         these should be calibrated against real transaction data before
         going to production."}
@@ -2568,7 +2704,8 @@ is its index.
   :goals       ["goal statement" ...]
   :audience    {:primary   :audience-keyword
                 :secondary [:audience-keyword ...]}
-  :decisions   [{:date iso-date :decision "what was decided and why"} ...]
+  :decisions   [{:id keyword :date iso-date :decision "what was decided and why"
+                 :supersedes keyword} ...]
   :open        ["unresolved question" ...]
   :outputs     {output-name output-target-or-keyword ...}
   :references  ["other-file.cnj" ...]
@@ -2591,6 +2728,9 @@ manifestation is eventually evaluated.
 **`:decisions`** — A dated, append-only log of design decisions made during
 the project. Each entry includes the date, the decision, and enough context
 to understand why it was made. This log is the project's institutional memory.
+An entry carries an `:id` as soon as anything refers to it (as
+`:decision/<id>`); a reversal is a new entry whose `:supersedes` names the
+decision it reverses, never an edit of the old one.
 
 **`:open`** — Unresolved questions. Regularly reviewed and resolved; never
 quietly abandoned. An open question that has been implicitly answered but not
@@ -2652,7 +2792,8 @@ decision log prevents this.
     {:date "2025-11-03"
      :decision "CRM integration deferred to phase 2. Phase 1 accepts customer data
                 via CSV import to reduce initial scope and CRM dependency."}
-    {:date "2025-11-04"
+    {:id   :amendment-approval
+     :date "2025-11-04"
      :decision "Contract amendments require finance approval before taking effect.
                 Self-service amendments without approval are out of scope for phase 1."}]
 
@@ -2853,6 +2994,7 @@ opaque to agents joining the session.
 (asset name
   :type        :code-standard | :style-guide | :component-library
                | :domain-vocabulary | :agent-definition | :api-specification
+               | :grimoire
   :description "what this asset is and what it governs"
   :language    :language-keyword
   :location    "relative path or URL to the asset file"
@@ -2969,75 +3111,6 @@ are automatically updated on the next session.
 
 ---
 
-### `grimoire`
-
-Packages spells, lore, and shapes into a named, versioned, shareable
-practitioner grimoire — a user-authored spellbook that travels with the
-project like any registered standard.
-
-#### Signature
-
-```clojure
-(grimoire name
-  :namespace "prefix/"                ;; ≥2 characters; must not shadow a standard prefix
-  :version   "semver"
-  :doc       "what domain this spellbook serves"
-  :provides  [prefix/spell ...]
-  :lore      [lore-references ...]    ;; optional
-  :shapes    [prefix/Shape ...])      ;; optional
-```
-
-#### Parameters
-
-**`:namespace`** — The grimoire's prefix. User namespaces must be at least two
-characters and must not shadow any of the eleven standard prefixes — the
-single-character namespaces (and `data/`) are reserved for the standard
-library.
-
-**`:provides`** — The spells the grimoire exports. A grimoire with nothing to
-bundle is empty; `spell` is the unit of content.
-
-**`:lore`**, **`:shapes`** — Optional accompanying pattern libraries and
-semantic types, so a domain's idioms and vocabulary travel with its spells.
-
-#### Design rationale
-
-The standard library is deliberately frozen — and that freeze is only
-sustainable if domain growth has a home outside it. `grimoire` is that home.
-A team's payment expertise, a consultancy's audit patterns, a regulator's
-compliance vocabulary: each becomes a namespace bundling spells, lore, and
-shapes, versioned like any dependency, and registrable via `asset` so that
-every agent joining the project receives it exactly as it receives a coding
-standard — given, not remembered.
-
-This also completes the founding metaphor. Historically, a grimoire was
-something a practitioner *wrote* — an organised body of hard-won expertise.
-With it, practitioners do not only read the standard twelve: expertise
-accumulated in a project can graduate into a spellbook of its own.
-
-#### Example
-
-```clojure
-(grimoire acme-payments
-  :namespace "acme/"
-  :version   "0.1.0"
-  :doc       "Acme's payment-domain spellbook: our defaults, our vocabulary"
-  :provides  [acme/compliant-endpoint acme/settlement-report acme/refund-flow]
-  :lore      [payment-system-patterns]
-  :shapes    [acme/Transaction acme/Settlement])
-
-;; Registered like any other standard — agents receive it in a handover:
-(asset :acme-payments-grimoire
-  :type        :grimoire
-  :description "Acme payment-domain spells, lore, and shapes"
-  :location    "grimoires/acme-payments.cnj"
-  :version     "0.1.0"
-  :applies-to  [:rest-api :domain-model]
-  :active-in   :project)
-```
-
----
-
 ### `handover`
 
 Packages the current session's context and transfers it to a specialist agent,
@@ -3120,7 +3193,7 @@ not because the practitioner remembered to mention it.
      registered assets. The domain model in subscription-domain.cnj defines the
      authoritative entities and invariants. Pay particular attention to the contract
      amendment workflow; finance approval is required before amendments take effect.
-     This decision is recorded in the charter log dated 2025-11-04."
+     This decision is recorded in the charter log as :decision/amendment-approval."
   :produces     [:rest-api :openapi :types]
   :return-to    :current-session
   :on-completion :merge-results)
@@ -3159,115 +3232,6 @@ not because the practitioner remembered to mention it.
   :produces     [:architecture-overview :api-reference :operations-guide]
   :return-to    :current-session)
 ```
-
----
-
-### The `.cnj` file — canonical structure
-
-A complete `.cnj` file follows this structure. Every section is optional
-except `charter`, which is always first.
-
-```mermaid
-flowchart TB
-    CH[charter — session anchor]
-    DM[domain — contexts, entities, rules]
-    TG[targets — declared output specs]
-    HV[handover — structured transfer to specialist]
-    AS[assets — external files: standards, design systems]
-
-    CH --> DM --> TG --> HV
-    TG -. references .-> AS
-    HV -. packages .-> AS
-```
-
-The solid path traces the in-file accumulation order across a project's
-life: `charter` anchors the session, domain work fills in as understanding
-deepens, `targets` declare what gets materialised when ready, and
-`handover` packages everything when the work crosses to a specialist
-agent. `assets` sits off to the side because it lives in separate files —
-referenced from targets and packaged into handovers, but never embedded
-in the `.cnj` itself.
-
-```clojure
-;; ─────────────────────────────────────────────────
-;; SECTION 1: Session anchor
-;; ─────────────────────────────────────────────────
-(charter "Project Name"
-  ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 2: Assets — external standards and capabilities
-;; ─────────────────────────────────────────────────
-(asset :team-coding-standard ...)
-(asset :design-system ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 3: Assumptions — operative constraints
-;; ─────────────────────────────────────────────────
-(assume
-  :environment :production-saas
-  :team        {:size 4 :skill-level :senior}
-  ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 4: Context — domain semantic frame
-;; ─────────────────────────────────────────────────
-(context project-context
-  :domain      :subscription-billing
-  :regulations [:gdpr :psd2]
-  ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 5: Domain work — the intellectual body of the project
-;; ─────────────────────────────────────────────────
-(def billing-domain (d/explore "requirements.pdf" :depth 4))
-(def billing-rules  (r/rules ...))
-(def plan-taxonomy  (t/define ...))
-
-;; ─────────────────────────────────────────────────
-;; SECTION 6: Targets — implementation declarations
-;; ─────────────────────────────────────────────────
-(target :api ...)
-(target :database ...)
-(target :documentation ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 7: Handovers — when ready to materialise
-;; ─────────────────────────────────────────────────
-(handover :to :typescript-specialist-agent :scope [:api] ...)
-```
-
-The file is ordered from most stable (the charter, which changes slowly) to
-most volatile (handovers, which are issued when the time is right). A reader
-skimming the file from top to bottom understands the project before they reach
-the implementation details.
-
----
-
-### The bootstrapping ritual
-
-When a practitioner provides natural-language text as the starting point,
-the system's first response is always a `charter` — not domain analysis,
-not code, not questions. The charter is what gets saved. Everything else flows
-from it.
-
-```text
-User:
-"We need to build a proper system for managing customer subscriptions and contracts.
- Right now everything is tracked in spreadsheets and email. Finance is constantly
- chasing renewals manually. We need something that tracks contract status, sends
- renewal reminders automatically, and eventually connects to the CRM."
-
-System:
-[Produces subscription-platform.cnj with charter, initial goals inferred from text,
- open questions surfaced (retention periods, notification channels, proration rules),
- output targets proposed, team coding standard noted as pending asset registration.
- Saves the file. All subsequent work hangs from it.]
-```
-
-The charter produced from this conversation would look like the example above.
-The practitioner reviews it, corrects what the system misunderstood, adds
-what was missing. The `.cnj` file is now the project's single source of truth.
 
 ---
 
@@ -3414,6 +3378,137 @@ than to manufacture a confident artefact on an unsound foundation.
 
 ---
 
+### `grimoire`
+
+Packages spells, lore, and shapes into a named, versioned, shareable
+practitioner grimoire — a user-authored spellbook that travels with the
+project like any registered standard.
+
+#### Signature
+
+```clojure
+(grimoire name
+  :namespace "prefix/"                ;; ≥2 characters; must not shadow a standard prefix
+  :version   "semver"
+  :doc       "what domain this spellbook serves"
+  :provides  [prefix/spell ...]
+  :lore      [lore-references ...]    ;; optional
+  :shapes    [prefix/shape ...])      ;; optional
+```
+
+#### Parameters
+
+**`:namespace`** — The grimoire's prefix. Standard namespaces are one or two
+lowercase letters, or `data/`; a practitioner namespace is at least two
+characters and never shadows a standard prefix.
+
+**`:provides`** — The spells the grimoire exports. A grimoire with nothing to
+bundle is empty; `spell` is the unit of content. A spell enters the namespace
+by being named in it — `(spell acme/compliant-endpoint ...)` — and a provided
+name outside the declared namespace is an error.
+
+**File format** — A practitioner grimoire is a `.cnj` file holding the
+`grimoire` form together with its spells, lore and shapes: executable source,
+registered with `asset :type :grimoire`. The standard library stays literate
+markdown.
+
+**`:lore`**, **`:shapes`** — Optional accompanying pattern libraries and
+semantic types, so a domain's idioms and vocabulary travel with its spells.
+
+#### Design rationale
+
+The standard library is deliberately frozen — and that freeze is only
+sustainable if domain growth has a home outside it. `grimoire` is that home.
+A team's payment expertise, a consultancy's audit patterns, a regulator's
+compliance vocabulary: each becomes a namespace bundling spells, lore, and
+shapes, versioned like any dependency, and registrable via `asset` so that
+every agent joining the project receives it exactly as it receives a coding
+standard — given, not remembered.
+
+This also completes the founding metaphor. Historically, a grimoire was
+something a practitioner *wrote* — an organised body of hard-won expertise.
+With it, practitioners do not only read the standard twelve: expertise
+accumulated in a project can graduate into a spellbook of its own.
+
+#### Example
+
+```clojure
+(grimoire acme-payments
+  :namespace "acme/"
+  :version   "0.1.0"
+  :doc       "Acme's payment-domain spellbook: our defaults, our vocabulary"
+  :provides  [acme/compliant-endpoint acme/settlement-report acme/refund-flow]
+  :lore      [payment-system-patterns]
+  :shapes    [acme/transaction acme/settlement])
+
+;; Registered like any other standard — agents receive it in a handover:
+(asset :acme-payments-grimoire
+  :type        :grimoire
+  :description "Acme payment-domain spells, lore, and shapes"
+  :location    "grimoires/acme-payments.cnj"
+  :version     "0.1.0"
+  :applies-to  [:rest-api :domain-model]
+  :active-in   :project)
+```
+
+---
+
+### The `.cnj` file
+
+The canonical section order of a `.cnj` file, and what each section holds,
+is defined in one place: `template.md` · Part II. The diagram shows how a
+file accumulates over a project's life.
+
+```mermaid
+flowchart TB
+    CH[charter — session anchor]
+    CX[assume and context — operative and domain frame]
+    AB[abstractions — lore, shape, spell, grimoire]
+    DM[domain work — models, rules, analyses]
+    TG[targets — declared outputs]
+    FS[foresight — graded candidates]
+    HV[handover — transfer to a specialist]
+    AS[assets — external standards]
+
+    CH --> CX --> AB --> DM --> TG --> FS --> HV
+    TG -. references .-> AS
+    HV -. packages .-> AS
+```
+
+The solid path is the accumulation order. `asset` declarations stand near
+the top of the file, but the standards they register live in separate
+files: referenced from targets and packaged into handovers, never embedded.
+`materialise` has no place in the file; it is an act performed on a target.
+
+---
+
+### The bootstrapping ritual
+
+When a practitioner provides natural-language text as the starting point,
+the system's first response is always a `charter` — not domain analysis,
+not code, not questions. The charter is what gets saved. Everything else flows
+from it.
+
+```text
+User:
+"We need to build a proper system for managing customer subscriptions and contracts.
+ Right now everything is tracked in spreadsheets and email. Finance is constantly
+ chasing renewals manually. We need something that tracks contract status, sends
+ renewal reminders automatically, and eventually connects to the CRM."
+
+System:
+[Produces subscription-platform.cnj with charter, initial goals inferred from text,
+ open questions surfaced (retention periods, notification channels, proration rules),
+ output targets proposed, team coding standard noted as pending asset registration.
+ Saves the file. All subsequent work hangs from it.]
+```
+
+The charter produced from this conversation would look like the example above.
+The practitioner reviews it, corrects what the system misunderstood, adds
+what was missing. The `.cnj` file is now the project's single source of truth.
+
+---
+
 ## Best practices
 
 ### Intention over instruction
@@ -3485,19 +3580,21 @@ appropriate scope.
 
 ```clojure
 ;; Clear layering: infrastructure wraps structure wraps resilience
-(intercept with-auth-and-observability
-  :operation (sequence data-pipeline
-    :operations [
-      (retry fetch-source
-        :operation (conjure fetch-source-data :from :ledger-export)
-        :attempts  3
-        :backoff   :exponential)
-      (parallel enrichment
-        :operations [(conjure enrich-merchant) (conjure enrich-geography) (conjure enrich-risk)]
-        :combine-results :merge)
-      (ward persist-results
-        :protect (conjure write :to primary-store)
-        :recover [unavailable? (conjure write :to fallback-queue)])]))
+(conjure ingestion-service
+  :behaviour
+    (intercept with-auth-and-observability
+      :operation (sequence data-pipeline
+        :operations [
+          (retry fetch-source
+            :operation (conjure fetch-source-data :from :ledger-export)
+            :attempts  3
+            :backoff   :exponential)
+          (parallel enrichment
+            :operations [(conjure enrich-merchant) (conjure enrich-geography) (conjure enrich-risk)]
+            :combine-results :merge)
+          (ward persist-results
+            :protect (conjure write :to primary-store)
+            :recover [unavailable? (conjure write :to fallback-queue)])])))
 ```
 
 ### Use `witness` to build decision trails
@@ -3589,7 +3686,7 @@ vocabulary on which domain-specific abstractions are built.
 ```clojure
 {:grimoire    "core"
  :namespace   nil   ;; core constructs are unprefixed — conjure, refine, ~>, not c/conjure
- :version     "2.4.0"
+ :version     "3.0.0"
  :description "Foundational constructs, composition machinery, abstraction
                (spells, charms, incantations), execution primitives, and
                ecosystem connectives for the Conjurer language"
@@ -3701,6 +3798,13 @@ vocabulary on which domain-specific abstractions are built.
     :definition "Declarative postcondition. States properties that must hold
                  of the manifested artefact, with explicit honesty about which
                  enforcement layer verifies each (MCP / LLM / target tooling)."}
+   {:term "Confidence"
+    :definition "What a result reports about how well the system knows it, on
+                 two axes: provenance (:attested, :strongly-inferred,
+                 :speculative) and degree (:high, :medium, :low). A number
+                 stands for degree only with its basis named. :confidence
+                 is never an instruction; requests use :grade and agents
+                 declare a :disposition."}
    {:term "Certainty spectrum"
     :definition "The gradient from bit-deterministic (MCP results, structural
                  numerics) through semantically anchored (LLM-honoured intent)
@@ -3746,6 +3850,12 @@ vocabulary on which domain-specific abstractions are built.
                  and which remain as Conjurer specification. Most domain
                  knowledge stays in Conjurer; only the necessary surfaces
                  are materialised into target languages."}
+   {:term "Prelude"
+    :definition "The closed list of expression forms every processor understands:
+                 literals, unit forms, type forms, prefix predicates, keyword
+                 access, and expansion over bindings. Only prelude forms may be
+                 evaluated by a deterministic processor; every other head is a
+                 semantic function resolved by the model."}
    {:term "Two-phase materialisation"
     :definition "Materialisation has a deterministic preflight (resolve
                  references, order dependencies, list target files, report gaps —
@@ -3849,8 +3959,9 @@ to the declared name. If a charm grows complex enough to warrant
 documentation, suggest promoting it to a `spell`.
 
 When processing a user `grimoire`, validate that its `:namespace` is at least
-two characters and does not shadow a standard prefix; reject collisions
-explicitly rather than silently re-prefixing.
+two characters and does not shadow a standard prefix, and that every name in
+`:provides` lies within that namespace; reject violations explicitly rather
+than silently re-prefixing.
 
 ### Context and semantic gravity
 
@@ -3877,6 +3988,17 @@ apply the refinement but record it as a pending conditional refinement in the
 manifestation's metadata. If the predicate is not evaluable at invocation time,
 record the refinement as dormant — note the condition under which it will
 activate.
+
+### Execution primitives: performing or describing
+
+Decide the time of every `sequence`, `parallel`, `branch`, `retry`,
+`intercept` and `ward` by its position. Standing alone, it is performed: run
+its operations in this session. Inside a manifestation (`conjure :behaviour`,
+`weave`, an `o/` workflow), it describes: generate the behaviour in the
+artefact, honour its parameters as requirements of that artefact, and do not
+run its operations. Runtime parameters such as `:timeout`, `:attempts` or
+`:wait-for` are then properties of the generated system, enforced by the
+code that is generated and named as such.
 
 ### Threading (`~>`)
 
@@ -3932,15 +4054,26 @@ alternatives were considered and set aside, and which design decisions were
 made and why. This record is queryable via subsequent `explain` or `meta-query`
 invocations on the witnessed target.
 
+### The prelude
+
+In a deterministic phase — incantation expansion, materialise preflight, a
+structural `ensure` check at the MCP layer — evaluate prelude forms only.
+Never evaluate a semantic function there, and never present its result as
+mechanically verified; flag it and leave it to the model. Outside those
+phases, semantic functions are ordinary: interpret them from their name,
+their arguments and the established context.
+
 ### Shape
 
 Use shape definitions to inform all manifestation decisions involving that
 data type: validation logic, serialisation format, display formatting, error
 messages, and persistence constraints. `:invariants` written in natural
 language should be translated into concrete validation rules applied wherever
-the shape is handled. `:phi-fields` always trigger appropriate data-handling
-requirements regardless of whether the active context has named the relevant
-regulation.
+the shape is handled. `:sensitive-fields` always trigger their class's
+data-handling requirements, whether or not the active context has named the
+relevant regulation. A shape that `:extends` another inherits its fields,
+invariants and sensitive fields; reject an extension that loosens any of
+them.
 
 ### Result quality
 
@@ -4114,7 +4247,9 @@ plan is the contract, and a file outside it is fabrication.
 When a significant design decision is made during a session — one that would
 affect future invocations or that a new agent would need to know — append it
 to the charter's `:decisions` list with the current date. Do not wait for the
-practitioner to instruct this. Decisions that are made and not recorded are
+practitioner to instruct this. Give an entry an `:id` when anything refers to
+it, and record a reversal as a new entry with `:supersedes`, never by editing
+the old one. Decisions that are made and not recorded are
 the primary cause of context loss between sessions.
 
 ---

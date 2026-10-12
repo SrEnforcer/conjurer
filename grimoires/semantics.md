@@ -462,6 +462,36 @@ Genuine disagreements should be preserved — synthesis that collapses them into
 artificial consensus misrepresents the actual state of knowledge. Spurious
 conflicts should be resolved — they are clarifications, not real tensions.
 
+#### Example: Three readings of a return-to-office policy
+
+```clojure
+(s/synthesise [employee-council-reading finance-reading facilities-reading]
+  :identify [:convergences :divergences :productive-tensions :spurious-conflicts]
+  :resolve  :spurious-conflicts
+  :preserve [:genuine-disagreements]
+  :frame-as :balanced-assessment
+  :output   :synthesis-report)
+
+;; Returns:
+{:convergences
+ ["All three readings take the policy to require three office days a week"]
+ :spurious-conflicts
+ [{:between [:finance :facilities]
+   :apparent "Finance reads the policy as cutting costs; facilities as raising them"
+   :resolution "Finance means desk-space costs (lower with fixed days); facilities
+                means peak-day capacity (higher). Both hold — different cost lines."}]
+ :genuine-disagreements
+ [{:between [:employee-council :finance]
+   :claim "Whether fixed office days are compatible with the flexibility clause
+           in the 2024 collective agreement"
+   :why-genuine "A legal reading of one clause; the readings cannot both be right"}]
+ :assessment "..."}                                     ;; truncated
+
+;; ✓ The cost conflict is resolved: the readings address different cost lines.
+;; ✓ The flexibility question is preserved, not averaged away — it turns on how
+;;   one clause is read, and that is for the parties to settle, not the synthesis.
+```
+
 ---
 
 ## Part II: Targeted extraction
@@ -1090,7 +1120,7 @@ or on raw documents that feed into domain models.
 ```clojure
 {:grimoire    "semantics"
  :namespace   "s/"
- :version     "2.1.0"
+ :version     "2.1.1"
  :description "Structured semantic extraction, perspectival analysis,
                dialectical reasoning, and textual interpretation"
 

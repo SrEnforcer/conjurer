@@ -2,8 +2,16 @@
 ;; Machine-readable index of every symbol across all grimoires.
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces
+;; :prelude lists the expression forms a deterministic processor may evaluate
+;; (core.md, Part V, The prelude); every other head is a semantic function.
 
-{:version    "1.7.0"
+{:version    "2.0.0"
+ :prelude    {:literals   [:string :number :ratio :keyword :boolean :nil :vector :map :set]
+              :units      :open-family
+              :types      [string integer decimal boolean keyword date datetime uuid url list one-of]
+              :predicates [= not= < <= > >= in? and or not]
+              :access     :keyword-lookup
+              :expansion  [for str entities-of fields-of relations-of]}
  :grimoires  [
    {:name "core"       :file "grimoires/core.md"       :namespace nil}
    {:name "domain"     :file "grimoires/domain.md"     :namespace "d/"}
@@ -30,7 +38,7 @@
    :synopsis  "Primary manifestation: describe what should exist; the system brings it into being"
    :accepts   [:name-or-description]
    :produces  [:any-artefact]
-   :key-params [:requires :forbids :prefers :style :deferred :accepts :returns :examples :within :output :manifest]}
+   :key-params [:requires :forbids :prefers :style :deferred :accepts :returns :examples :within :behaviour :output :manifest]}
 
   refine
   {:grimoire  "core"
@@ -254,7 +262,7 @@
    :synopsis  "Defines semantic type contracts — what data means, not just what it structurally is"
    :accepts   []
    :produces  [:semantic-type-definition]
-   :key-params [:fields :invariants :phi-fields :examples :derived-from]}
+   :key-params [:fields :extends :invariants :sensitive-fields :examples :derived-from]}
 
   charter
   {:grimoire  "core"
@@ -1140,7 +1148,7 @@
    :synopsis  "Recovers a domain model from source (entities, relationships, operations, invariants), grading each as attested or inferred"
    :accepts   [:source]
    :produces  [:domain-model]
-   :key-params [:from :recover :focus :confidence :emit :manifest]}
+   :key-params [:from :recover :focus :grade :emit :manifest]}
 
   x/infer-conventions
   {:grimoire  "exhume"
@@ -1164,7 +1172,7 @@
    :synopsis  "Reconstructs the decision log behind a codebase from git history, comments, and structure; separates what from why by confidence"
    :accepts   [:source]
    :produces  [:charter-decisions]
-   :key-params [:from :recover :confidence :emit :manifest]}
+   :key-params [:from :recover :grade :emit :manifest]}
 
   x/charter
   {:grimoire  "exhume"

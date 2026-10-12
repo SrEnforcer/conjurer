@@ -542,3 +542,100 @@ whenever convenient.
   `:pass-results :selective` without its bindings. One editorial pass.
 - Core Part VII: the order of sections in the body differs from the construct
   map (`grimoire` before `handover`; `materialise` after the `.cnj` structure).
+
+---
+
+## Part V: Disposition (2026-10-12)
+
+The maintainer accepted the evaluation and asked for the recommended
+candidates to be carried out in full. Per foresight discipline, each candidate
+closes through a dated event; the candidate forms above stay untouched.
+
+```clojure
+(f/hoist :of :name-equivalence
+  :date     "2026-10-12"
+  :into     :core/names-and-references
+  :outcomes [:core-section :template-rule]
+  :note     "Stated once in core under the construct map and referenced from the
+             form-shape rule in template.md.")
+
+(f/hoist :of :version-model
+  :date     "2026-10-12"
+  :into     :decision/three-version-lines
+  :outcomes [:template-rule :package-version-aligned]
+  :note     "package.json and the release-please manifest set to 1.2.0, the line
+             CHANGELOG.md already uses; the next release-please release follows it.")
+
+(f/hoist :of :decision-ids
+  :date     "2026-10-12"
+  :into     :core/charter
+  :outcomes [:new-parameters :reference-keywords :foresight-update]
+  :note     "Decisions carry :id and :supersedes; f/hoist :into examples use
+             :decision/<id>.")
+
+(f/hoist :of :cnj-structure-owner
+  :date     "2026-10-12"
+  :into     :decision/template-owns-cnj-structure
+  :outcomes [:template-part-ii-rewritten :core-section-reduced]
+  :note     "Nine sections, abstractions and foresight added. Core's Part VII now
+             follows its construct map: materialise and grimoire moved after
+             handover.")
+
+(f/hoist :of :expression-prelude
+  :date     "2026-10-12"
+  :into     :core/prelude
+  :outcomes [:core-section :catalogue-prelude :example-predicates-normalised]
+  :note     "index.edn carries :prelude for tools. Condition met in the
+             specification; conjurer-mcp's evaluator is still to follow.")
+
+(f/hoist :of :primitive-time-by-position
+  :date     "2026-10-12"
+  :into     :core/conjure-behaviour
+  :outcomes [:new-parameter :implementation-note :examples-moved]
+  :note     "conjure gains :behaviour; runtime examples in core, SKILL.md and
+             README.md now sit inside the conjure they describe.")
+
+(f/hoist :of :confidence-vocabulary
+  :date     "2026-10-12"
+  :into     :core/confidence
+  :outcomes [:core-section :parameter-renames]
+  :note     "Shorthand keeps every existing :confidence :high or :attested valid.
+             exhume :confidence :grade-each became :grade :each; agent style
+             :confidence became :disposition.")
+
+(f/hoist :of :practitioner-grimoire-spec
+  :date     "2026-10-12"
+  :into     :core/grimoire
+  :outcomes [:namespace-rule :file-format :asset-type]
+  :note     "Spells enter a namespace by name; a practitioner grimoire is a .cnj;
+             asset :type :grimoire listed.")
+
+(f/hoist :of :shape-generalised
+  :date     "2026-10-12"
+  :into     :core/shape
+  :outcomes [:new-parameters :example]
+  :note     ":phi-fields remains as shorthand for :sensitive-fields {:phi ...}.
+             data/schema keeps its own :phi-fields and :pci-fields for now.")
+
+(f/reassess :of :host-subset
+  :date      "2026-10-12"
+  :rationale "The prelude closes the question without a host; recommendation
+              accepted."
+  :status    :abandoned)
+
+(f/reassess :of :primitive-time-by-parameter
+  :date      "2026-10-12"
+  :rationale "Not adopted; the position rule landed. Kept as the fallback its
+              conditions describe."
+  :status    :proposed)
+
+(f/reassess :of :names-are-symbols
+  :date      "2026-10-12"
+  :rationale "Deferred as recommended: name equivalence makes it a matter of
+              style that can be adopted file by file."
+  :status    :proposed)
+```
+
+The direct fixes listed above were carried out in the same change: the
+example rule in `template.md` now asks for at least one example, `s/synthesise`
+has one, and the example corrections in core and foresight are made.

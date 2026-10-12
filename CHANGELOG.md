@@ -11,6 +11,20 @@ Earlier exploratory evolution is treated as pre-history.
 
 - Specification evaluation of October 2026 (`proposals/2026-10-spec-evaluation.md`): the design questions left after the consistency and semantic passes — expression prelude, the time of execution primitives, names and decision identifiers, the confidence vocabulary, ownership of the `.cnj` structure, practitioner grimoires, `shape`, and the version model — graded as twelve `f/candidate` forms, three of them alternatives recommended against.
 
+### Changed
+
+- Adoption of the October 2026 evaluation (`proposals/2026-10-spec-evaluation.md`, Part V). Grimoire versions: core 2.4.0 → 3.0.0, exhume 1.1.2 → 2.0.0, agent 1.1.1 → 2.0.0, foresight 1.0.0 → 1.1.0, semantics 2.1.0 → 2.1.1, reasoning 1.2.2 → 1.2.3, orchestrate 2.1.1 → 2.1.2. Catalogue `index.edn` 1.7.0 → 2.0.0. Package and release-please manifest aligned with this changelog at 1.2.0.
+- **Names and references.** A name may be written as a symbol or a keyword; references to a kind of form use namespaced keywords (`:decision/...`, `:target/...`, `:spell/...`, `:core/...`).
+- **Decision identifiers.** Charter decisions carry `:id` and `:supersedes`; a reversal is a new entry, never an edit. `f/hoist :into` uses `:decision/<id>`.
+- **The `.cnj` structure** is defined only in `template.md` Part II, now nine sections with abstractions (lore, shape, spell, grimoire) and foresight; the template no longer copies signatures. Core keeps a diagram and a pointer; core Part VII follows its construct map.
+- **The prelude.** Core Part V lists the expression forms every processor understands and a deterministic processor may evaluate; every other head is a semantic function. Incantation expansion and structural `ensure` predicates follow the rule; `index.edn` carries `:prelude`.
+- **Time by position.** A core execution primitive is performed when it stands alone and describes the artefact when it stands inside a manifestation; `conjure` gains `:behaviour`, and runtime examples moved inside the `conjure` they describe.
+- **Confidence.** Two axes, provenance and degree, with shorthand for either and numbers only with a named basis. *Breaking:* `x/recover-model` and `x/reconstruct-decisions` take `:grade :each` instead of `:confidence :grade-each`; `a/define :style` takes `:disposition` instead of `:confidence`.
+- **Practitioner grimoires.** Spells enter a namespace by name, a practitioner grimoire is a `.cnj` file, `asset :type :grimoire` is listed, and the namespace rule in `template.md` matches `data/`.
+- **`shape`** gains `:extends` and `:sensitive-fields` by class (`:phi`, `:pii`, `:pci`); `:phi-fields` remains as shorthand.
+- **Three version lines** are stated in `template.md` and `README.md`: release, catalogue, grimoire.
+- Template example rule relaxed to at least one example per construct; `s/synthesise` gains its example; example corrections in core and foresight (a candidate's own `:status` is never edited; its current status is read from `:history`).
+
 ### Fixed
 
 - Consistency pass after the 2026-10-12 specification review. No symbol was added, removed or renamed; the catalogue is unchanged.

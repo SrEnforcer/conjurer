@@ -226,7 +226,7 @@ can be registered and referenced by name throughout the project.
   :accepts        [:context-type ...]
   :constraints    ["hard constraint on agent behaviour" ...]
   :style          {:reasoning   :explicit | :implicit
-                   :confidence  :calibrated | :assertive
+                   :disposition :calibrated | :assertive
                    :verbosity   :terse | :standard | :detailed}
   :memory         :none | :session | :task
   :version        semver
@@ -260,9 +260,9 @@ when the goal makes it tempting to do so.
 - `:reasoning :implicit` — the agent produces output without narrating
   reasoning unless asked. Faster; requires `a/reflect` or `explain` for
   transparency.
-- `:confidence :calibrated` — the agent hedges where uncertain and is
+- `:disposition :calibrated` — the agent hedges where uncertain and is
   explicit about what it does not know.
-- `:confidence :assertive` — the agent commits to its output without
+- `:disposition :assertive` — the agent commits to its output without
   hedging. Appropriate when the practitioner will evaluate and correct.
 
 **`:memory`**:
@@ -298,8 +298,8 @@ not, it is not.
     "All external boundaries must have runtime validation"
     "No implicit any — all types must be explicit"
     "Functions must be pure unless explicitly annotated as effectful"]
-  :style          {:reasoning  :explicit
-                   :confidence :calibrated}
+  :style          {:reasoning   :explicit
+                   :disposition :calibrated}
   :memory         :task
   :version        "1.2.0"
   :manifest       typescript-agent)
@@ -320,9 +320,9 @@ not, it is not.
     "Report all findings regardless of perceived severity — never suppress"
     "Distinguish between confirmed vulnerabilities and theoretical risks"
     "Always propose a specific remediation for every finding"]
-  :style          {:reasoning  :explicit
-                   :confidence :calibrated
-                   :verbosity  :detailed}
+  :style          {:reasoning   :explicit
+                   :disposition :calibrated
+                   :verbosity   :detailed}
   :memory         :session
   :version        "2.0.0"
   :manifest       security-reviewer)
@@ -1547,7 +1547,7 @@ of each agent's contribution without modifying what the agents produce.
 ```clojure
 {:grimoire    "agent"
  :namespace   "a/"
- :version     "1.1.1"
+ :version     "2.0.0"
  :description "Autonomous agent definition, equipment and tool access, invocation,
                delegation, multi-agent coordination, and quality assurance patterns"
 
