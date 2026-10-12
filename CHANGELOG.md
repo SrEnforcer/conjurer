@@ -7,6 +7,10 @@ Earlier exploratory evolution is treated as pre-history.
 
 ## Unreleased
 
+### Added
+
+- Specification evaluation of October 2026 (`proposals/2026-10-spec-evaluation.md`): the design questions left after the consistency and semantic passes — expression prelude, the time of execution primitives, names and decision identifiers, the confidence vocabulary, ownership of the `.cnj` structure, practitioner grimoires, `shape`, and the version model — graded as twelve `f/candidate` forms, three of them alternatives recommended against.
+
 ### Fixed
 
 - Consistency pass after the 2026-10-12 specification review. No symbol was added, removed or renamed; the catalogue is unchanged.
