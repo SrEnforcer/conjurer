@@ -51,7 +51,7 @@ and purpose.
 calibrate vocabulary, sentence rhythm, hedging patterns, active/passive voice,
 and technical density to audience and purpose.
 
-**Memoria (Memory)** — Mastering content. Accumulated context and `e/refine`
+**Memoria (Memory)** — Mastering content. Accumulated context and core `refine`
 enable iterative improvement while maintaining consistency across related
 documents and sessions.
 
@@ -1163,7 +1163,7 @@ two critiques answer different questions and compose into a complete review.
 ```clojure
 {:grimoire    "eloquence"
  :namespace   "e/"
- :version     "2.1.0"
+ :version     "2.1.1"
  :description "Audience-aware document composition, register adaptation,
                narrative structure, prose critique, plain language
                simplification, and formalisation for legal and regulatory contexts"

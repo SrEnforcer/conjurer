@@ -326,7 +326,7 @@ never wrote down.
    {:name "lookup" :on "GrimoireSymbol" :confidence :attested
     :evidence "Exported function with a test asserting exact-match retrieval"}]
  :invariants [
-   {:rule "A symbol name is unique across the whole catalog"
+   {:rule "A symbol name is unique across the whole catalogue"
     :confidence :strongly-inferred
     :evidence "Lookup treats the index as a flat Map keyed by name; no collision handling"}
    {:rule "index.edn is read once and never mutated at runtime"
@@ -1116,7 +1116,7 @@ again.
 ```clojure
 {:grimoire    "exhume"
  :namespace   "x/"
- :version     "1.1.1"
+ :version     "1.1.2"
  :description "Code and artefact archaeology: recovering Conjurer specification —
                domain models, the declared technical stack, conventions, decisions,
                and a continuable .cnj — from existing codebases never written in

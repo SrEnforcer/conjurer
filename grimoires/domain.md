@@ -910,11 +910,10 @@ qualified entity, e.g. `underwriting/policy` and `claims/policy`), `:alias`
 #### Design rationale
 
 The grimoire commits to Domain-Driven Design throughout — aggregate roots,
-value objects, the `:against :ddd` validation target — yet until now offered
-no way to express DDD's most consequential strategic pattern: the bounded
-context. `d/validate` even reports `:missing-bounded-context-definitions true`
-as a warning, naming a gap it had no construct to fill. `d/bounded-context`
-fills it.
+value objects, the `:against :ddd` validation target — and DDD's most
+consequential strategic pattern is the bounded context. `d/validate` reports
+`:missing-bounded-context-definitions true` as a warning; `d/bounded-context`
+is the construct that answers it.
 
 The decisive insight DDD contributes is that **a single ubiquitous language
 across a large domain is a mistake**, not an aspiration. "Policy" means a
@@ -1953,7 +1952,7 @@ into the session's interpretive frame.
 ```clojure
 {:grimoire    "domain"
  :namespace   "d/"
- :version     "2.1.0"
+ :version     "2.1.1"
  :description "Domain knowledge discovery, modelling, synthesis,
                and operationalisation"
 

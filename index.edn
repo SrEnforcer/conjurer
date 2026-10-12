@@ -1,4 +1,4 @@
-;; index.edn — Conjurer Symbol Catalog
+;; index.edn — Conjurer symbol catalogue
 ;; Machine-readable index of every symbol across all grimoires.
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces

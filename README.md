@@ -18,11 +18,11 @@ Its paradigm is **intent-sourced programming**: intent is the source, code is th
 
 ## The idea
 
-Traditional programming forces the human downward, to the machine's level of expression. Conjurer reverses the direction. The practitioner states intent; the system manifests a complete, production-ready artifact through semantic understanding rather than syntactic execution.
+Traditional programming forces the human downward, to the machine's level of expression. Conjurer reverses the direction. The practitioner states intent; the system manifests a complete, production-ready artefact through semantic understanding rather than syntactic execution.
 
 This works because LLMs are not finite automata. They are probability distributions over meaning conditioned on context — which means they can accept semantic *equivalence classes*, not merely syntactic identity. Conjurer is designed around this fact.
 
-And the flow runs both ways. Intent becomes artifact through manifestation — but a codebase that already exists can be read back the other way, its buried intent *exhumed* into a domain model, conventions, decisions, and a continuable specification. Conjurer can bootstrap itself from a project with a past.
+And the flow runs both ways. Intent becomes artefact through manifestation — but a codebase that already exists can be read back the other way, its buried intent *exhumed* into a domain model, conventions, decisions, and a continuable specification. Conjurer can bootstrap itself from a project with a past.
 
 ```clojure
 ;; These three invocations are equivalent. Conjurer accepts all of them.
@@ -39,7 +39,7 @@ And the flow runs both ways. Intent becomes artifact through manifestation — b
 
 ```clojure
 (conjure fraud-detector
-  :analyzes transactions
+  :analyses transactions
   :flags :suspicious-patterns
   :confidence-threshold 0.75
   :explain-decisions true)
@@ -133,17 +133,17 @@ And the flow runs both ways. Intent becomes artifact through manifestation — b
 
 ## Grimoires
 
-Conjurer's standard library is organized into **grimoires** — thematic spellbooks, each specializing in a domain of manifestation. A grimoire is both a specification and an educational artifact: philosophy, function signatures, realistic examples, and implementation guidance for LLM processors, woven together as literate programming.
+Conjurer's standard library is organised into **grimoires** — thematic spellbooks, each specialising in a domain of manifestation. A grimoire is both a specification and an educational artefact: philosophy, function signatures, realistic examples, and implementation guidance for LLM processors, woven together as literate programming.
 
 | Grimoire | Namespace | Purpose |
 |---|---|---|
 | [core](grimoires/core.md) | _(none)_ | The language itself: invocations, composition, abstraction (`spell` · `charm` · `incantation`), execution, certainty contracts, reflection, and ecosystem connectives (`charter` · `target` · `asset` · `handover` · `grimoire`) |
-| [domain](grimoires/domain.md) | `d/` | Knowledge extraction, domain modeling, DSL generation |
+| [domain](grimoires/domain.md) | `d/` | Knowledge extraction, domain modelling, DSL generation |
 | [data](grimoires/data.md) | `data/` | Synthetic data generation, transformation, validation pipelines |
 | [web](grimoires/web.md) | `w/` | Web analysis, component generation, full-stack prototyping |
 | [semantics](grimoires/semantics.md) | `s/` | Deep textual analysis, multi-model interpretation, synthesis |
 | [reasoning](grimoires/reasoning.md) | `r/` | Inference, rule-based derivation, decision logic, traceable conclusions |
-| [taxonomy](grimoires/taxonomy.md) | `t/` | Classification systems, hierarchical organization, controlled vocabularies |
+| [taxonomy](grimoires/taxonomy.md) | `t/` | Classification systems, hierarchical organisation, controlled vocabularies |
 | [orchestrate](grimoires/orchestrate.md) | `o/` | Workflow coordination, saga patterns, human-in-the-loop |
 | [eloquence](grimoires/eloquence.md) | `e/` | Tone, audience targeting, rhetorical structure |
 | [agent](grimoires/agent.md) | `a/` | Autonomous action: agent definition, invocation, delegation, multi-agent coordination |
@@ -183,13 +183,13 @@ Seven terms cover the language:
 
 ## This repository
 
-```
+```text
 conjurer/
 ├── README.md              ← you are here
 ├── CHANGELOG.md           ← design history and decisions
 ├── conjurer.md            ← philosophy, naming rationale, full principles
 ├── template.md            ← canonical structure for grimoires and .cnj files
-├── index.edn              ← machine-readable symbol catalog
+├── index.edn              ← machine-readable symbol catalogue
 ├── quick-reference.md     ← every symbol at a glance
 ├── SKILL.md               ← agent entry point and processing guidance
 └── grimoires/
@@ -213,6 +213,6 @@ Start with [`conjurer.md`](conjurer.md) for the philosophical foundation, then [
 
 ## Status
 
-Conjurer is in **active design phase**. The specifications are conceptual artifacts — they define language semantics for LLM processors, not a compiled runtime. Nothing is published or versioned yet; the design is evolving.
+Conjurer is in **active design phase**. The specifications are conceptual artefacts — they define language semantics for LLM processors, not a compiled runtime. Nothing is published or versioned yet; the design is evolving.
 
 MIT

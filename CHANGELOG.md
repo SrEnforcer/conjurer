@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 This changelog is intentionally initialized at the current maturity baseline.
 Earlier exploratory evolution is treated as pre-history.
 
+## Unreleased
+
+### Fixed
+
+- Consistency pass after the 2026-10-12 specification review. No symbol was added, removed or renamed; the catalogue is unchanged.
+- `SKILL.md` brought in line with `core`: the eighth principle, calibrated certainty, added; `:requires` counts as constraint intent only when its value is a field-to-constraint map; `:as` removed from the output-binding equivalence class (it names a result shape and is the `as` construct); the fast reference gains `materialise`, `spell`, incantation preview, the certainty qualifiers, `given` and `ensure`, and the skill description names them; `(target :typescript ...)` corrected to name the output; `:forbids` added to the result-quality rule; hardcoded symbol counts removed.
+- The phantom form `(context establish ...)` removed from `SKILL.md`, `template.md` and `examples/conjurer-site/domain.cnj`.
+- `conjurer.md`: the ecosystem section now names all six project-level constructs (`materialise` and `grimoire` were missing); repeated passages in the ground truths replaced by references to the principles they restate; "fully determined" softened to "largely determined"; "not a specification language" sharpened to "not a formal specification language".
+- `template.md`: the bar `|` is documentation notation for signatures only; an invocation or `.cnj` file writes a choice as `(one-of ...)`. `examples/dice-forge.cnj` follows the rule.
+- `core.md` (2.3.0 → 2.3.1): phantom forms in examples replaced (`validate` → `data/validate`, `(order :status :paid)` → a free-variable predicate, nameless `retry` and positional `parallel` given their signatures, a target-less `witness` wrapped around its invocation); `:forbids` added to the intent-topology key concept; `refine :when` described as dormant rather than "activates automatically"; `allow` values called illustrative rather than placeholders; drafting-history phrases removed; plain-text fences tagged.
+- `eloquence.md` (2.1.0 → 2.1.1): `e/refine` → core `refine`. `reasoning.md` (1.2.0 → 1.2.1): `o/branch` → core `branch`. `data.md` (2.1.0 → 2.1.1), `domain.md` (2.1.0 → 2.1.1), `web.md` (2.1.0 → 2.1.1): drafting-history phrases removed.
+- British spelling completed in `conjurer.md`, `README.md`, `template.md`, `quick-reference.md`, `agent.md` (1.1.0 → 1.1.1) and `exhume.md` (1.1.1 → 1.1.2), including catalog → catalogue in prose. Symbol names (`e/formalize`, `e/localize`, `w/analyze`) and parameter keywords are unchanged.
+- `quick-reference.md`: the `materialise` row gains its Part column and follows the construct-map order.
+
 ## 1.2.0 - 2026-07-01
 
 ### Added

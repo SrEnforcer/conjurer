@@ -1,6 +1,6 @@
 ---
 name: conjurer
-description: Interpret and execute Conjurer, a declarative language for LLM interaction. Use when practitioners write Conjurer code using any grimoire namespace — core constructs (conjure, refine, charter, target, handover), domain extraction (d/explore, d/model, d/bounded-context), data operations (data/schema, data/generate, data/contract), web generation (w/prototype, w/component, w/responsive, w/copy), semantic analysis (s/texan, s/viewpoint, s/detect-manipulation), workflow orchestration (o/define-workflow, o/react, o/fan-out), communication (e/compose, e/critique), logical inference (r/derive, r/decide, r/analogise, r/revise), classification (t/classify, t/define), agent coordination (a/delegate, a/compose, a/equip), code archaeology (x/recover-model, x/charter — recovering Conjurer spec from an existing codebase), or forward-looking deliberation (f/candidate, f/hoist — grading and promoting deferred ideas). Also use when a .cnj file is attached — read the charter first and continue from where the session left off.
+description: Interpret and execute Conjurer, a declarative language for LLM interaction. Use when practitioners write Conjurer code using any grimoire namespace — core constructs (conjure, refine, spell, incantation, given, ensure, charter, target, materialise, handover, grimoire), domain extraction (d/explore, d/model, d/bounded-context), data operations (data/schema, data/generate, data/contract), web generation (w/prototype, w/component, w/responsive, w/copy), semantic analysis (s/texan, s/viewpoint, s/detect-manipulation), workflow orchestration (o/define-workflow, o/react, o/fan-out), communication (e/compose, e/critique), logical inference (r/derive, r/decide, r/analogise, r/revise), classification (t/classify, t/define), agent coordination (a/delegate, a/compose, a/equip), code archaeology (x/recover-model, x/charter — recovering Conjurer spec from an existing codebase), or forward-looking deliberation (f/candidate, f/hoist — grading and promoting deferred ideas). Also use when a .cnj file is attached — read the charter first and continue from where the session left off.
 ---
 
 # Conjurer Language Interpreter
@@ -30,7 +30,7 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 | foresight | `f/` | `grimoires/foresight.md` |
 
 **Symbol lookup:** `index.edn` — every symbol with grimoire, synopsis, and key params.
-**Compact cheat sheet:** `quick-reference.md` — all 141 symbols at a glance.
+**Compact cheat sheet:** `quick-reference.md` — every symbol at a glance.
 **Full philosophy:** `conjurer.md`
 **File structure spec:** `template.md`
 
@@ -42,9 +42,10 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 2. **Semantic richness over syntactic rigidity** — `:validates`, `:ensures`, `:checks` are all equivalent; the system understands intent
 3. **Semantic gravity** — context accumulates mass; later invocations can be terser
 4. **Intent topology** — `:requires` > `:prefers` > `:style`; `:forbids` binds like `:requires` with opposite sign; `:deferred` is noted but not implemented
-5. **Productive ambiguity** — deliberate openness invites creative judgment; do not force resolution
-6. **Progressive refinement** — first manifestations are sketches; `refine` is a discovery tool
-7. **Collaborative discovery** — surface tensions, propose improvements, make reasoning visible
+5. **Calibrated certainty** — `certain` binds a value, `prefer` leans, `allow` illustrates; `given` and `ensure` state what holds entering and leaving, and which layer verifies it
+6. **Productive ambiguity** — deliberate openness invites creative judgment; do not force resolution
+7. **Progressive refinement** — first manifestations are sketches; `refine` is a discovery tool
+8. **Collaborative discovery** — surface tensions, propose improvements, make reasoning visible
 
 ---
 
@@ -82,7 +83,7 @@ is what gets saved; everything else flows from it.
 
 ## Key constructs — fast reference
 
-### The fundamental four
+### Fundamentals and threading
 
 ```clojure
 ;; Manifest something
@@ -98,7 +99,7 @@ is what gets saved; everything else flows from it.
   :when     (> projected-volume 10000))  ;; conditional refinement
 
 ;; Establish semantic context (accumulates across session)
-(context establish payments
+(context payments
   :inherits  platform-base
   :domain    :financial-services
   :regulations [:psd2 :gdpr])
@@ -122,7 +123,7 @@ is what gets saved; everything else flows from it.
 
 ;; Concurrent with result combining
 (parallel enrich-user
-  :operations [(fetch :orders) (fetch :preferences) (fetch :recommendations)]
+  :operations [(conjure fetch-orders) (conjure fetch-preferences) (conjure fetch-recommendations)]
   :combine-results :merge :wait-for :all :on-error :best-effort)
 
 ;; Graceful degradation
@@ -142,7 +143,7 @@ is what gets saved; everything else flows from it.
   :decisions [{:date "2025-11-05" :decision "TypeScript throughout; functional style"}]
   :open      ["Which payment provider?"]
   :outputs   {:domain-model :conjurer-only
-              :api          (target :typescript :standard :team-standard)})
+              :api          (target :api :language :typescript :standard :team-standard)})
 
 ;; Register external standard
 (asset :team-standard :type :code-standard :location "standards/ts.md"
@@ -154,6 +155,28 @@ is what gets saved; everything else flows from it.
   :scope   [:api]
   :include [:charter :domain-model :target-specs :assets]
   :briefing "Implement the subscription API per the target spec.")
+
+;; Turn a target into files: deterministic preflight first, generation only from a clean plan
+(materialise api :phase :preflight :manifest api-plan)
+(materialise api :phase :generate :from api-plan)
+```
+
+### Abstraction and certainty
+
+```clojure
+;; Name a reusable invocation pattern; caller arguments arrive as (prefer v)
+(spell compliant-endpoint [entity]
+  :doc "REST endpoint with the team's compliance defaults"
+  (conjure (str entity "-endpoint") :requires [:audit-trail :idempotency]))
+
+;; Cast an incantation (crud-suite, defined in core) in preview: the expansion is shown, nothing runs
+(crud-suite insurance-domain :expand :preview)
+
+;; Value-level commitment, preconditions and postconditions
+(given :from-mcp [{:tool :db/schema :result current-schema}] :scope :invocation)
+(conjure transaction-screening
+  :thresholds {:daily-limit (certain (eur 10000)) :velocity-window (prefer (minutes 5))}
+  :within (ensure :structural [(<= daily-limit (eur 10000))] :verify-via [:tests] :on-violation :warn))
 ```
 
 ### Reasoning
@@ -225,9 +248,9 @@ is what gets saved; everything else flows from it.
 
 The following groups are semantically equivalent and should produce identical results:
 
-- **Constraint intent:** `:validates` `:ensures` `:requires` `:checks` `:enforces`
+- **Constraint intent:** `:validates` `:ensures` `:checks` `:enforces` — and `:requires` only when its value is a field-to-constraint map; a vector of capabilities is intent topology (see core's implementation notes)
 - **Preference intent:** `:prefers` `:would-like` `:ideally` `:nice-to-have`
-- **Output binding:** `:manifest` `:as` `:bind-to` `:save-as`
+- **Output binding:** `:manifest` `:bind-to` `:save-as` — not `:as`, which names a result shape (`d/query`, `d/extract`) and is the `as` construct
 - **Depth:** `:depth 3` `"thorough"` `:comprehensive` `:deep`
 - **Format:** `:output :edn` `:format :edn` `"return as EDN"`
 
@@ -239,7 +262,7 @@ Every manifestation must be:
 - **Complete** — no placeholders, TODOs, or stubs
 - **Functional** — works immediately when executed or deployed
 - **Honest** — significant interpretive choices noted transparently
-- **Consistent with topology** — `:requires` always present; `:deferred` never implemented
+- **Consistent with topology** — `:requires` always present; `:forbids` never present; `:deferred` never implemented
 
 When an invocation is ambiguous: make a reasonable inference from context,
 proceed with the manifestation, note the interpretation. Never block on
@@ -250,10 +273,10 @@ ambiguities that would change the entire direction of the output.
 
 ## File references
 
-```
+```text
 SKILL.md                ← this file (entrypoint)
-index.edn               ← machine-readable symbol catalog (routing layer)
-quick-reference.md      ← all 141 symbols at a glance
+index.edn               ← machine-readable symbol catalogue (routing layer)
+quick-reference.md      ← every symbol at a glance
 conjurer.md             ← language philosophy and principles
 template.md             ← grimoire and .cnj file structure specification
 grimoires/

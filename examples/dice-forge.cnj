@@ -402,7 +402,7 @@
                                           :plus :minus :blank)}}   ;; closed v1 vocabulary — charter decision, 2026-07-07
                 {:image   (url)})
     :value    (one-of (integer)             ;; plain numeric worth
-                      {(keyword) (integer | percent)} ;; named values: {:def 5 :heal (percent 50)}
+                      {(keyword) (one-of (integer) (percent))} ;; named values: {:def 5 :heal (percent 50)}
                       :none)}                          ;; pure symbol, tally only
   :invariants [
     "pip content implies value equals the pip count"
