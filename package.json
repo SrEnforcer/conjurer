@@ -22,6 +22,7 @@
   "files": [
     "README.md",
     "conjurer.md",
+    "architecture.md",
     "quick-reference.md",
     "index.edn",
     "SKILL.md",
