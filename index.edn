@@ -38,7 +38,7 @@
    :synopsis  "Primary manifestation: describe what should exist; the system brings it into being"
    :accepts   [:name-or-description]
    :produces  [:any-artefact]
-   :key-params [:requires :forbids :prefers :style :deferred :accepts :returns :examples :within :output :manifest]}
+   :key-params [:requires :forbids :prefers :style :deferred :accepts :returns :examples :within :behaviour :output :manifest]}
 
   refine
   {:grimoire  "core"
