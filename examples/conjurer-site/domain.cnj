@@ -25,7 +25,7 @@
 
 ;; Declares the shared vocabulary for this session to keep downstream derivations 
 ;; semantically aligned.
-(context establish conjurer-site-domain
+(context conjurer-site-domain
   :domain   :developer-tooling
   :entities {
     :grimoire          [:name :namespace :file :description :version :constructs]

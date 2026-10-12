@@ -193,7 +193,7 @@ nuanced, lead with examples.
 
 ```clojure
 (conjure order-fulfillment
-  :triggers  (order :status :paid)
+  :triggers  (= order-status :paid)
   :requires  [:inventory-reservation :payment-capture :saga-compensation]
   :steps     [
     {:verify-inventory  :abort-if-insufficient}
@@ -289,7 +289,7 @@ honest.
 The `:when` predicate enables *aspirational completeness*: a specification
 that contains future refinements in dormant form. The practitioner records
 what they know will be needed — before they know they need it — and the
-refinement activates automatically when conditions are met.
+refinement is held dormant and applies once the condition is shown to hold.
 
 #### Example 1: Focused, surgical refinement
 
@@ -315,7 +315,7 @@ refinement activates automatically when conditions are met.
   :when     (> projected-rps 500))
 
 ;; At modest scale: rate limiting is deferred — no premature complexity
-;; When projections exceed 500 rps: this refinement activates automatically
+;; When projections exceed 500 rps: this dormant refinement applies
 ;; The intent is recorded now; the implementation arrives when needed
 ```
 
@@ -429,7 +429,7 @@ compliance requirements into every `conjure` — they write only what is
 
 ;; All subsequent payment invocations carry the full stack automatically:
 ;; RFC-7807 errors, JWT auth, ISO-8601 dates, GDPR + PSD2 + AML, EUR default.
-(conjure payment-processor)   ;; fully specified through accumulated gravity
+(conjure payment-processor)   ;; largely specified through accumulated gravity
 (conjure refund-handler)      ;; ditto — no repetition required
 ```
 
@@ -1655,7 +1655,7 @@ across catch blocks.
 ```clojure
 (sequence checkout
   :operations [
-    (validate cart :strict true)
+    (data/validate cart :against cart-schema :on-failure :stop)
 
     (ward payment-charge
       :protect (conjure charge :amount total :method card)
@@ -1666,7 +1666,10 @@ across catch blocks.
           :order-id order-id
           :customer-message "Payment is processing — you won't be charged twice.")
         network-error?
-        (retry :attempts 2 :backoff :exponential)}
+        (retry charge-retry
+          :operation (conjure charge :amount total :method card)
+          :attempts  2
+          :backoff   :exponential)}
       :escalate :when (> consecutive-gateway-timeouts 3))
 
     (conjure send-order-confirmation)]
@@ -1740,8 +1743,8 @@ A parameter map like `{:hero true :width :auto :max-height (px 200)}` does
 not say whether `(px 200)` is a binding constraint or a starting suggestion.
 A skilled practitioner often knows the answer for each value individually:
 the maximum height is non-negotiable because it must fit the viewport budget;
-the layout choice is a preference because several would work; the placeholder
-copy is illustrative because the writer will replace it. Without a vocabulary
+the layout choice is a preference because several would work; the sample
+copy is illustrative because better copy may exist. Without a vocabulary
 to express these distinctions, all three values look identical and the system
 must guess.
 
@@ -1750,7 +1753,7 @@ lives — beside the value itself, not in a separate topology section. They
 compose freely with everything else: ordinary map entries (which are treated
 as `prefer` by default — sensible defaults for the unannotated common case),
 intent topology keywords (`:requires`, `:prefers`, `:style`), `shape`
-declarations, and the new pre/post constructs introduced below.
+declarations, and the pre/post constructs `given` and `ensure` introduced below.
 
 The relationship to intent topology is parallel, not redundant. Topology
 keywords operate at the *capability* level — `:requires [:pci-compliance]`
@@ -1785,7 +1788,7 @@ dimension part of the value. Prefer them wherever a number has a unit.
 ;; The 200px ceiling is non-negotiable; viewport fit depends on it.
 ;; The background is illustrative — the system may select any aesthetic that fits.
 ;; The headline copy is fixed; the sub-headline may be paraphrased; the CTA label
-;; is a placeholder to be replaced.
+;; is illustrative — the system may write a better one.
 ```
 
 #### Example 2: Numeric thresholds in a policy decision
@@ -2411,7 +2414,7 @@ the in-band result passes through unchanged.
 
 ```clojure
 (~> raw-transactions
-  (validate :schema transaction-schema)
+  (data/validate :against transaction-schema :on-failure :stop)
 
   (witness
     (conjure risk-scorer :model :gradient-boosted-composite)
@@ -2651,7 +2654,7 @@ decision log prevents this.
 
 When a practitioner drops a `.cnj` file into a new chat:
 
-```
+```text
 [attaches subscription-platform.cnj]
 
 "We settled the amendment approval flow yesterday. Let's now model
@@ -2982,9 +2985,8 @@ standard — given, not remembered.
 
 This also completes the founding metaphor. Historically, a grimoire was
 something a practitioner *wrote* — an organised body of hard-won expertise.
-Until this construct, Conjurer's practitioners could only read the standard
-twelve. Now expertise accumulated in a project can graduate into a spellbook
-of its own.
+With it, practitioners do not only read the standard twelve: expertise
+accumulated in a project can graduate into a spellbook of its own.
 
 #### Example
 
@@ -3222,7 +3224,7 @@ the system's first response is always a `charter` — not domain analysis,
 not code, not questions. The charter is what gets saved. Everything else flows
 from it.
 
-```
+```text
 User:
 "We need to build a proper system for managing customer subscriptions and contracts.
  Right now everything is tracked in spreadsheets and email. Finance is constantly
@@ -3286,15 +3288,15 @@ against unresolved references is guessing.
 
 #### Design rationale
 
-`materialise` exists because the act it names was, until now, the language's
-great unspoken verb. Every other core act has a construct — you `conjure`,
+`materialise` exists because without it the act it names would be the
+language's great unspoken verb. Every other core act has a construct — you `conjure`,
 `refine`, `witness`, `handover` — but the central thing the ecosystem layer
-exists to enable, turning specification into artefact, happened only implicitly,
-through `target :via`. Naming it closes that gap. `target` *declares the intent*
+exists to enable, turning specification into artefact, would happen only
+implicitly, through `target :via`. Naming it closes that gap. `target` *declares the intent*
 to materialise (selectively: what, where, to which standard); `materialise`
-*performs* it. The two are complementary, and `target :via :direct` now reads as
-"materialise me, both phases, immediately" — the construct is simply what `:via`
-was always invoking without saying so.
+*performs* it. The two are complementary, and `target :via :direct` reads as
+"materialise me, both phases, immediately" — the construct is what `:via`
+invokes, named.
 
 The load-bearing design choice is the **two-phase split**, and it is not a
 convenience — it is the calibrated-honesty principle applied to generation.
@@ -3459,8 +3461,13 @@ appropriate scope.
 (intercept with-auth-and-observability
   :operation (sequence data-pipeline
     :operations [
-      (retry fetch-source-data :attempts 3 :backoff :exponential)
-      (parallel [enrich-a enrich-b enrich-c])
+      (retry fetch-source
+        :operation (conjure fetch-source-data :from :ledger-export)
+        :attempts  3
+        :backoff   :exponential)
+      (parallel enrichment
+        :operations [(conjure enrich-merchant) (conjure enrich-geography) (conjure enrich-risk)]
+        :combine-results :merge)
       (ward persist-results
         :protect (conjure write :to primary-store)
         :recover {unavailable? (conjure write :to fallback-queue)})]))
@@ -3523,10 +3530,11 @@ flow through `core`'s composition machinery.
   (d/explore    :depth 3 :focus [:entities :workflows :constraints])
   (s/texan      :models [:logical :argumentation] :surface :implicit-requirements)
   (conjure api-design :from-domain true :incorporating-implicit-requirements true)
-  (weave platform
-    :strands  [api-design auth-service data-layer]
-    :ensuring [:consistent-auth :unified-error-taxonomy])
-  (witness :observe [:architectural-decisions :trade-offs]
+  (witness
+    (weave platform
+      :strands  [api-design auth-service data-layer]
+      :ensuring [:consistent-auth :unified-error-taxonomy])
+    :observe   [:architectural-decisions :trade-offs]
     :record-to adr-log))
 ```
 
@@ -3554,7 +3562,7 @@ vocabulary on which domain-specific abstractions are built.
 ```clojure
 {:grimoire    "core"
  :namespace   nil   ;; core constructs are unprefixed — conjure, refine, ~>, not c/conjure
- :version     "2.3.0"
+ :version     "2.3.1"
  :description "Foundational constructs, composition machinery, abstraction
                (spells, charms, incantations), execution primitives, and
                ecosystem connectives for the Conjurer language"
@@ -3638,7 +3646,8 @@ vocabulary on which domain-specific abstractions are built.
    {:term "Intent topology"
     :definition "The structural importance hierarchy of a specification at
                  the capability level: :requires > :prefers > :style;
-                 :deferred is dormant. Tells the system how to choose when
+                 :forbids binds with the force of :requires, opposite
+                 sign; :deferred is dormant. Tells the system how to choose when
                  constraints conflict."}
    {:term "Calibrated certainty"
     :definition "The value-level commitment gradient (certain · prefer · allow)

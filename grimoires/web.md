@@ -1445,7 +1445,7 @@ Complete quality loop:
 
 ### Strategy → structure → words: the full interface
 
-The new constructs compose into a complete interface specification — responsive
+`w/responsive`, `w/flow`, and `w/copy` compose into a complete interface specification — responsive
 strategy, interaction flow, and copy — before a line of the prototype is fixed:
 
 ```clojure
@@ -1470,7 +1470,7 @@ strategy, interaction flow, and copy — before a line of the prototype is fixed
 ```clojure
 {:grimoire    "web"
  :namespace   "w/"
- :version     "2.1.0"
+ :version     "2.1.1"
  :description "Web analysis, extraction, generation, responsive and interaction
                design, interface copy, auditing, and migration"
 

@@ -46,8 +46,8 @@ certainty contracts, typing, reflection, and ecosystem connectives. See
 | `target` | VII | Declare implementation form: language, standard, artefact types |
 | `asset` | VII | Register external standard or capability (coding standard, design system) |
 | `handover` | VII | Package session context; transfer to specialist agent |
+| `materialise` | VII | Turn a target into an artefact: deterministic preflight plan, then semantic generation |
 | `grimoire` | VII | Package spells, lore, and shapes into a named, versioned practitioner grimoire |
-| `materialise` | Turn a target into an artefact: deterministic preflight plan, then semantic generation |
 
 ### Key parameters
 
@@ -273,7 +273,7 @@ runs in reverse order automatically on failure.
 
 | Symbol | Synopsis |
 |---|---|
-| `a/define` | Declare agent identity: specializations, standards, constraints, memory |
+| `a/define` | Declare agent identity: specialisations, standards, constraints, memory |
 | `a/memory` | Named memory store for operational state across invocations |
 | `a/equip` | Grant scoped tool/resource access (MCP, filesystem, network) with permissions |
 | `a/invoke` | Directed specific task — agent equivalent of a function call |
@@ -350,7 +350,7 @@ that preserves the trajectory, and promotion that closes a candidate into a deci
 
 ## The `.cnj` file — canonical section order
 
-```
+```text
 1. (charter ...)           ← always first; goals, decisions, open questions
 2. (asset ...)             ← external standards and capabilities
 3. (assume ...)            ← operative constraints

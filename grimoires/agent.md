@@ -145,7 +145,7 @@ the agent determines how.
 **Earned autonomy** — Agents report their reasoning. Constraints are explicit.
 Trust is extended incrementally as reliability is demonstrated.
 
-**Epistemic diversity through specialization** — Different agents bring
+**Epistemic diversity through specialisation** — Different agents bring
 genuinely different perspectives. Multi-agent coordination produces results
 that no single perspective could reach alone.
 
@@ -165,7 +165,7 @@ over alternatives like "worker" or "executor" is deliberate.
 
 **`a/`** — The short namespace alias.
 
-**`a/define`** — Declaring an agent's identity: its capabilities, specializations,
+**`a/define`** — Declaring an agent's identity: its capabilities, specialisations,
 constraints, and memory model.
 
 **`a/memory`** — From Latin *memoria*, the faculty of retaining. An agent's
@@ -206,7 +206,7 @@ rather than unilateral assertion.
 
 ### `a/define`
 
-Declares an agent's identity — its specialization, the standards and domain
+Declares an agent's identity — its specialisation, the standards and domain
 knowledge it applies, the artefacts it produces, the constraints it operates
 within, and how it manages state across invocations.
 
@@ -280,7 +280,7 @@ of standards is invisible.
 
 A well-defined agent can be reasoned about in the abstract: "Would the
 security-reviewer agent flag this pattern?" If the agent has explicit
-specializations and constraints, this question is answerable. If it does
+specialisations and constraints, this question is answerable. If it does
 not, it is not.
 
 #### Example 1: TypeScript code generation agent
@@ -608,7 +608,7 @@ invocation.
 The distinction between `a/invoke` and `a/delegate` is the distinction
 between directed and autonomous work. `a/invoke` is appropriate when the
 practitioner knows exactly what they want and is directing the agent to
-produce it. The agent applies its specialization and constraints but does
+produce it. The agent applies its specialisation and constraints but does
 not exercise strategic judgment about approach.
 
 `a/delegate` is appropriate when the practitioner knows the desired outcome
@@ -1352,7 +1352,7 @@ demanding than it should have been.
 
 An agent invoked without a definition is a prompt. An agent invoked with
 a definition is a capability declaration with explicit constraints, known
-specializations, and inspectable behaviour. The definition is what makes
+specialisations, and inspectable behaviour. The definition is what makes
 the agent auditable and extensible.
 
 ### Anti-patterns
@@ -1547,7 +1547,7 @@ of each agent's contribution without modifying what the agents produce.
 ```clojure
 {:grimoire    "agent"
  :namespace   "a/"
- :version     "1.1.0"
+ :version     "1.1.1"
  :description "Autonomous agent definition, equipment and tool access, invocation,
                delegation, multi-agent coordination, and quality assurance patterns"
 
@@ -1577,7 +1577,7 @@ of each agent's contribution without modifying what the agents produce.
    {:term "Invocation"
     :definition "A directed, specific task assignment to an agent. The practitioner
                  specifies both the task and the expected output form. The agent
-                 applies its specialization but does not exercise strategic judgment
+                 applies its specialisation but does not exercise strategic judgment
                  about approach."}
    {:term "Delegation"
     :definition "An autonomous task assignment toward a goal. The practitioner

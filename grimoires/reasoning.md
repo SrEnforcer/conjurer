@@ -1525,8 +1525,8 @@ tracing.
 ### Reasoning as the decision layer within orchestrate
 
 Workflow decisions — which branch to take, when to escalate, when an exception
-applies — belong in `r/decide` rather than in `o/branch` conditionals. `r/decide`
-makes the decision logic explicit, documented, and auditable. `o/branch` routes;
+applies — belong in `r/decide` rather than in core `branch` conditionals. `r/decide`
+makes the decision logic explicit, documented, and auditable. `branch` routes;
 `r/decide` decides.
 
 ```clojure
@@ -1609,7 +1609,7 @@ into audience-appropriate communication.
 ```clojure
 {:grimoire    "reasoning"
  :namespace   "r/"
- :version     "1.2.0"
+ :version     "1.2.1"
  :description "Explicit logical inference: deductive, inductive, abductive, and
                analogical reasoning with full derivation tracing, belief revision,
                and chain-of-custody provenance"

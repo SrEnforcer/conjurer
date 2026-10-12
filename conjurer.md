@@ -20,7 +20,7 @@ Conjurer is a language built for this different machine. Its wager is the opposi
 
 The name carries more than etymology. It carries the entire design philosophy.
 
-**From Clojure's `conj`.** Clojure's `conj` function adds an element to a collection while respecting the collection's natural structure. Add to a vector and the element appears at the end; add to a list and it appears at the front. The function understands the inherent character of each data structure and works *with* it rather than imposing uniform behavior.
+**From Clojure's `conj`.** Clojure's `conj` function adds an element to a collection while respecting the collection's natural structure. Add to a vector and the element appears at the end; add to a list and it appears at the front. The function understands the inherent character of each data structure and works *with* it rather than imposing uniform behaviour.
 
 ```clojure
 (conj [1 2 3] 4)   ;; => [1 2 3 4]  — vector: appends
@@ -31,7 +31,7 @@ Conjurer does the same for LLMs. It works with the model's natural strengths —
 
 **From the act of conjuring.** To conjure is to summon something into existence through seemingly magical means, yet with deliberate intent and understanding of underlying principles. This is precisely what happens when a Conjurer invocation is processed: the practitioner states what should exist, and the system brings it into being through trained understanding of patterns, structures, and relationships. The practitioner who conjures is not commanding — they are *invoking*. The word suggests collaboration, not dictation.
 
-**From the grimoire tradition.** In historical magical practice, a grimoire is a textbook of spells — not a collection of arbitrary incantations but an organized body of knowledge, each spell encoding expertise about how to summon a particular kind of effect. Conjurer's libraries are grimoires in precisely this sense: thematic collections of invocations, each encoding deep domain expertise, each a literate artifact that teaches as much as it specifies.
+**From the grimoire tradition.** In historical magical practice, a grimoire is a textbook of spells — not a collection of arbitrary incantations but an organised body of knowledge, each spell encoding expertise about how to summon a particular kind of effect. Conjurer's libraries are grimoires in precisely this sense: thematic collections of invocations, each encoding deep domain expertise, each a literate artefact that teaches as much as it specifies.
 
 ---
 
@@ -101,7 +101,7 @@ A single `context` declaration slightly biases how the system interprets ambiguo
   :entities {:transaction [:amount :currency :timestamp :counterparty]
              :account     [:id :balance :currency :risk-rating]})
 
-;; This terse invocation is now fully determined:
+;; This terse invocation is now largely determined:
 (conjure transaction-processor)
 
 ;; Semantic gravity fills in: PSD2 strong authentication, AML monitoring,
@@ -194,7 +194,7 @@ When constraints conflict — and in real systems they always eventually conflic
 
 Not all values in an invocation are equally committed. Some are bound — the practitioner has decided, and no substitution is acceptable. Some are leanings — preferences honoured when constraints permit. Some are illustrative — example values the system may freely replace. Conjurer makes this gradient *explicit* at the granularity where the decision lives: beside the value itself.
 
-This is a different concern from intent topology. Topology addresses capability prioritization — which whole features are load-bearing. Calibrated certainty addresses value commitment — how strongly a specific number, keyword, or string binds the manifestation.
+This is a different concern from intent topology. Topology addresses capability prioritisation — which whole features are load-bearing. Calibrated certainty addresses value commitment — how strongly a specific number, keyword, or string binds the manifestation.
 
 ```clojure
 (conjure transaction-screening
@@ -216,7 +216,7 @@ The honesty matters. A language that pretends to deliver guarantees it cannot en
 
 The practitioner-system relationship in Conjurer is not command-and-execute. It is co-authorship.
 
-The system does not merely execute specifications — it participates in clarifying them, surfacing tensions within them, and proposing improvements the practitioner had not anticipated. A system processing `(conjure checkout-flow :handles [:cart :payment :confirmation])` might manifest the artifact *and* note: "The payment step has no error-recovery path for gateway timeouts — I've added exponential retry with graceful degradation, but you may want to review the fallback messaging tone." This is not overreach. It is what a skilled collaborator does.
+The system does not merely execute specifications — it participates in clarifying them, surfacing tensions within them, and proposing improvements the practitioner had not anticipated. A system processing `(conjure checkout-flow :handles [:cart :payment :confirmation])` might manifest the artefact *and* note: "The payment step has no error-recovery path for gateway timeouts — I've added exponential retry with graceful degradation, but you may want to review the fallback messaging tone." This is not overreach. It is what a skilled collaborator does.
 
 Collaborative discovery is surfaced through three constructs: `explain`, which makes the system's interpretive choices transparent on demand; `meta-query`, which lets the practitioner ask questions about the manifestation's assumptions and trade-offs; and `witness`, which captures the system's reasoning non-invasively as the session unfolds.
 
@@ -234,13 +234,13 @@ The truths read in four movements: the nature of evidence (what an artefact can 
 
 The code is a witness, not a confession. A function name suggests a purpose but does not state one; a passing test attests behaviour but not the reason for it; a module boundary reveals a decision but not why it was made or what was rejected. What an artefact *does* can be read directly; what its author *meant* must be inferred, and the inference is always partial. Conjurer never collapses the two — which is why `exhume` grades every recovered claim as attested or inferred, and why the implementation is always a derivative the specification can regenerate, never the source of truth itself.
 
-### The artefact records the organization as much as the intent
+### The artefact records the organisation as much as the intent
 
-A module boundary is evidence of a decision — but not always a decision about the domain. Systems come to mirror the communication structure of the teams that build them, so a seam in the code may record an org chart, a reporting line, or a handoff that no longer exists, rather than anything true about the problem. Reading intent from structure therefore demands one more distinction beyond deliberate-versus-accidental: domain-motivated versus organization-motivated. A recovered bounded context that was really a team boundary will mislead every future decision that trusts it as domain truth — the model inherits the org chart's arbitrariness while claiming the domain's authority. When exhuming, grade the two apart; when the evidence cannot tell them apart, that inability is itself a finding. The code remembers who built it, not only why.
+A module boundary is evidence of a decision — but not always a decision about the domain. Systems come to mirror the communication structure of the teams that build them, so a seam in the code may record an org chart, a reporting line, or a handoff that no longer exists, rather than anything true about the problem. Reading intent from structure therefore demands one more distinction beyond deliberate-versus-accidental: domain-motivated versus organisation-motivated. A recovered bounded context that was really a team boundary will mislead every future decision that trusts it as domain truth — the model inherits the org chart's arbitrariness while claiming the domain's authority. When exhuming, grade the two apart; when the evidence cannot tell them apart, that inability is itself a finding. The code remembers who built it, not only why.
 
 ### Intent is durable; its expressions are perishable
 
-A specification survives what its implementations cannot. Code fixes a thousand details that may betray the intent the moment the environment shifts — a different database, a different consistency model, a different team's conventions — and then the code is wrong while the intent is unchanged. This is why the Conjurer description is the source of truth and the artefacts are projections of it: the durable thing is what was meant, and the perishable thing is any one rendering of it. A model that stays in Conjurer and never becomes code is still the authoritative statement against which every future implementation is measured.
+A specification survives what its implementations cannot. Code fixes a thousand details that may betray the intent the moment the environment shifts (principle I), and then the code is wrong while the intent is unchanged. This is why the Conjurer description is the source of truth and the artefacts are projections of it: the durable thing is what was meant, and the perishable thing is any one rendering of it. A model that stays in Conjurer and never becomes code is still the authoritative statement against which every future implementation is measured.
 
 ### Consistency alone does not establish intent
 
@@ -256,7 +256,7 @@ When a linter forbids what the code does, or a comment claims what the code cont
 
 ### Hiding uncertainty is worse than admitting it
 
-A recovery that presents a guess as a fact is worse than no recovery, because it launders the guess into a premise that every later decision then trusts. A language that pretends to deliver guarantees it cannot enforce is worse than one that names its limits and lets practitioners work confidently within them. Calibrated honesty is not weakness; it is what makes the rest trustworthy. This is why certainty in Conjurer is graded rather than assumed, why limits are named rather than glossed, and why confidence is preserved structurally all the way through to emission.
+A recovery that presents a guess as a fact is worse than no recovery, because it launders the guess into a premise that every later decision then trusts. The same holds for the language itself (principle VII). Calibrated honesty is not weakness; it is what makes the rest trustworthy. This is why certainty in Conjurer is graded rather than assumed, why limits are named rather than glossed, and why confidence is preserved structurally all the way through to emission.
 
 ### Fabricated rationale is the cardinal sin
 
@@ -264,7 +264,7 @@ The strongest temptation, in recovery and in explanation alike, is to supply a p
 
 ### Plural meaning is the nature of meaning, not a defect
 
-That a text supports more than one faithful reading is not a deficiency to be overcome — it is what meaning is. Conjurer treats this as a feature: some ambiguity is a deliberate invitation for judgment, not an error to be specified away, and over-specifying what "warmer" or "more encouraging" means would foreclose good solutions no complete specification would have reached. Productive ambiguity is how the best collaborative work happens. The corollary holds for inference under similarity: an analogy is defeated by the differences it ignores, compatibility is not entailment, and a conclusion drawn from a remote resemblance is worse than no conclusion at all.
+That a text supports more than one faithful reading is not a deficiency to be overcome — it is what meaning is. Conjurer treats this as a feature; productive ambiguity (principle IV) is its working form. The corollary holds for inference under similarity: an analogy is defeated by the differences it ignores, compatibility is not entailment, and a conclusion drawn from a remote resemblance is worse than no conclusion at all.
 
 ### Why is the hardest thing to know
 
@@ -304,7 +304,7 @@ Stated in one line: **Conjurer is an intent-sourced, semantically executed parad
 
 **Conjurer is not a domain-specific language.** DSLs sacrifice generality for expressiveness in a narrow domain. Conjurer is general-purpose — it addresses any domain through its grimoire system — while remaining semantically rich in each of them.
 
-**Conjurer is not a specification language.** Specification languages like TLA+ or Alloy describe systems formally so they can be verified. Conjurer describes systems declaratively so they can be manifested. Verification is not the goal; creation is.
+**Conjurer is not a formal specification language.** Formal specification languages like TLA+ or Alloy describe systems so they can be proved correct. Conjurer describes systems declaratively so they can be manifested, and keeps that description as the authority the build is measured against. Proof is not the goal; creation is.
 
 **Conjurer is not natural language programming.** Natural language is unstructured; Conjurer has syntax, composition rules, and semantic conventions. The structure is not a tax on expressiveness — it is what makes invocations composable, context-aware, and reusable across sessions.
 
@@ -316,14 +316,14 @@ Stated in one line: **Conjurer is an intent-sourced, semantically executed parad
 
 ## The grimoire ecosystem
 
-Conjurer's standard library is organized into grimoires — thematic collections of invocations, each encoding specialized expertise. Every grimoire is a literate programming artifact: philosophy, function specifications, and worked examples woven together as a unified document.
+Conjurer's standard library is organised into grimoires — thematic collections of invocations, each encoding specialised expertise. Every grimoire is a literate programming artefact: philosophy, function specifications, and worked examples woven together as a unified document.
 
 The grimoires are peers, not a hierarchy. `core` is foundational in the sense that its constructs appear in all programs — but `semantics` is not less important than `domain`; they address different concerns with equal depth.
 
 | Grimoire | Namespace | What it encodes |
 |---|---|---|
 | **core** | _(none)_ | The language itself — fundamentals, composition, abstraction (`spell`, `charm`, `incantation`), execution primitives, certainty contracts (`given`/`ensure`), reflection, and ecosystem connectives (`charter`, `target`, `asset`, `handover`, `grimoire`) |
-| **domain** | `d/` | Knowledge extraction: exploring documents, modeling domains, resolving conflicts between sources |
+| **domain** | `d/` | Knowledge extraction: exploring documents, modelling domains, resolving conflicts between sources |
 | **data** | `data/` | The full data lifecycle: schema definition, generation, transformation, validation, provenance, and privacy |
 | **web** | `w/` | Web development: style extraction, component generation, full-stack prototyping, accessibility-first design |
 | **semantics** | `s/` | Deep textual understanding: multi-model analysis, perspectival interpretation, dialectical synthesis |
@@ -345,27 +345,31 @@ Sessions end. Projects do not.
 
 This is the gap that the ecosystem layer addresses. A Conjurer session produces knowledge — domain models, design decisions, semantic analyses, workflow specifications. Without persistence, that knowledge evaporates when the chat closes. The next session starts from scratch. The same decisions get re-made, re-argued, sometimes reversed without anyone remembering why they were made in the first place. This is project entropy: the gradual degradation of shared understanding through context loss.
 
-The `.cnj` file is the antidote. Every serious Conjurer project produces one — a structured, version-controlled artifact that accumulates the project's intellectual history in the language of the domain itself. Not a chat transcript (unstructured, verbose, tool-specific). Not a requirements document (prose, loses the reasoning). A `.cnj` file is machine-parseable, human-readable, Git-friendly, and composable. Drop it into any editor that understands Conjurer and the full project context is restored instantly.
+The `.cnj` file is the antidote. Every serious Conjurer project produces one — a structured, version-controlled artefact that accumulates the project's intellectual history in the language of the domain itself. Not a chat transcript (unstructured, verbose, tool-specific). Not a requirements document (prose, loses the reasoning). A `.cnj` file is machine-parseable, human-readable, Git-friendly, and composable. Drop it into any editor that understands Conjurer and the full project context is restored instantly.
 
-### The four ecosystem constructs
+### The ecosystem constructs
 
-Four constructs in `core` operate at this project level rather than within a session:
+Six constructs in `core` operate at this project level rather than within a session:
 
 **`charter`** is the session anchor — the first construct in every `.cnj` file. It captures the problem domain, goals, audience, a dated decision log, and open questions. Every session that attaches a `.cnj` file reads the `charter` first and continues without re-explanation. The decision log is particularly important: decisions that were made and then forgotten are a primary source of project entropy. An append-only, dated, reasoned log prevents this.
 
-**`target`** declares the implementation form of a specific output: which language, which framework, which team standard, which artefacts to produce. Most domain knowledge stays as Conjurer permanently — it is the authoritative specification. Only specific surfaces are declared as targets and materialised into code or other artefacts. This selective materialisation is a deliberate design choice, not an accident: most of what is interesting and durable about a domain is better expressed in Conjurer than in TypeScript.
+**`target`** declares the implementation form of a specific output: which language, which framework, which team standard, which artefacts to produce. Only specific surfaces are declared as targets and materialised into code or other artefacts; the rest stays as Conjurer (see *Selective materialisation* below).
 
 **`asset`** registers external capabilities — coding standards, style guides, component libraries, domain vocabularies — making them referenceable by name throughout the project. A team's coding standard registered as an asset is not an invisible convention carried in developers' heads. It is an inspectable, versioned, agent-visible specification that any agent joining the project can fetch and apply. The standard is applied because it was given to the agent, not because the practitioner remembered to mention it.
 
 **`handover`** packages the current session's context and transfers it to a specialist agent — another LLM instance, a code-generation agent, a documentation agent. The handover is not a prompt. It is a structured context object containing the charter, the domain model, the relevant target specifications, the registered assets, and the decision log. Everything the receiving agent needs is explicit, complete, and inspectable.
 
+**`materialise`** performs what a `target` declares, in two phases: a deterministic preflight that resolves references and lists the files to be written, then semantic generation from that plan. The plan can be inspected before anything is generated, and generation halts by default when a reference is unresolved.
+
+**`grimoire`** packages a practitioner's own spells, lore, and shapes into a named, versioned namespace, registered with `asset` so that it travels with the project like any standard.
+
 ### The boundary between core and orchestrate
 
-One distinction is worth making explicit. `orchestrate` coordinates *runtime service operations*: workflows, sagas, circuit breakers, scheduled jobs. These are things that happen inside a running system. `handover` coordinates *LLM agent context across sessions and tools*: this is an entirely different concern. The placement of `handover` in `core`'s ecosystem layer, alongside `charter`, `target`, and `asset`, reflects this: these four constructs operate at the project and tooling level, not at the runtime service level.
+One distinction is worth making explicit. `orchestrate` coordinates *runtime service operations*: workflows, sagas, circuit breakers, scheduled jobs. These are things that happen inside a running system. `handover` coordinates *LLM agent context across sessions and tools*: this is an entirely different concern. The placement of `handover` in `core`'s ecosystem layer, alongside `charter`, `target`, `asset`, `materialise`, and `grimoire`, reflects this: the ecosystem constructs operate at the project and tooling level, not at the runtime service level.
 
 ### Selective materialisation
 
-A single Conjurer project may produce artefacts of several different kinds — and some parts may produce nothing at all except Conjurer specification. This is not a failure mode. A beautifully articulated domain model that stays in Conjurer is the authoritative specification against which all implementations are eventually measured. The implementations are derivatives; the Conjurer description is the source of truth.
+A single Conjurer project may produce artefacts of several different kinds — and some parts may produce nothing at all except Conjurer specification. This is not a failure mode: as *Intent is durable; its expressions are perishable* argues, a model that never becomes code is still the authority every implementation is measured against.
 
 The `target` construct makes materialisation decisions explicit. A project might materialise three REST endpoints in TypeScript, a PostgreSQL schema, and a Markdown architecture document — while leaving the entire domain model, all business rules, and all classification schemes as Conjurer. The `.cnj` file declares which is which. Nothing is accidentally omitted; nothing is accidentally generated.
 

@@ -14,7 +14,7 @@ What differs is their purpose: grimoires encode reusable capability;
 ## Part I: Grimoire structure
 
 A grimoire is a thematic spellbook — a collection of related invocations
-organized around a coherent domain or capability. Every grimoire in the
+organised around a coherent domain or capability. Every grimoire in the
 Conjurer ecosystem follows the structure defined here. Consistency is not
 bureaucratic uniformity; it is what makes grimoires composable, navigable,
 and extensible by anyone who understands the pattern.
@@ -23,7 +23,7 @@ and extensible by anyone who understands the pattern.
 
 Every grimoire contains these sections, in this order:
 
-```
+```text
 1. Title and one-paragraph purpose statement
 2. Philosophy
    — Why this grimoire exists
@@ -50,7 +50,7 @@ commonly underwritten. It must answer three questions before presenting any
 construct:
 
 **Why does this grimoire exist?** Not what it does — why it is a distinct
-library rather than part of another grimoire. What problem does organizing
+library rather than part of another grimoire. What problem does organising
 these invocations together solve? What would practitioners lose if this
 grimoire did not exist?
 
@@ -243,6 +243,9 @@ constructions that name the subject.
 Optional parameters are indicated by their default or by a comment. The
 `:manifest` parameter appears last. Clojure conventions apply: keywords for
 named parameters, vectors for ordered collections, maps for keyed data.
+The bar `|` separates alternatives in a signature only; it is documentation
+notation, not Conjurer syntax. In an invocation or a `.cnj` file, a choice
+among allowed values or types is written `(one-of ...)`.
 
 **Cross-references** — When a construct's behaviour depends on another
 grimoire's constructs, the dependency is named explicitly. "See `d/explore`
@@ -288,7 +291,7 @@ to encode project-level rather than domain-level knowledge.
 Every `.cnj` file follows this section order. Only `charter` is mandatory;
 all other sections are added as the project develops.
 
-```
+```text
 Section 1: charter        — session anchor; always first
 Section 2: asset          — external standards and capabilities
 Section 3: assume         — operative constraints
@@ -413,7 +416,7 @@ Operative constraints: what the team and environment actually look like.
 The domain semantic frame that applies to all subsequent invocations.
 
 ```clojure
-(context establish project-context
+(context project-context
   :domain      :domain-keyword
   :regulations [:regulation ...]
   :entities    {:entity-name [:attribute ...] ...}

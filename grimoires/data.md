@@ -1144,8 +1144,8 @@ than improvised during an incident.
 
 #### Design rationale
 
-The grimoire's founding metaphor is "schema as contract," and until now that has
-been a metaphor: a schema describes structure, and structure is *part* of an
+The grimoire's founding metaphor is "schema as contract," and without
+`data/contract` that would stay a metaphor: a schema describes structure, and structure is *part* of an
 agreement, but a real contract between a data producer and its consumers promises
 much more than shape. It promises the data will be *there* (availability), will
 be *recent* (freshness), will be *complete* (no surprise nulls), will *keep its
@@ -1606,7 +1606,7 @@ definition in a domain model should map directly to a `data/schema`.
 ```clojure
 {:grimoire    "data"
  :namespace   "data/"
- :version     "2.1.0"
+ :version     "2.1.1"
  :description "Complete data lifecycle: schema definition, generation,
                transformation, validation, expectations, contracts,
                profiling, lineage, and privacy"
