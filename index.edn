@@ -1148,7 +1148,7 @@
    :synopsis  "Recovers a domain model from source (entities, relationships, operations, invariants), grading each as attested or inferred"
    :accepts   [:source]
    :produces  [:domain-model]
-   :key-params [:from :recover :focus :confidence :emit :manifest]}
+   :key-params [:from :recover :focus :grade :emit :manifest]}
 
   x/infer-conventions
   {:grimoire  "exhume"
@@ -1172,7 +1172,7 @@
    :synopsis  "Reconstructs the decision log behind a codebase from git history, comments, and structure; separates what from why by confidence"
    :accepts   [:source]
    :produces  [:charter-decisions]
-   :key-params [:from :recover :confidence :emit :manifest]}
+   :key-params [:from :recover :grade :emit :manifest]}
 
   x/charter
   {:grimoire  "exhume"

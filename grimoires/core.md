@@ -2203,6 +2203,29 @@ invocation runs, postconditions hold of the result. The dotted arrow marks
 that qualifiers are not part of that time-flow — they apply *inside* the
 invocation, at the granularity of individual values.
 
+### Confidence
+
+Qualifiers and contracts state how firmly the *practitioner* is committed.
+Results state how firmly the *system* knows what it reports, and the language
+uses one vocabulary for that, on two axes.
+
+| Axis | Question | Values |
+|---|---|---|
+| Provenance | How was this obtained? | `:attested` (read directly from a source), `:strongly-inferred` (inferred from converging evidence), `:speculative` (a plausible reading the evidence does not settle) |
+| Degree | How sure is the claim? | `:high`, `:medium`, `:low` |
+
+A result reports `:confidence {:provenance :strongly-inferred :degree :high}`.
+Because the two value sets do not overlap, either axis alone may be written
+as shorthand: `:confidence :attested`, `:confidence :medium`. A number may
+stand for degree only with its basis named — `:confidence {:degree 0.83 :basis
+:historical-false-positives}` — because an unexplained figure is the false
+precision the ground truths warn against.
+
+`:confidence` is never an instruction. A request to grade output uses
+`:grade` (`x/recover-model :grade :each`); an agent's stance towards its own
+uncertainty is its `:disposition` (`a/define :style {:disposition
+:calibrated}`).
+
 ---
 
 ## Part V: Semantic typing and expressions
@@ -2409,7 +2432,7 @@ practitioner asks why, understanding develops, the specification sharpens.
     :rejected  "Requires offline training batch; incompatible with real-time
                 scoring requirement from domain context"}]
 
- :confidence 0.83
+ :confidence {:provenance :strongly-inferred :degree :high}
  :note "High confidence on scoring logic; moderate on alert thresholds —
         these should be calibrated against real transaction data before
         going to production."}
@@ -3744,6 +3767,13 @@ vocabulary on which domain-specific abstractions are built.
     :definition "Declarative postcondition. States properties that must hold
                  of the manifested artefact, with explicit honesty about which
                  enforcement layer verifies each (MCP / LLM / target tooling)."}
+   {:term "Confidence"
+    :definition "What a result reports about how well the system knows it, on
+                 two axes: provenance (:attested, :strongly-inferred,
+                 :speculative) and degree (:high, :medium, :low). A number
+                 stands for degree only with its basis named. :confidence
+                 is never an instruction; requests use :grade and agents
+                 declare a :disposition."}
    {:term "Certainty spectrum"
     :definition "The gradient from bit-deterministic (MCP results, structural
                  numerics) through semantically anchored (LLM-honoured intent)
