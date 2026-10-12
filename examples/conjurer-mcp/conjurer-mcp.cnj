@@ -15,7 +15,7 @@
 (charter "Conjurer MCP Toolchain"
   :version  "0.1.0"
   :created  "2026-06-05"
-  :updated  "2026-06-05"
+  :updated  "2026-10-12"
   :domain   "A local-first Model Context Protocol server, and companion VS Code
              extension, that serve targeted Conjurer specification content —
              symbols, sections, examples, validation — to an IDE coding agent so
@@ -103,20 +103,22 @@
                 FROM the updated .cnj. The server never uses itself during its own
                 bootstrap; there is no chicken-and-egg. validate_cnj :mode :recovered
                 exists for recovering OTHER codebases later, not for this project's
-                own creation."}]
+                own creation."}
+    {:id :local-distribution
+     :date "2026-10-12"
+     :decision "v1 is a local build (npm link or file path); no npm publication.
+                The project has one user."}
+    {:id :validation-depth-v2
+     :date "2026-10-12"
+     :decision "v2 validation adds check_references first: every :references
+                file, :decision/<id> in :supersedes and f/hoist :into, and target
+                named in materialise or :from resolves, under the name-equivalence
+                rule. validate_symbol_usage follows, checking parameters against
+                index.edn :key-params and expressions against the prelude.
+                lint_conventions is not planned: style belongs in review, not in
+                a validator that blocks."}]
 
-  :open [
-    "Distribution: is npm publication of the server in scope for v1, or is a
-     local build (npm link / file path) sufficient for the solo use case?"
-    "Should the spec source be located by env var (CONJURER_SPEC_PATH),
-     CLI flag, config file, or upward directory search — or several with a
-     precedence order? (See spec-source-resolution in mcp-server.cnj :open.)"
-    "Does the VS Code extension talk to the spec via the shared core directly,
-     or by spawning the MCP server as a subprocess and speaking MCP to it?
-     (Deferred until server v1 is stable — see vscode-extension.cnj.)"
-    "Deferred validation depth: validate_symbol_usage, check_references, and
-     lint_conventions (sentence-case, fence balance, no numeric prefixes) —
-     v2 candidates, scored but not in v1."]
+  :open []
 
   :outputs {
     :shared-core        (target :typescript :standard :tsf-plus-plus)
