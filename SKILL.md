@@ -129,8 +129,8 @@ is what gets saved; everything else flows from it.
 ;; Graceful degradation
 (ward recommendations
   :protect  (conjure ml-recommendations :timeout 200)
-  :recover  {timeout?           (conjure cached-recommendations)
-             model-unavailable? (conjure popularity-recommendations)}
+  :recover  [timeout?           (conjure cached-recommendations)
+             model-unavailable? (conjure popularity-recommendations)]
   :degrade-gracefully true)
 ```
 

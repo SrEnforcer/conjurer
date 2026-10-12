@@ -19,6 +19,17 @@ Earlier exploratory evolution is treated as pre-history.
 - British spelling completed in `conjurer.md`, `README.md`, `template.md`, `quick-reference.md`, `agent.md` (1.1.0 → 1.1.1) and `exhume.md` (1.1.1 → 1.1.2), including catalog → catalogue in prose. Symbol names (`e/formalize`, `e/localize`, `w/analyze`) and parameter keywords are unchanged.
 - `quick-reference.md`: the `materialise` row gains its Part column and follows the construct-map order.
 
+### Changed
+
+- Semantic fixes after the 2026-10-12 specification review (round 2). `index.edn` 1.6.0 → 1.7.0 for key-parameter changes; no symbol was added, removed or renamed.
+- `branch :cases` and `ward :recover` are vectors of pattern–operation pairs, tried in the order written, first match wins. As maps they relied on an order EDN does not have, while `branch` examples used overlapping predicates and the `ward` note matched "in declaration order". A new `branch` implementation note states the matching rule.
+- Odd-arity parameters removed: `ward :escalate :when p` → `:escalate-when p`; `refine :deepen :by n` → `:deepen n`; `:for-each resource-in coll` → `:for-each coll`. `template.md` gains a "Form shape" rule: `(head name :param value ...)`, with value qualifiers, anonymous forms and relational forms as the named exceptions, and parameters always in pairs.
+- `ensure` no longer over-claims a layer: `:verify-via :mcp` applies only where the MCP server offers a structural checker for the artefact, and otherwise falls back to `:llm`, said out loud; `:on-violation :halt` defined for layers that run after materialisation (`:tests`, `:lint`).
+- `conjure` lists `:within` (the attachment point for `ensure`, used throughout but never declared); `ensure` explains why it attaches while `given` stands alone.
+- `refine` gains `:because` (used in core and `conjurer.md`, never declared) and may refine a `spell`: the pattern changes for later casts, earlier manifestations are not regenerated.
+- Lifetimes given an end: `given :scope :session` lasts until a later `given` states a contrary fact; `context :active-in :block` lives within the `using` form that applies it; `given :scope :block` names real enclosing forms instead of `do`.
+- Grimoire versions: core 2.3.1 → 2.4.0, reasoning 1.2.1 → 1.2.2, taxonomy 1.1.0 → 1.1.1, orchestrate 2.1.0 → 2.1.1 (a nameless `ward` with `:protect nil` in the circuit-breaker template replaced by a plain fallback). `README.md` and `SKILL.md` examples follow the new forms.
+
 ## 1.2.0 - 2026-07-01
 
 ### Added

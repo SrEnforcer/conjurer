@@ -1541,9 +1541,9 @@ makes the decision logic explicit, documented, and auditable. `branch` routes;
     {:name      :route-decision
      :operation (branch route-on-eligibility
                   :on eligibility-result
-                  :cases {:approved       (conjure issue-offer)
+                  :cases [:approved       (conjure issue-offer)
                           :referred        (o/human-approval :reviewers [:underwriter])
-                          :declined        (conjure generate-decline-letter)})}])
+                          :declined        (conjure generate-decline-letter)])}])
 ```
 
 ### Domain model as the fact base for reasoning
@@ -1609,7 +1609,7 @@ into audience-appropriate communication.
 ```clojure
 {:grimoire    "reasoning"
  :namespace   "r/"
- :version     "1.2.1"
+ :version     "1.2.2"
  :description "Explicit logical inference: deductive, inductive, abductive, and
                analogical reasoning with full derivation tracing, belief revision,
                and chain-of-custody provenance"

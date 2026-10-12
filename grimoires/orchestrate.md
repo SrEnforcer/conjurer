@@ -1254,7 +1254,7 @@ but the pattern is universal.
   :protect    (retry service-call :attempts 3 :backoff :exponential)
   :open-when  {:error-rate 0.5 :window-size 20 :min-calls 10}
   :reset-after (seconds 30)
-  :fallback   (ward :protect nil :recover {open? graceful-degradation}))
+  :fallback   (conjure degraded-response :for service-name))
 ```
 
 ---
@@ -1264,7 +1264,7 @@ but the pattern is universal.
 ```clojure
 {:grimoire    "orchestrate"
  :namespace   "o/"
- :version     "2.1.0"
+ :version     "2.1.1"
  :description "Workflow definition, coordination patterns, event-driven and
                scheduled triggering, dynamic fan-out, error recovery, and
                observability for complex multi-service operations"

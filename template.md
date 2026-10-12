@@ -239,6 +239,16 @@ Technical terms are used precisely; when a term's meaning might be ambiguous,
 it is defined on first use. Passive voice is avoided in favour of active
 constructions that name the subject.
 
+**Form shape** — A construct is written `(head name :param value ...)`: the
+head, a name, then keyword–value pairs. Three kinds of form take no name, by
+design: value qualifiers (`certain`, `prefer`, `allow`), which wrap a single
+value; anonymous forms (`~>`, `charm`, `assume`, `given`, `ensure`), which are
+identified by where they stand; and relational forms (`handover :to`,
+`f/reassess :of`, `f/hoist :of`), whose first pair names what they act on. A
+construct with a body (`using`, `as`, `spell`, `charm`) places it after the
+pairs. Parameters always come in pairs: a keyword is never a value-less flag,
+and a value is one form — `:deepen 3`, not `:deepen :by 3`.
+
 **Code style** — Signatures show all parameters, even optional ones.
 Optional parameters are indicated by their default or by a comment. The
 `:manifest` parameter appears last. Clojure conventions apply: keywords for
