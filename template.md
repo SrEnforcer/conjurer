@@ -258,7 +258,9 @@ Optional parameters are indicated by their default or by a comment. The
 named parameters, vectors for ordered collections, maps for keyed data.
 The bar `|` separates alternatives in a signature only; it is documentation
 notation, not Conjurer syntax. In an invocation or a `.cnj` file, a choice
-among allowed values or types is written `(one-of ...)`.
+among allowed values or types is written `(one-of ...)`. Expressions and
+predicates in examples use the prelude (`core.md`, Part V); any other head is
+a semantic function and should read as one.
 
 **Cross-references** — When a construct's behaviour depends on another
 grimoire's constructs, the dependency is named explicitly. "See `d/explore`

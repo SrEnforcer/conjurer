@@ -38,7 +38,7 @@ distinct concern; together they form the complete core vocabulary.
 | II   | Composition and transformation | `ritual` · `~>` · `transmute` · `weave` · `lore` · `spell` · `charm` · `incantation` |
 | III  | Execution primitives           | `sequence` · `parallel` · `branch` · `retry` · `intercept` · `ward`     |
 | IV   | Certainty and contracts        | `certain` · `prefer` · `allow` · `given` · `ensure`                     |
-| V    | Semantic typing                | `shape`                                                                 |
+| V    | Semantic typing and expressions | `shape` · the prelude                                                  |
 | VI   | Reflection and perspective     | `explain` · `meta-query` · `witness` · `as`                             |
 | VII  | Session and ecosystem          | `charter` · `target` · `asset` · `handover` · `materialise` · `grimoire` |
 
@@ -1140,8 +1140,9 @@ language already enforces in `materialise`, applied to abstraction.
 #### Parameters
 
 **`:expands-to`** — A deterministic expression over the incantation's
-parameters that produces a sequence of invocations. Expansion may reference
-only its parameters and constructs already registered in the session — never
+parameters that produces a sequence of invocations. Expansion may use only
+prelude forms (Part V), its parameters and spells already registered in the
+session — never
 perform manifestation itself. An incantation may generate spells and
 invocations; it may not generate other incantations.
 
@@ -1993,7 +1994,9 @@ invocations; a postcondition belongs to one output.
 **`:structural`** — Properties verifiable by inspecting the artefact:
 file structure, type signatures, presence of required fields, numeric bounds
 on configuration values. These are the *hardest* postconditions because
-they can be checked mechanically.
+they can be checked mechanically — provided they are written in the prelude
+(Part V). A structural predicate outside the prelude is a semantic function
+and is honoured at the `:llm` layer.
 
 **`:semantic`** — Properties expressible in natural language but not
 mechanically verifiable from structure alone: "error messages are
@@ -2054,7 +2057,7 @@ is only as strong as the model's commitment.
   :within (ensure
     :structural [
       (every-field-has-label?)
-      (form-action-is :post)
+      (= form-action :post)
       (csrf-token-included?)]
     :semantic [
       "error messages are kind and actionable, not blaming"
@@ -2078,9 +2081,9 @@ is only as strong as the model's commitment.
   :tier :standard
   :within (ensure
     :structural [
-      (<= :requests-per-minute 300)
-      (>= :burst-allowance     30)
-      (in? :algorithm #{:token-bucket :sliding-window})]
+      (<= requests-per-minute 300)
+      (>= burst-allowance     30)
+      (in? algorithm #{:token-bucket :sliding-window})]
     :verify-via [:mcp]
     :on-violation :halt))
 
@@ -2106,7 +2109,7 @@ is only as strong as the model's commitment.
     :structural [
       (no-destructive-step-without :dual-write-window)
       (every-step-has :rollback)
-      (total-locked-time <= (seconds 5))]
+      (<= total-locked-time (seconds 5))]
     :semantic [
       "operational runbook is written for a 3am page, not a planning meeting"]
     :behavioural [
@@ -2166,11 +2169,13 @@ invocation, at the granularity of individual values.
 
 ---
 
-## Part V: Semantic typing
+## Part V: Semantic typing and expressions
 
 The `shape` construct describes what data *means*, not just the form it
 takes. It is the bridge between Conjurer's declarative surface and the
-type-aware tooling of materialised targets.
+type-aware tooling of materialised targets. The prelude, which closes this
+part, lists the expressions every processor understands and says which of
+them a deterministic processor may evaluate.
 
 ---
 
@@ -2272,6 +2277,41 @@ concept; a schema is an implementation of it.
     {:value 10000 :currency "JPY" :scale 0}  ;; ¥10,000 — no minor units in JPY
     {:value 150 :currency "GBP" :scale 2}])  ;; £1.50
 ```
+
+---
+
+### The prelude
+
+Conjurer has no general-purpose expression language, and does not want one.
+It has a prelude: a short, closed list of forms that every processor
+understands and that a deterministic processor — the MCP server, an
+incantation expander, a structural postcondition check — may evaluate.
+Every other head is a *semantic function*, resolved by the model.
+
+| Family | Forms | Examples |
+|---|---|---|
+| Literals | strings, numbers and ratios, keywords, booleans, `nil`, vectors, maps, sets | `"EUR"`, `1/5`, `:shipped`, `#{:token-bucket :sliding-window}` |
+| Unit forms | a head naming a unit or currency, one magnitude; the family is open, the shape is fixed | `(eur 10000)`, `(minutes 5)`, `(ms 12)`, `(px 200)`, `(percent 50)` |
+| Type forms | `string` `integer` `decimal` `boolean` `keyword` `date` `datetime` `uuid` `url` `list` `one-of`, followed by modifiers (flags or pairs) | `(integer :min 1 :max 9)`, `(string :iso-4217)`, `(list :of medication-record)`, `(one-of :gradient :marbled)` |
+| Predicates | prefix only, free-variable convention: `=` `not=` `<` `<=` `>` `>=` `in?` `and` `or` `not` | `(<= requests-per-minute 300)`, `(in? algorithm #{:token-bucket :sliding-window})` |
+| Access | keyword lookup on a value | `(:worst-anomaly profile)` |
+| Expansion | `for` over a collection, `str`, and accessors over a domain-model binding: `entities-of`, `fields-of`, `relations-of` | `(for [entity (entities-of model)] ...)` |
+
+A free variable in a predicate names a field of the value under test:
+`(<= requests-per-minute 300)` reads the `requests-per-minute` of the
+configuration being checked. Predicates are written in prefix form only.
+
+A domain type such as `(icd-10-code :valid :current)`, and any head not in
+the table — `(every-field-has-label?)`, `(score-transaction transaction)`,
+`(read-file "src/payments/processor.ts")` — is a semantic function. That is
+not a defect: most of what Conjurer expresses is semantic. The prelude only
+marks where determinism ends, and two rules follow from it. An incantation's
+`:expands-to` may use prelude forms, its parameters and registered spells,
+and nothing else. A structural `ensure` predicate is mechanically checkable
+only when it is written in the prelude; otherwise it is honoured at the
+`:llm` layer, whatever `:verify-via` names, and the processor says so.
+
+The prelude is listed for tools under `:prelude` in `index.edn`.
 
 ---
 
@@ -3711,6 +3751,12 @@ vocabulary on which domain-specific abstractions are built.
                  and which remain as Conjurer specification. Most domain
                  knowledge stays in Conjurer; only the necessary surfaces
                  are materialised into target languages."}
+   {:term "Prelude"
+    :definition "The closed list of expression forms every processor understands:
+                 literals, unit forms, type forms, prefix predicates, keyword
+                 access, and expansion over bindings. Only prelude forms may be
+                 evaluated by a deterministic processor; every other head is a
+                 semantic function resolved by the model."}
    {:term "Two-phase materialisation"
     :definition "Materialisation has a deterministic preflight (resolve
                  references, order dependencies, list target files, report gaps —
@@ -3896,6 +3942,15 @@ understood the intent to be, any ambiguities resolved and how, which
 alternatives were considered and set aside, and which design decisions were
 made and why. This record is queryable via subsequent `explain` or `meta-query`
 invocations on the witnessed target.
+
+### The prelude
+
+In a deterministic phase — incantation expansion, materialise preflight, a
+structural `ensure` check at the MCP layer — evaluate prelude forms only.
+Never evaluate a semantic function there, and never present its result as
+mechanically verified; flag it and leave it to the model. Outside those
+phases, semantic functions are ordinary: interpret them from their name,
+their arguments and the established context.
 
 ### Shape
 

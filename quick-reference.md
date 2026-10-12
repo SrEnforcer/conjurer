@@ -8,8 +8,10 @@ see the individual grimoire files.
 ## core — The language itself
 
 Organised into seven thematic parts: fundamentals, composition, execution,
-certainty contracts, typing, reflection, and ecosystem connectives. See
-`core.md` for the full construct map and signatures.
+certainty contracts, typing and expressions, reflection, and ecosystem
+connectives. See `core.md` for the full construct map and signatures. Part V
+also lists the prelude: the expression forms a deterministic processor may
+evaluate (`index.edn` `:prelude`).
 
 | Symbol | Part | Synopsis |
 |---|---|---|

@@ -58,6 +58,10 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 5. **Produce a production-ready manifestation** — no placeholders, no TODOs, no stubs
 6. **Explain significant interpretive choices** transparently in accompanying prose
 
+Expressions: only prelude forms (`core.md`, Part V; `index.edn` `:prelude`) are
+evaluated deterministically; any other head is a semantic function the model
+resolves, and a check that rests on one is reported as `:llm`-level.
+
 When layers disagree: the invocation's explicit parameters win over a
 grimoire's implementation notes (except where a note declares a binding
 exception), and implementation notes win over inferences drawn from examples.

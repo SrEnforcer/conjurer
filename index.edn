@@ -2,8 +2,16 @@
 ;; Machine-readable index of every symbol across all grimoires.
 ;; Use this to route from a symbol name to its grimoire file.
 ;; Fields: :grimoire (filename), :namespace, :synopsis, :accepts, :produces
+;; :prelude lists the expression forms a deterministic processor may evaluate
+;; (core.md, Part V, The prelude); every other head is a semantic function.
 
-{:version    "1.7.0"
+{:version    "1.8.0"
+ :prelude    {:literals   [:string :number :ratio :keyword :boolean :nil :vector :map :set]
+              :units      :open-family
+              :types      [string integer decimal boolean keyword date datetime uuid url list one-of]
+              :predicates [= not= < <= > >= in? and or not]
+              :access     :keyword-lookup
+              :expansion  [for str entities-of fields-of relations-of]}
  :grimoires  [
    {:name "core"       :file "grimoires/core.md"       :namespace nil}
    {:name "domain"     :file "grimoires/domain.md"     :namespace "d/"}
