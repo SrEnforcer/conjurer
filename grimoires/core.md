@@ -56,6 +56,19 @@ constructs read as keywords of Conjurer rather than as calls into a grimoire,
 and prefixing them would imply they are optional in the way a domain library
 is. They are not.
 
+### Names and references
+
+A construct's name may be written as a symbol or as a keyword: `(target :api
+...)` and `(materialise api)` name the same target. A reference resolves by
+name, never by spelling.
+
+Where one form refers to another of a given kind, it writes a keyword
+namespaced by that kind: `:decision/amendment-approval`, `:target/api`,
+`:asset/team-coding-standard`, `:spell/compliant-endpoint`,
+`:shape/monetary-amount`, `:candidate/diff-intent`, and `:core/spell` for a
+construct of the language itself. Every such reference can be checked
+against the declarations in the project by a deterministic processor.
+
 ---
 
 ## Part I: Fundamental invocations

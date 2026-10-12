@@ -247,7 +247,10 @@ identified by where they stand; and relational forms (`handover :to`,
 `f/reassess :of`, `f/hoist :of`), whose first pair names what they act on. A
 construct with a body (`using`, `as`, `spell`, `charm`) places it after the
 pairs. Parameters always come in pairs: a keyword is never a value-less flag,
-and a value is one form — `:deepen 3`, not `:deepen :by 3`.
+and a value is one form — `:deepen 3`, not `:deepen :by 3`. A name may be
+written as a symbol or a keyword; both spellings denote the same name, and
+references to a kind of form use namespaced keywords (`:target/api`), as core
+describes under *Names and references*.
 
 **Code style** — Signatures show all parameters, even optional ones.
 Optional parameters are indicated by their default or by a comment. The
@@ -261,10 +264,14 @@ among allowed values or types is written `(one-of ...)`.
 grimoire's constructs, the dependency is named explicitly. "See `d/explore`
 for domain model format" is better than "a domain model."
 
-**Versioning** — The grimoire version follows semantic versioning. Patch
-versions fix errors in documentation or examples. Minor versions add
-constructs. Major versions change existing construct signatures or semantics.
-Every version change is recorded in `CHANGELOG.md`.
+**Versioning** — Three version lines run independently, each with one owner.
+The specification release is the package version: release-please sets it,
+and the headings of `CHANGELOG.md` follow it. The catalogue version in
+`index.edn` tracks the symbol surface, the key parameters and the prelude.
+Each grimoire's version tracks that grimoire. All three follow semantic
+versioning: patch versions fix errors in documentation or examples, minor
+versions add constructs or parameters, major versions change existing
+signatures or semantics. Every version change is recorded in `CHANGELOG.md`.
 
 ---
 

@@ -213,6 +213,6 @@ Start with [`conjurer.md`](conjurer.md) for the philosophical foundation, then [
 
 ## Status
 
-Conjurer is in **active design phase**. The specifications are conceptual artefacts — they define language semantics for LLM processors, not a compiled runtime. Nothing is published or versioned yet; the design is evolving.
+Conjurer is in **active design phase**. The specifications are conceptual artefacts — they define language semantics for LLM processors, not a compiled runtime. Three version lines run independently: the specification release (the package version, set by release-please and followed by `CHANGELOG.md`), the symbol catalogue (`index.edn`) and each grimoire's own version. The design is still evolving.
 
 MIT
