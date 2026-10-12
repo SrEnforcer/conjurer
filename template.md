@@ -305,23 +305,32 @@ to encode project-level rather than domain-level knowledge.
 
 ### Canonical file structure
 
-Every `.cnj` file follows this section order. Only `charter` is mandatory;
-all other sections are added as the project develops.
+This document is the one place where the structure of a `.cnj` file is
+defined; `core.md` and `quick-reference.md` point here. Every `.cnj` file
+follows this section order. Only `charter` is mandatory; all other sections
+are added as the project develops.
 
 ```text
 Section 1: charter        — session anchor; always first
 Section 2: asset          — external standards and capabilities
 Section 3: assume         — operative constraints
 Section 4: context        — domain semantic frame
-Section 5: domain work    — the intellectual body of the project
-Section 6: target         — implementation declarations
-Section 7: handover       — when ready to materialise (issued, not always present)
+Section 5: abstractions   — lore, shape, spell, grimoire
+Section 6: domain work    — the intellectual body of the project
+Section 7: target         — implementation declarations
+Section 8: foresight      — f/candidate backlog, reassessments in :history
+Section 9: handover       — issued when ready; an event, not always present
 ```
 
 The order reflects stability: `charter` changes slowly and is understood
 first; `handover` is issued at a specific moment and appears last. A reader
 skimming top to bottom understands the project before reaching implementation
-details.
+details. `materialise` has no section: it is an act performed on a target,
+and its plan and results live outside the file.
+
+The sections below describe what each holds and the discipline that goes
+with it. Signatures are not repeated here; each section names the place in
+`grimoires/core.md` (or another grimoire) where its constructs are defined.
 
 ---
 
@@ -329,49 +338,29 @@ details.
 
 The `charter` is the anchor of every `.cnj` file. It is written first and
 updated throughout the project's life. It is the first thing any agent reads
-when opening the file.
-
-```clojure
-(charter "Descriptive Project Title"
-  :version  "0.1.0"             ;; increment when scope or direction changes
-  :created  "YYYY-MM-DD"
-  :updated  "YYYY-MM-DD"        ;; update on every session that changes the file
-  :domain   "concise description of the subject domain"
-  :language :en | :nl | :de    ;; primary language of the domain and outputs
-
-  :goals [
-    "outcome statement — what the project exists to accomplish"
-    "another outcome"]
-
-  :audience {:primary   :audience-keyword
-             :secondary [:audience-keyword ...]}
-
-  :decisions [
-    ;; Append-only. Never delete or modify existing entries.
-    {:date "YYYY-MM-DD"
-     :decision "What was decided and why. Include the reasoning,
-                not just the conclusion."}]
-
-  :open [
-    ;; Resolved questions are removed; new ones are added.
-    "unresolved question that must be answered before proceeding with some aspect"]
-
-  :outputs {
-    :output-name  :conjurer-only        ;; stays as Conjurer specification
-    :output-name  target-invocation     ;; produced by a target declaration below
-    :output-name  handover-invocation}  ;; produced by a specialist agent
-
-  :references ["other-file.cnj"]       ;; other .cnj files this project builds on
-  :tags       [:domain :phase])
-```
+when opening the file. Signature and parameters: `core.md` · `charter`.
 
 **The `:decisions` log** is the most important field in the charter. Decisions
 that are made, understood at the time, and then lost to context are a primary
 source of project entropy. Every significant design decision — choice of
 language, deferral of a feature, resolution of a conflict, agreement on
 a convention — belongs here with its date and rationale. The log is
-append-only: past decisions are never deleted or silently revised. If a
-decision is reversed, a new entry records the reversal and why.
+append-only: past decisions are never deleted or silently revised. A decision
+that anything refers to carries an `:id`; if a decision is reversed, a new
+entry with `:supersedes` names the one it reverses and says why, and the
+reversed entry stays.
+
+```clojure
+:decisions [
+  {:id       :amendment-approval
+   :date     "2025-11-04"
+   :decision "Contract amendments require finance approval before taking effect."}
+  {:id         :small-amendments-self-service
+   :date       "2026-03-02"
+   :supersedes :amendment-approval
+   :decision   "Amendments under €500 take effect without approval; finance reviews
+                them weekly. The approval queue had become the bottleneck."}]
+```
 
 **The `:open` list** is reviewed and updated every session. A question that
 was implicitly answered but never recorded is a latent misunderstanding
@@ -387,62 +376,43 @@ code is measured against. Specific surfaces are declared as `target` or
 ### Section 2: `asset` declarations
 
 Assets register external capabilities — coding standards, style guides,
-component libraries, domain vocabularies — that the project uses.
-
-```clojure
-(asset :standard-name
-  :type        :code-standard | :style-guide | :component-library
-               | :domain-vocabulary | :agent-definition
-  :description "what this asset is and what it governs"
-  :language    :language-keyword
-  :location    "relative/path/to/standard.md"   ;; or URL
-  :version     "semver"
-  :enforces    ["positive constraint applied to all code using this standard"]
-  :prohibits   ["anti-pattern actively avoided"]
-  :applies-to  [:rest-api :spa :types ...]
-  :agent       :agent-name                       ;; specialist agent for this standard
-  :active-in   :project)
-```
-
-Assets appear near the top of the file so that any agent reading the file
-encounters them before domain work. Their `:location` points to a file
-external to the `.cnj` — the standard is maintained independently and
-referenced, not embedded.
+component libraries, domain vocabularies, practitioner grimoires — that the
+project uses. They appear near the top of the file so that any agent reading
+it encounters them before domain work. Their `:location` points to a file
+external to the `.cnj`: the standard is maintained independently and
+referenced, not embedded. Signature and parameters: `core.md` · `asset`.
 
 ---
 
 ### Section 3: `assume`
 
-Operative constraints: what the team and environment actually look like.
-
-```clojure
-(assume
-  :environment    :production-saas | :internal-tool | :prototype | ...
-  :scale          "description of expected load and growth"
-  :team           {:size n :skill-level :keyword}
-  :infrastructure {:existing [:technology ...] :avoid [:technology ...]}
-  :constraints    {:budget :keyword :timeline "description"}
-  :negotiable     [:aspect ...]
-  :non-negotiable [:aspect ...])
-```
+Operative constraints: what the team and environment actually look like —
+scale, team, infrastructure, budget, and what is and is not negotiable.
+Signature and parameters: `core.md` · `assume`.
 
 ---
 
 ### Section 4: `context`
 
-The domain semantic frame that applies to all subsequent invocations.
-
-```clojure
-(context project-context
-  :domain      :domain-keyword
-  :regulations [:regulation ...]
-  :entities    {:entity-name [:attribute ...] ...}
-  :conventions {:convention :value ...})
-```
+The domain semantic frame that applies to all subsequent invocations:
+domain, entities, conventions, regulations. A context takes only a name:
+`(context project-context ...)`. Signature and parameters: `core.md` ·
+`context`.
 
 ---
 
-### Section 5: Domain work
+### Section 5: Abstractions
+
+The project's own vocabulary, declared before the work that uses it: `lore`
+for behavioural patterns and anti-patterns, `shape` for semantic types,
+`spell` for reusable invocation patterns, and `grimoire` when those are
+packaged for use beyond this project. A spell is declared here once and cast
+throughout the domain work below. Definitions: `core.md` · `lore`, `shape`,
+`spell`, `grimoire`.
+
+---
+
+### Section 6: Domain work
 
 The intellectual body of the project: domain exploration, modelling,
 semantic analysis, reasoning, classification. This section grows as the
@@ -466,59 +436,36 @@ understanding of its domain expressed in Conjurer.
              :if   "plan change occurs mid-billing-cycle"
              :then "charge prorated amount for remainder of cycle"
              :strength :definitive}]))
-
-;; Classification
-(def plan-taxonomy
-  (t/define "Subscription Plans"
-    :purpose "Classify plans to determine applicable features and pricing"
-    :categories [...]))
 ```
 
 ---
 
-### Section 6: `target` declarations
+### Section 7: `target` declarations
 
 Implementation declarations: which outputs materialise as code, and how.
-
-```clojure
-(target :output-name
-  :language  :typescript | :python | :clojure | :sql | :markdown | ...
-  :framework :react | :express | :ring | :fastapi | ...
-  :standard  :registered-asset-name
-  :produces  [:rest-api :openapi :ddl :spa :test-suite ...]
-  :scope     [:entity-or-concept ...]
-  :from      domain-binding
-  :via       :direct | :handover
-  :agent     :agent-name)
-```
-
-Targets that stay as Conjurer specification are declared in the charter's
-`:outputs` map as `:conjurer-only` and have no corresponding `target`
-invocation here. A `target` invocation signals intent to produce a concrete
-artefact.
+Outputs that stay as Conjurer specification are declared in the charter's
+`:outputs` map as `:conjurer-only` and have no `target` here. A `target`
+signals intent to produce a concrete artefact; `materialise` performs it.
+Signatures and parameters: `core.md` · `target`, `materialise`.
 
 ---
 
-### Section 7: `handover`
+### Section 8: Foresight
+
+The graded backlog of deliberately deferred capabilities: one `f/candidate`
+per possibility, with its reassessments recorded inside its `:history`. A
+candidate that graduates is closed with `f/hoist`, whose `:into` names the
+decision or target it became (`:decision/...`, `:target/...`). Definitions:
+`grimoires/foresight.md`.
+
+---
+
+### Section 9: `handover`
 
 Issued when the project is ready to transfer scope to a specialist agent.
-Not always present — handovers are events, not persistent declarations.
-
-```clojure
-(handover :to :agent-name
-  :from     :current-session | charter-binding
-  :scope    [:output-name ...]
-  :include  [:charter :domain-model :target-specs :assets :decisions]
-  :briefing "natural-language focus instruction for the receiving agent"
-  :produces [:artefact-type ...]
-  :return-to :current-session | nil
-  :on-completion :merge-results | :notify | :terminal)
-```
-
-The briefing supplements — it does not replace — the structured context
-included via `:include`. The receiving agent reads the charter, assets, domain
-model, and target specs from the package; the briefing directs attention to
-what matters most for the specific scope.
+Not always present — handovers are events, not persistent declarations. The
+briefing supplements — it does not replace — the structured context included
+via `:include`. Signature and parameters: `core.md` · `handover`.
 
 ---
 
@@ -599,6 +546,8 @@ Before a grimoire or `.cnj` file is considered complete, verify:
       better than absent)
 - [ ] All registered `asset` declarations include `:location` pointing to
       the standard file
+- [ ] Every decision that is referred to (by `:supersedes`, `f/hoist :into`
+      or a handover briefing) carries an `:id`
 - [ ] Every `target` references an output declared in the charter's
       `:outputs` map
 - [ ] Every significant design decision made in a session has been appended

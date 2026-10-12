@@ -358,8 +358,9 @@ After an `f/hoist`, the candidate's `:status` is considered `:hoisted`.
 
 **`:date`** — When the promotion happened.
 
-**`:into`** — A reference to the artefact the candidate became: a `charter`
-decision entry, a new `target`, a new spell. This is the forward binding — it lets
+**`:into`** — A reference to the artefact the candidate became, written as a
+namespaced keyword: a `charter` decision (`:decision/<id>`), a new target
+(`:target/<name>`), a new spell (`:spell/<name>`) or construct (`:core/<name>`). This is the forward binding — it lets
 a future reader follow the candidate's history *forward* to the thing that closed
 it, rather than losing the thread at the moment of promotion.
 
@@ -404,7 +405,7 @@ would add a form that records nothing the candidate's own status does not.
 ```clojure
 (f/hoist :of :diff-intent
   :date     "2026-11-20"
-  :into     :charter-decision/x-diff-intent-accepted
+  :into     :decision/x-diff-intent-accepted
   :outcomes [:new-construct :exhume-version-bump :catalog-update]
   :note     "Two consumers and a stable recovery layer made the drift tool worth
              building; promoted into a charter decision to add x/diff-intent to

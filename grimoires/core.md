@@ -2581,7 +2581,8 @@ is its index.
   :goals       ["goal statement" ...]
   :audience    {:primary   :audience-keyword
                 :secondary [:audience-keyword ...]}
-  :decisions   [{:date iso-date :decision "what was decided and why"} ...]
+  :decisions   [{:id keyword :date iso-date :decision "what was decided and why"
+                 :supersedes keyword} ...]
   :open        ["unresolved question" ...]
   :outputs     {output-name output-target-or-keyword ...}
   :references  ["other-file.cnj" ...]
@@ -2604,6 +2605,9 @@ manifestation is eventually evaluated.
 **`:decisions`** — A dated, append-only log of design decisions made during
 the project. Each entry includes the date, the decision, and enough context
 to understand why it was made. This log is the project's institutional memory.
+An entry carries an `:id` as soon as anything refers to it (as
+`:decision/<id>`); a reversal is a new entry whose `:supersedes` names the
+decision it reverses, never an edit of the old one.
 
 **`:open`** — Unresolved questions. Regularly reviewed and resolved; never
 quietly abandoned. An open question that has been implicitly answered but not
@@ -2665,7 +2669,8 @@ decision log prevents this.
     {:date "2025-11-03"
      :decision "CRM integration deferred to phase 2. Phase 1 accepts customer data
                 via CSV import to reduce initial scope and CRM dependency."}
-    {:date "2025-11-04"
+    {:id   :amendment-approval
+     :date "2025-11-04"
      :decision "Contract amendments require finance approval before taking effect.
                 Self-service amendments without approval are out of scope for phase 1."}]
 
@@ -2982,75 +2987,6 @@ are automatically updated on the next session.
 
 ---
 
-### `grimoire`
-
-Packages spells, lore, and shapes into a named, versioned, shareable
-practitioner grimoire — a user-authored spellbook that travels with the
-project like any registered standard.
-
-#### Signature
-
-```clojure
-(grimoire name
-  :namespace "prefix/"                ;; ≥2 characters; must not shadow a standard prefix
-  :version   "semver"
-  :doc       "what domain this spellbook serves"
-  :provides  [prefix/spell ...]
-  :lore      [lore-references ...]    ;; optional
-  :shapes    [prefix/Shape ...])      ;; optional
-```
-
-#### Parameters
-
-**`:namespace`** — The grimoire's prefix. User namespaces must be at least two
-characters and must not shadow any of the eleven standard prefixes — the
-single-character namespaces (and `data/`) are reserved for the standard
-library.
-
-**`:provides`** — The spells the grimoire exports. A grimoire with nothing to
-bundle is empty; `spell` is the unit of content.
-
-**`:lore`**, **`:shapes`** — Optional accompanying pattern libraries and
-semantic types, so a domain's idioms and vocabulary travel with its spells.
-
-#### Design rationale
-
-The standard library is deliberately frozen — and that freeze is only
-sustainable if domain growth has a home outside it. `grimoire` is that home.
-A team's payment expertise, a consultancy's audit patterns, a regulator's
-compliance vocabulary: each becomes a namespace bundling spells, lore, and
-shapes, versioned like any dependency, and registrable via `asset` so that
-every agent joining the project receives it exactly as it receives a coding
-standard — given, not remembered.
-
-This also completes the founding metaphor. Historically, a grimoire was
-something a practitioner *wrote* — an organised body of hard-won expertise.
-With it, practitioners do not only read the standard twelve: expertise
-accumulated in a project can graduate into a spellbook of its own.
-
-#### Example
-
-```clojure
-(grimoire acme-payments
-  :namespace "acme/"
-  :version   "0.1.0"
-  :doc       "Acme's payment-domain spellbook: our defaults, our vocabulary"
-  :provides  [acme/compliant-endpoint acme/settlement-report acme/refund-flow]
-  :lore      [payment-system-patterns]
-  :shapes    [acme/Transaction acme/Settlement])
-
-;; Registered like any other standard — agents receive it in a handover:
-(asset :acme-payments-grimoire
-  :type        :grimoire
-  :description "Acme payment-domain spells, lore, and shapes"
-  :location    "grimoires/acme-payments.cnj"
-  :version     "0.1.0"
-  :applies-to  [:rest-api :domain-model]
-  :active-in   :project)
-```
-
----
-
 ### `handover`
 
 Packages the current session's context and transfers it to a specialist agent,
@@ -3133,7 +3069,7 @@ not because the practitioner remembered to mention it.
      registered assets. The domain model in subscription-domain.cnj defines the
      authoritative entities and invariants. Pay particular attention to the contract
      amendment workflow; finance approval is required before amendments take effect.
-     This decision is recorded in the charter log dated 2025-11-04."
+     This decision is recorded in the charter log as :decision/amendment-approval."
   :produces     [:rest-api :openapi :types]
   :return-to    :current-session
   :on-completion :merge-results)
@@ -3172,115 +3108,6 @@ not because the practitioner remembered to mention it.
   :produces     [:architecture-overview :api-reference :operations-guide]
   :return-to    :current-session)
 ```
-
----
-
-### The `.cnj` file — canonical structure
-
-A complete `.cnj` file follows this structure. Every section is optional
-except `charter`, which is always first.
-
-```mermaid
-flowchart TB
-    CH[charter — session anchor]
-    DM[domain — contexts, entities, rules]
-    TG[targets — declared output specs]
-    HV[handover — structured transfer to specialist]
-    AS[assets — external files: standards, design systems]
-
-    CH --> DM --> TG --> HV
-    TG -. references .-> AS
-    HV -. packages .-> AS
-```
-
-The solid path traces the in-file accumulation order across a project's
-life: `charter` anchors the session, domain work fills in as understanding
-deepens, `targets` declare what gets materialised when ready, and
-`handover` packages everything when the work crosses to a specialist
-agent. `assets` sits off to the side because it lives in separate files —
-referenced from targets and packaged into handovers, but never embedded
-in the `.cnj` itself.
-
-```clojure
-;; ─────────────────────────────────────────────────
-;; SECTION 1: Session anchor
-;; ─────────────────────────────────────────────────
-(charter "Project Name"
-  ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 2: Assets — external standards and capabilities
-;; ─────────────────────────────────────────────────
-(asset :team-coding-standard ...)
-(asset :design-system ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 3: Assumptions — operative constraints
-;; ─────────────────────────────────────────────────
-(assume
-  :environment :production-saas
-  :team        {:size 4 :skill-level :senior}
-  ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 4: Context — domain semantic frame
-;; ─────────────────────────────────────────────────
-(context project-context
-  :domain      :subscription-billing
-  :regulations [:gdpr :psd2]
-  ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 5: Domain work — the intellectual body of the project
-;; ─────────────────────────────────────────────────
-(def billing-domain (d/explore "requirements.pdf" :depth 4))
-(def billing-rules  (r/rules ...))
-(def plan-taxonomy  (t/define ...))
-
-;; ─────────────────────────────────────────────────
-;; SECTION 6: Targets — implementation declarations
-;; ─────────────────────────────────────────────────
-(target :api ...)
-(target :database ...)
-(target :documentation ...)
-
-;; ─────────────────────────────────────────────────
-;; SECTION 7: Handovers — when ready to materialise
-;; ─────────────────────────────────────────────────
-(handover :to :typescript-specialist-agent :scope [:api] ...)
-```
-
-The file is ordered from most stable (the charter, which changes slowly) to
-most volatile (handovers, which are issued when the time is right). A reader
-skimming the file from top to bottom understands the project before they reach
-the implementation details.
-
----
-
-### The bootstrapping ritual
-
-When a practitioner provides natural-language text as the starting point,
-the system's first response is always a `charter` — not domain analysis,
-not code, not questions. The charter is what gets saved. Everything else flows
-from it.
-
-```text
-User:
-"We need to build a proper system for managing customer subscriptions and contracts.
- Right now everything is tracked in spreadsheets and email. Finance is constantly
- chasing renewals manually. We need something that tracks contract status, sends
- renewal reminders automatically, and eventually connects to the CRM."
-
-System:
-[Produces subscription-platform.cnj with charter, initial goals inferred from text,
- open questions surfaced (retention periods, notification channels, proration rules),
- output targets proposed, team coding standard noted as pending asset registration.
- Saves the file. All subsequent work hangs from it.]
-```
-
-The charter produced from this conversation would look like the example above.
-The practitioner reviews it, corrects what the system misunderstood, adds
-what was missing. The `.cnj` file is now the project's single source of truth.
 
 ---
 
@@ -3424,6 +3251,131 @@ than to manufacture a confident artefact on an unsound foundation.
   :record-to preflight-log)
 ;; verify the whole project resolves before generating any of it
 ```
+
+---
+
+### `grimoire`
+
+Packages spells, lore, and shapes into a named, versioned, shareable
+practitioner grimoire — a user-authored spellbook that travels with the
+project like any registered standard.
+
+#### Signature
+
+```clojure
+(grimoire name
+  :namespace "prefix/"                ;; ≥2 characters; must not shadow a standard prefix
+  :version   "semver"
+  :doc       "what domain this spellbook serves"
+  :provides  [prefix/spell ...]
+  :lore      [lore-references ...]    ;; optional
+  :shapes    [prefix/Shape ...])      ;; optional
+```
+
+#### Parameters
+
+**`:namespace`** — The grimoire's prefix. User namespaces must be at least two
+characters and must not shadow any of the eleven standard prefixes — the
+single-character namespaces (and `data/`) are reserved for the standard
+library.
+
+**`:provides`** — The spells the grimoire exports. A grimoire with nothing to
+bundle is empty; `spell` is the unit of content.
+
+**`:lore`**, **`:shapes`** — Optional accompanying pattern libraries and
+semantic types, so a domain's idioms and vocabulary travel with its spells.
+
+#### Design rationale
+
+The standard library is deliberately frozen — and that freeze is only
+sustainable if domain growth has a home outside it. `grimoire` is that home.
+A team's payment expertise, a consultancy's audit patterns, a regulator's
+compliance vocabulary: each becomes a namespace bundling spells, lore, and
+shapes, versioned like any dependency, and registrable via `asset` so that
+every agent joining the project receives it exactly as it receives a coding
+standard — given, not remembered.
+
+This also completes the founding metaphor. Historically, a grimoire was
+something a practitioner *wrote* — an organised body of hard-won expertise.
+With it, practitioners do not only read the standard twelve: expertise
+accumulated in a project can graduate into a spellbook of its own.
+
+#### Example
+
+```clojure
+(grimoire acme-payments
+  :namespace "acme/"
+  :version   "0.1.0"
+  :doc       "Acme's payment-domain spellbook: our defaults, our vocabulary"
+  :provides  [acme/compliant-endpoint acme/settlement-report acme/refund-flow]
+  :lore      [payment-system-patterns]
+  :shapes    [acme/Transaction acme/Settlement])
+
+;; Registered like any other standard — agents receive it in a handover:
+(asset :acme-payments-grimoire
+  :type        :grimoire
+  :description "Acme payment-domain spells, lore, and shapes"
+  :location    "grimoires/acme-payments.cnj"
+  :version     "0.1.0"
+  :applies-to  [:rest-api :domain-model]
+  :active-in   :project)
+```
+
+---
+
+### The `.cnj` file
+
+The canonical section order of a `.cnj` file, and what each section holds,
+is defined in one place: `template.md` · Part II. The diagram shows how a
+file accumulates over a project's life.
+
+```mermaid
+flowchart TB
+    CH[charter — session anchor]
+    CX[assume and context — operative and domain frame]
+    AB[abstractions — lore, shape, spell, grimoire]
+    DM[domain work — models, rules, analyses]
+    TG[targets — declared outputs]
+    FS[foresight — graded candidates]
+    HV[handover — transfer to a specialist]
+    AS[assets — external standards]
+
+    CH --> CX --> AB --> DM --> TG --> FS --> HV
+    TG -. references .-> AS
+    HV -. packages .-> AS
+```
+
+The solid path is the accumulation order. `asset` declarations stand near
+the top of the file, but the standards they register live in separate
+files: referenced from targets and packaged into handovers, never embedded.
+`materialise` has no place in the file; it is an act performed on a target.
+
+---
+
+### The bootstrapping ritual
+
+When a practitioner provides natural-language text as the starting point,
+the system's first response is always a `charter` — not domain analysis,
+not code, not questions. The charter is what gets saved. Everything else flows
+from it.
+
+```text
+User:
+"We need to build a proper system for managing customer subscriptions and contracts.
+ Right now everything is tracked in spreadsheets and email. Finance is constantly
+ chasing renewals manually. We need something that tracks contract status, sends
+ renewal reminders automatically, and eventually connects to the CRM."
+
+System:
+[Produces subscription-platform.cnj with charter, initial goals inferred from text,
+ open questions surfaced (retention periods, notification channels, proration rules),
+ output targets proposed, team coding standard noted as pending asset registration.
+ Saves the file. All subsequent work hangs from it.]
+```
+
+The charter produced from this conversation would look like the example above.
+The practitioner reviews it, corrects what the system misunderstood, adds
+what was missing. The `.cnj` file is now the project's single source of truth.
 
 ---
 
@@ -4127,7 +4079,9 @@ plan is the contract, and a file outside it is fabrication.
 When a significant design decision is made during a session — one that would
 affect future invocations or that a new agent would need to know — append it
 to the charter's `:decisions` list with the current date. Do not wait for the
-practitioner to instruct this. Decisions that are made and not recorded are
+practitioner to instruct this. Give an entry an `:id` when anything refers to
+it, and record a reversal as a new entry with `:supersedes`, never by editing
+the old one. Decisions that are made and not recorded are
 the primary cause of context loss between sessions.
 
 ---

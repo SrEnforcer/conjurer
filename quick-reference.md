@@ -350,14 +350,18 @@ that preserves the trajectory, and promotion that closes a candidate into a deci
 
 ## The `.cnj` file — canonical section order
 
+Summary of `template.md` · Part II, which defines the structure.
+
 ```text
-1. (charter ...)           ← always first; goals, decisions, open questions
+1. (charter ...)           ← always first; goals, decisions (with :id), open questions
 2. (asset ...)             ← external standards and capabilities
 3. (assume ...)            ← operative constraints
 4. (context ...)           ← domain semantic frame
-5. domain work             ← d/explore, r/rules, t/define, etc.
-6. (target ...)            ← implementation declarations
-7. (handover ...)          ← when ready to materialise (issued, not always present)
+5. abstractions            ← lore, shape, spell, grimoire
+6. domain work             ← d/explore, r/rules, t/define, etc.
+7. (target ...)            ← implementation declarations
+8. foresight               ← f/candidate backlog, reassessments in :history
+9. (handover ...)          ← when ready to materialise (issued, not always present)
 ```
 
 ---
