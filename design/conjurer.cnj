@@ -1,0 +1,404 @@
+;;; conjurer.cnj
+;;; The charter of the Conjurer language itself.
+;;;
+;;; The specification argues that intent is the source and every artefact a
+;;; build of it. This file applies that to the specification: the reasons for
+;;; the language's shape live here, not only in the CHANGELOG, the proposals
+;;; and the conversations in which they were decided.
+;;;
+;;; Decisions taken before 2026-10-13 were recovered, not authored here. Each
+;;; carries :recovered with its grade and :source with the record it was read
+;;; from, as x/charter would emit them. Where the why was never written down,
+;;; it is an :open question rather than a reason supplied after the fact.
+
+;;; ─────────────────────────────────────────────────────────────────
+;;; Section 1 — Charter
+;;; ─────────────────────────────────────────────────────────────────
+
+(charter "Conjurer"
+  :version  "0.1.0"
+  :created  "2026-10-13"
+  :updated  "2026-10-13"
+  :domain   "Conjurer, a declarative language for working with LLMs: its
+             philosophy (conjurer.md), the twelve standard grimoires, the
+             template for grimoires and .cnj files, the symbol catalogue
+             (index.edn), the entry documents for processors and readers, and
+             the worked examples."
+  :language :en
+
+  :goals [
+    "Keep intent as the source: a .cnj file is the durable statement of what
+     should exist, and code is a build that can be regenerated, retargeted or
+     discarded."
+    "Say honestly what is deterministic and what is semantic: every binding
+     statement can be traced to the layer that holds it, and nothing claims a
+     layer it cannot reach."
+    "Make uncertainty part of the language: how well something is known is
+     graded, and a guess is never presented as a fact."
+    "Run the flow both ways: intent manifests forward into artefacts, and
+     artefacts are exhumed back into intent."
+    "Stay small and coherent: grow the language from real use, keep its form
+     symmetric, and prefer the elegant solution to the complete one."]
+
+  :audience {:primary   :maintainer
+             :secondary [:practitioner :llm-processor :tool-builder]}
+
+  :decisions [
+
+    ;; ── Recovered: repository and baseline ─────────────────────────
+
+    {:id        :clean-grimoire-names
+     :date      "2026-05-22"
+     :decision  "Grimoire files carry clean names without numeric prefixes
+                 (core.md, not 010_core_cnj.md)."
+     :recovered :attested
+     :source    "git: the first scaffolding commit already uses clean names;
+                 the maintainer's design notes state the rule as never to be
+                 broken"
+     :note      "Why is not recorded; see :open."}
+
+    {:id        :determinism-boundary
+     :date      "2026-06-05"
+     :decision  "Tooling for Conjurer embeds no model. Parsing, validation,
+                 references and dependency order are deterministic and belong to
+                 a processor such as conjurer-mcp; interpreting meaning belongs to
+                 the model in the editor. Reason recorded at the time: a small,
+                 testable, fast server without keys or model dependencies."
+     :recovered :attested
+     :source    "examples/conjurer-mcp/conjurer-mcp.cnj, decision of 2026-06-05;
+                 architecture.md, The determinism boundary"}
+
+    {:id        :exhume-as-inverse
+     :date      "2026-06-06"
+     :decision  "The standard library includes exhume, the reverse flow: code is
+                 read back into specification, every claim graded attested or
+                 inferred."
+     :recovered :attested
+     :source    "CHANGELOG.md 1.0.0"}
+
+    {:id        :changelog-baseline
+     :date      "2026-06-06"
+     :decision  "The changelog starts at the maturity baseline of 1.0.0; earlier
+                 exploratory evolution is pre-history."
+     :recovered :attested
+     :source    "CHANGELOG.md, preamble"}
+
+    {:id        :foresight-grimoire
+     :date      "2026-06-10"
+     :decision  "Deferred ideas are first-class: foresight records graded
+                 candidates, appends reassessments to their :history, and closes
+                 them with f/hoist. Abandonment is a status, not an event, so
+                 there is no f/abandon."
+     :recovered :attested
+     :source    "CHANGELOG.md 1.1.0; foresight.md, Hoist as an event, abandon as
+                 a status"}
+
+    {:id        :materialise-two-phase
+     :date      "2026-06-10"
+     :decision  "materialise runs a deterministic preflight before semantic
+                 generation and halts on unresolved references by default:
+                 verify the lossless plan before risking the lossy act."
+     :recovered :attested
+     :source    "CHANGELOG.md 1.1.0; conjurer.md, Symmetry compresses; broken
+                 symmetry informs"}
+
+    ;; ── Recovered: the July evaluation ──────────────────────────────
+
+    {:id        :abstraction-layer
+     :date      "2026-07-01"
+     :decision  "Practitioners name their own patterns: spell, charm and
+                 incantation in core, and grimoire for packaging them. :forbids
+                 joins the intent topology on conjure, with the force of
+                 :requires and the opposite sign."
+     :recovered :attested
+     :source    "proposals/2026-07-spec-evaluation.md, Part V"}
+
+    {:id        :verification-stays-layered
+     :date      "2026-07-01"
+     :decision  "No unified verification grimoire. Verification stays spread
+                 over ensure, data/generate-tests, a/evaluate and w/audit,
+                 because that scattering is correct layering, not a gap."
+     :recovered :attested
+     :source    "proposals/2026-07-spec-evaluation.md, Part V"}
+
+    {:id        :standard-library-freeze
+     :date      "2026-07-01"
+     :decision  "No further grimoires are under active consideration for the
+                 standard library. The scry candidate waits until this freeze is
+                 explicitly revisited."
+     :recovered :attested
+     :source    "conjurer.md, The grimoire ecosystem;
+                 proposals/2026-07-spec-evaluation.md, Part V"}
+
+    {:id        :no-hardcoded-counts
+     :date      "2026-07-01"
+     :decision  "Entry documents do not hardcode the symbol count; index.edn is
+                 the one place it can be read. A hardcoded count had drifted."
+     :recovered :attested
+     :source    "CHANGELOG.md 1.2.0"}
+
+    {:id        :notes-genre-contract
+     :date      "2026-07-04"
+     :decision  "Implementation notes for LLM processors follow one contract: a
+                 modality scale (must and never bind; prefer and should yield
+                 and are surfaced; flag means surface and continue), explicit
+                 parameters over notes over examples, and layer attribution for
+                 runtime properties."
+     :recovered :attested
+     :source    "CHANGELOG.md 1.2.0; template.md"}
+
+    {:id        :intent-sourced-programming
+     :date      "2026-07-08"
+     :decision  "The paradigm is named intent-sourced programming: intent is the
+                 source, code is the build. Distinguished from Spec-Driven
+                 Development, where the specification is consumed once."
+     :recovered :attested
+     :source    "CHANGELOG.md 1.2.0; conjurer.md, What Conjurer is"}
+
+    ;; ── Recovered: the October passes ───────────────────────────────
+
+    {:id        :symmetric-form-shape
+     :date      "2026-10-12"
+     :decision  "Every form has the shape (head name :param value ...), with
+                 parameters in pairs. The phantom (context establish ...) broke
+                 that symmetry and was removed everywhere."
+     :recovered :attested
+     :source    "CHANGELOG.md, Unreleased; template.md, Form shape"}
+
+    {:id        :british-prose-stable-symbols
+     :date      "2026-10-12"
+     :decision  "Prose uses British spelling. Symbol names and parameter
+                 keywords keep their spelling (e/formalize, w/analyze): renaming
+                 a symbol breaks every caller for a spelling preference."
+     :recovered :attested
+     :source    "CHANGELOG.md, Unreleased; proposals/2026-10-spec-evaluation.md,
+                 Part IV"}
+
+    {:id        :three-version-lines
+     :date      "2026-10-12"
+     :decision  "Three version lines run independently, each with one owner: the
+                 specification release (package version, set by release-please
+                 and followed by CHANGELOG.md), the catalogue in index.edn, and
+                 each grimoire's own version. All follow semantic versioning."
+     :recovered :attested
+     :source    "proposals/2026-10-spec-evaluation.md, Part V (f/hoist
+                 :version-model); template.md, Versioning"}
+
+    {:id        :template-owns-cnj-structure
+     :date      "2026-10-12"
+     :decision  "template.md Part II is the only place the .cnj structure is
+                 defined: nine sections, abstractions and foresight included.
+                 core.md and quick-reference.md point to it. Three copies had
+                 already drifted once."
+     :recovered :attested
+     :source    "proposals/2026-10-spec-evaluation.md, Part V (f/hoist
+                 :cnj-structure-owner)"}
+
+    {:id        :decision-identifiers
+     :date      "2026-10-12"
+     :decision  "Charter decisions carry :id when referred to and :supersedes
+                 when reversing another; the log is append-only and a reversal is
+                 a new entry."
+     :recovered :attested
+     :source    "proposals/2026-10-spec-evaluation.md, Part V (f/hoist
+                 :decision-ids)"}
+
+    {:id        :expression-prelude
+     :date      "2026-10-12"
+     :decision  "A closed prelude lists the expressions a deterministic processor
+                 may evaluate; every other head is a semantic function. The
+                 determinism boundary became a property of the language rather
+                 than a project rule."
+     :recovered :attested
+     :source    "proposals/2026-10-spec-evaluation.md, Part V (f/hoist
+                 :expression-prelude)"}
+
+    {:id        :confidence-two-axes
+     :date      "2026-10-12"
+     :decision  "One confidence vocabulary on two axes, provenance and degree; a
+                 number only with its basis named."
+     :recovered :attested
+     :source    "proposals/2026-10-spec-evaluation.md, Part V (f/hoist
+                 :confidence-vocabulary)"}
+
+    ;; ── Recovered from the maintainer's design notes ────────────────
+
+    {:id        :house-rules
+     :date      "2026-10-13"
+     :decision  "Recorded as house rules, in force before this charter existed:
+                 all canonical specification and design text is in English
+                 whatever language the conversation is in, Dutch only where
+                 localisation is itself the subject; Mermaid diagrams contain no
+                 HTML markup and no emoji; form annotations document only
+                 non-obvious external connections, never restate the code; an
+                 asset's :conventions are plain prose rather than path
+                 templates; elegance and simplicity are the primary design
+                 criteria."
+     :recovered :strongly-inferred
+     :source    "the maintainer's design notes, kept from design conversations"
+     :note      "The date is when they were recorded here, not when they were
+                 decided; those dates and most of the reasons were not kept.
+                 See :open."}
+
+    ;; ── Authored 2026-10-13: Intent over vibes ──────────────────────
+
+    {:id       :self-charter
+     :date     "2026-10-13"
+     :decision "Conjurer keeps its own charter, in design/conjurer.cnj. Its
+                history is recovered from the CHANGELOG, the proposals, git and
+                the design notes, each entry graded. Reason: the language says
+                intent is the source and a decision log prevents re-arguing
+                settled questions; it should hold its own reasons the same way.
+                Two hoists of 2026-10-12 pointed at :decision/three-version-lines
+                and :decision/template-owns-cnj-structure, which existed nowhere
+                until now."}
+
+    {:id       :transcripts-as-evidence
+     :date     "2026-10-13"
+     :decision "x/reconstruct-decisions reads session transcripts (:from
+                :transcripts, located by :transcripts). A transcript is the one
+                trace written while a decision was being made; it is read by
+                speaker, so a model's untaken proposal is never recorded as the
+                practitioner's decision, and output accepted without comment
+                gets a :speculative why. exhume 2.0.0 -> 2.1.0, index.edn 2.0.0 ->
+                2.1.0."}
+
+    {:id       :variance-surface
+     :date     "2026-10-13"
+     :decision "core names the variance surface: the binding statements of a
+                specification that only the :llm layer will honour. It is read
+                off the form, listed by explain :show [:variance-surface], and
+                reduced where it matters by writing a predicate in the prelude
+                or naming :tests or :lint. Specification side only in this round;
+                tool support is :variance-surface-report below. core 3.0.0 ->
+                3.1.0."}
+
+    {:id       :crystallisation
+     :date     "2026-10-13"
+     :decision "Conjurer does not forbid exploring by conversation; it absorbs
+                it. conjurer.md says so under What Conjurer is not, and exhume
+                gains the integration pattern Crystallising an exploratory
+                prototype: explore, exhume the model and decisions, charter what
+                survived, materialise from a preflight, park the rest in
+                foresight, and explore again when a genuine unknown appears.
+                Reason: specifying before discovery freezes ignorance, and
+                discovering without crystallising loses what was found."}]
+
+  :open [
+    "Why were numeric prefixes dropped from the grimoire file names before the
+     repository was created? (reason not recorded)"
+    "What are the reasons behind the house rules in :decision/house-rules?
+     Each should be recorded where it is known; until then they are rules
+     without a written why."
+    "Should this file be validated by conjurer-mcp in CI, and in which
+     validate_cnj mode: authored, or recovered for its history?"
+    "Do the live candidates graded in proposals/ (:scry-grimoire,
+     :primitive-time-by-parameter, :names-are-symbols) move into Section 8
+     of this file, or stay in the evaluation that graded them?"]
+
+  :references ["../examples/conjurer-mcp/conjurer-mcp.cnj"]
+  :tags       [:language :specification :meta])
+
+;;; ─────────────────────────────────────────────────────────────────
+;;; Section 2 — Assets
+;;; ─────────────────────────────────────────────────────────────────
+
+(asset :grimoire-template
+  :type        :code-standard
+  :description "The structure every grimoire follows, the form-shape and
+                versioning rules, the implementation-notes contract, and the
+                one definition of the .cnj file structure."
+  :language    :markdown
+  :location    "../template.md"
+  :enforces    [:canonical-grimoire-structure :form-shape :three-version-lines
+                :implementation-notes-contract]
+  :applies-to  [:grimoire :cnj-file :entry-document]
+  :active-in   :project)
+
+(asset :symbol-catalogue
+  :type        :api-specification
+  :description "Every symbol across the grimoires with its key parameters, and
+                the prelude a deterministic processor may evaluate. The routing
+                layer for processors and tools."
+  :language    :edn
+  :location    "../index.edn"
+  :applies-to  [:grimoire :entry-document :tooling]
+  :active-in   :project)
+
+;;; ─────────────────────────────────────────────────────────────────
+;;; Section 3 — Assumptions
+;;; ─────────────────────────────────────────────────────────────────
+
+(assume
+  :environment    :specification-repository
+  :team           {:size 1 :skill-level :expert}
+  :infrastructure {:existing [:github :release-please :conjurer-mcp]
+                   :avoid    [:model-embedded-in-tooling]}
+  :non-negotiable [:english-canonical-text :append-only-decisions
+                   :graded-recovery :no-fabricated-rationale]
+  :negotiable     [:grimoire-count :entry-document-layout])
+
+;;; ─────────────────────────────────────────────────────────────────
+;;; Section 8 — Foresight
+;;; ─────────────────────────────────────────────────────────────────
+
+(f/candidate :variance-surface-report
+  :label     "conjurer-mcp reports the variance surface of a .cnj file"
+  :added     "2026-10-13"
+  :status    :proposed
+  :scores    {:feasibility 7 :elegance 8 :containment 8 :value 8}
+  :rationale "The classification is mechanical — prelude membership,
+              :verify-via, and which structural checkers the server offers — so
+              a deterministic processor can produce it without generating
+              anything. A tool would let a practitioner see, before
+              materialising, which binding statements nothing will check.
+              Deferred because the specification side had to land first."
+  :conditions ["the prelude evaluator is merged in conjurer-mcp"
+               "the server can enumerate the structural checkers it offers"]
+  :cluster   :variance)
+
+(f/candidate :intent-health-check
+  :label     "A lint for specification debt in .cnj files"
+  :added     "2026-10-13"
+  :status    :proposed
+  :scores    {:feasibility 6 :elegance 7 :containment 8 :value 8}
+  :rationale "Flags decisions without a reason, :requires entries no target or
+              ensure covers, and candidates never reassessed. Catches the spec
+              theatre the variance surface does not: intent that is written but
+              holds nothing. Builds on the health module in conjurer-mcp."
+  :conditions ["check_references is in place, so coverage can be traced"
+               "the thresholds (how old is a stale candidate) are decided by
+                the maintainer, not inferred"]
+  :cluster   :variance)
+
+(f/candidate :divergence-probe
+  :label     "Materialise one charter twice and read the differences as
+              underspecified intent"
+  :added     "2026-10-13"
+  :status    :proposed
+  :scores    {:feasibility 5 :elegance 9 :containment 7 :value 8}
+  :rationale "Turns the model's variance from a risk into a detector: where two
+              faithful manifestations of the same specification differ, the
+              specification did not decide. Broken symmetry informs. Low
+              feasibility because the generation runs on the IDE side, outside
+              the deterministic tooling."
+  :conditions ["two manifestations can be compared structurally, not only as
+                text"]
+  :cluster   :variance)
+
+(f/candidate :sketch-mode
+  :label     "An explicit exploratory mode in the language (recommendation:
+              abandon)"
+  :added     "2026-10-13"
+  :status    :proposed
+  :scores    {:feasibility 6 :elegance 4 :containment 4 :value 5}
+  :rationale "The obvious way to bring exploration into the language. But allow
+              and progressive refinement already leave room to explore, and a
+              mode that relaxes the topology would blur exactly the distinctions
+              intent topology exists to keep. Exploration belongs outside the
+              charter; crystallisation (:decision/crystallisation) brings its
+              results in. Recorded so the reasoning stays visible; the low
+              elegance score is the finding."
+  :conditions ["practitioners are observed abusing allow to mean 'not yet
+                decided' at scale"]
+  :cluster   :exploration)

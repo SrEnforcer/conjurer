@@ -2202,6 +2202,78 @@ invocation runs, postconditions hold of the result. The dotted arrow marks
 that qualifiers are not part of that time-flow — they apply *inside* the
 invocation, at the granularity of individual values.
 
+### The variance surface
+
+The three layers say who enforces a statement; the variance surface says,
+for one specification, what that leaves to chance. It is the set of the
+specification's binding statements — `:requires` and `:forbids` entries,
+`certain` values, `ensure` postconditions, shape `:invariants` — that only the
+`:llm` layer will honour. Everything on the surface can vary from one
+manifestation to the next, however firmly it is worded. Everything off it is
+held by a deterministic processor or checked after materialisation.
+
+A binding statement lies off the surface in two ways:
+
+| Held by | When | Examples |
+|---|---|---|
+| MCP layer | the statement is structural: names, references, section order, or a predicate written in the prelude (Part V) with a structural checker available for the artefact | `:supersedes :amendment-approval` resolves; `(<= requests-per-minute 300)` under `:verify-via [:mcp]` |
+| Target layer | an `ensure` names `:tests` or `:lint`, so the property is checked in the materialised code | a `:behavioural` scenario under `:verify-via [:tests]` |
+
+Everything else is on the surface: a capability such as `:pci-compliance`
+that no `ensure` checks, a semantic function in a structural predicate, an
+invariant in prose, a `:semantic` postcondition.
+
+The classification is mechanical. The prelude is a closed list, `:verify-via`
+names its layers, and whether a checker exists is a fact about the tooling,
+so the surface can be read off the specification form by form, without
+judgment and without generating anything. `explain :show [:variance-surface]`
+asks a processor to state it.
+
+The surface is not a defect to be eliminated. Most of what Conjurer expresses
+is semantic, and much of it should stay so. It is a measure to keep honest:
+where a binding statement matters enough that its variance is unacceptable,
+move it off the surface — rewrite the predicate in the prelude, or add a
+`:behavioural` scenario under `:tests`.
+
+```clojure
+(conjure payout-batch
+  :requires [:idempotent-submission]
+  :forbids  [:floating-point-money]
+  :fields   {:amount   (certain (integer :non-negative))
+             :currency (certain (one-of :eur :gbp))}
+  :within (ensure
+            :structural  [(<= item-count 500)]
+            :semantic    ["each payout names its beneficiary as the bank account holds it"]
+            :behavioural ["resubmitting a batch id creates no second payout"]
+            :verify-via  [:mcp :llm :tests]))
+
+(explain payout-batch :show [:variance-surface])
+
+;; Returns, assuming the MCP server offers a structural checker for payout batches:
+{:variance-surface {
+   :off [{:statement "(<= item-count 500)" :held-by :mcp}
+         {:statement "resubmitting a batch id creates no second payout"
+          :held-by :tests}]
+   :on  [{:statement ":currency (certain (one-of :eur :gbp))"
+          :note "binding, but certain is honoured as instruction; add
+                 (in? currency #{:eur :gbp}) to :structural to move it off"}
+         {:statement ":amount (certain (integer :non-negative))"
+          :note "as above; (>= amount 0) in :structural moves it off"}
+         {:statement ":forbids :floating-point-money"
+          :note "no ensure checks it; a :lint rule would"}
+         {:statement "each payout names its beneficiary as the bank account holds it"
+          :note ":semantic postcondition"}
+         {:statement ":requires :idempotent-submission"
+          :note "partly covered: the :behavioural scenario tests one case of it"}]}
+ :confidence :attested}
+;; ✓ The classification is read off the form: a prelude predicate under :mcp with
+;;   a checker, a scenario under :tests. Nothing was generated to produce it.
+;; ✓ Two certain values and a :forbids are binding and still on the surface:
+;;   the model honours them as instruction, but nothing checks them. Those are
+;;   the lines a practitioner most needs to see, each with the move that takes
+;;   it off.
+```
+
 ### Confidence
 
 Qualifiers and contracts state how firmly the *practitioner* is committed.
@@ -2419,9 +2491,14 @@ system understood, what alternatives it considered, and what decisions it made.
 
 ```clojure
 (explain target-manifestation
-  :show  [:interpretation :alternatives :decisions :confidence :assumptions]
+  :show  [:interpretation :alternatives :decisions :confidence :assumptions
+          :variance-surface]
   :depth :summary | :full)
 ```
+
+`:variance-surface` lists the binding statements only the `:llm` layer will
+honour, and the layer that holds each of the others (Part IV, *The variance
+surface*).
 
 #### Design rationale
 
@@ -3685,7 +3762,7 @@ vocabulary on which domain-specific abstractions are built.
 ```clojure
 {:grimoire    "core"
  :namespace   nil   ;; core constructs are unprefixed — conjure, refine, ~>, not c/conjure
- :version     "3.0.0"
+ :version     "3.1.0"
  :description "Foundational constructs, composition machinery, abstraction
                (spells, charms, incantations), execution primitives, and
                ecosystem connectives for the Conjurer language"
@@ -3742,6 +3819,13 @@ vocabulary on which domain-specific abstractions are built.
                  produce the same observable outcomes — even if their internal
                  representations differ. The target Conjurer's certainty
                  vocabulary helps practitioners reach."}
+   {:term "Variance surface"
+    :definition "The binding statements of a specification that only the LLM
+                 layer will honour, and that may therefore vary between
+                 manifestations however firmly they are worded. Read off the
+                 specification form by form; reduced, where it matters, by
+                 writing a predicate in the prelude or naming a target-level
+                 check."}
    {:term "Inference under uncertainty"
     :definition "When assumptions about input state are implicit, the system
                  must infer them — and this inference is the largest single
@@ -4157,6 +4241,18 @@ structured failure report — the violated predicate, the proposed value, and
 the reason — not a partial artefact with caveats. When `:tests` or `:lint`
 find the violation after materialisation, the report marks the written
 artefact as failed, and nothing downstream proceeds from it.
+
+### The variance surface
+
+When asked for the variance surface, classify every binding statement by its
+form alone: structural statements and prelude predicates under `:mcp` are off
+the surface only where the MCP server offers a checker for the artefact;
+statements an `ensure` places under `:tests` or `:lint` are held by the target;
+everything else is on it. Never move a statement off the surface because the
+model expects to honour it — confidence in compliance is not a layer. With each
+statement left on the surface that matters, name the move that would take it
+off, if one exists in the prelude or in the target's tooling; where none does,
+say so rather than suggest one.
 
 ### Charter as context bootstrap
 

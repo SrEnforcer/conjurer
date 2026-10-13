@@ -694,15 +694,18 @@ assembles everything recovered into a `.cnj` the practitioner can continue from.
 ### `x/reconstruct-decisions`
 
 Reconstructs the decision log behind a codebase — what was chosen and, where
-recoverable, why — from git history, comments, structural evidence, and code
-that bears the marks of a decision. Recovers the reasoning that a charter's
+recoverable, why — from git history, comments, structural evidence, code
+that bears the marks of a decision, and the transcripts of the sessions in
+which the code was made. Recovers the reasoning that a charter's
 `:decisions` would have recorded, marked rigorously by confidence.
 
 #### Signature
 
 ```clojure
 (x/reconstruct-decisions source
-  :from        [:git-history :comments :structure :code-shape :dependencies]
+  :from        [:git-history :comments :structure :code-shape :dependencies
+                :transcripts]
+  :transcripts ["path or glob to session transcripts" ...]  ;; with :transcripts in :from
   :recover     [:what :why :alternatives-rejected :when]
   :grade       :each
   :emit        :charter-decisions | :decision-report
@@ -714,8 +717,19 @@ that bears the marks of a decision. Recovers the reasoning that a charter's
 **`:from`** — The traces decisions leave: `:git-history` (commit messages,
 the shape of how code arrived), `:comments` (especially "we do X because Y" and
 "TODO/HACK/FIXME" markers), `:structure` (a boundary drawn is a decision made),
-`:code-shape` (a retry wrapper means someone decided failures happen), and
-`:dependencies` (choosing a library is a decision).
+`:code-shape` (a retry wrapper means someone decided failures happen),
+`:dependencies` (choosing a library is a decision), and `:transcripts` (the
+conversation in which the work was done).
+
+**`:transcripts`** — Where the session records are: exported chat or
+agent-session transcripts, meeting notes kept verbatim. Required when `:from`
+includes `:transcripts`. A transcript is the one trace written *while* a
+decision was being made rather than after it, and the only place where the
+reasoning of conversationally built code ever existed. It is read for
+decisions, attributed by speaker: a choice the practitioner stated or
+explicitly accepted is a decision; a suggestion the model made and the
+practitioner never took up is not; output accepted without comment is a
+decision whose why is `:speculative`.
 
 **`:recover`** — `:what` was decided (usually recoverable), `:why` (often only
 partially — the hardest and most valuable), `:alternatives-rejected` (rarely
@@ -759,6 +773,20 @@ because, on the rare occasions it *can* be recovered — a reverted commit, a
 was tried and abandoned saves a successor from repeating it. The construct looks
 for these traces and marks them honestly as the rare finds they are.
 
+`:transcripts` exists because more and more code is made in conversation with
+a model, and a conversation is where the why is spoken and the alternatives
+are weighed — then discarded when the session closes. Code built that way can
+be born without anyone ever having held its reasoning in a durable form. When
+the transcript survives, it is the strongest evidence of why that a codebase
+can have: contemporaneous, in the decider's own words, and often naming what
+was rejected. It still does not make the why `:attested` — a reason given in
+the moment can be partial, and the conversation may have moved on — but it
+outranks a commit message, which is written after the fact. Speaker
+attribution is the discipline that keeps it honest: in a transcript the model
+proposes far more than the practitioner decides, and a recovered decision
+log that cannot tell the two apart is fabricating rationale on the model's
+behalf.
+
 #### Example: Reconstructing decisions from a prior codebase
 
 ```clojure
@@ -797,6 +825,55 @@ for these traces and marks them honestly as the rare finds they are.
 ;; ✓ The single-file structure is recorded as :unreconstructable rather than
 ;;   given a fabricated rationale — "no commit explains it" is the honest finding,
 ;;   and inventing a reason would be exactly the overreach the grimoire forbids.
+```
+
+#### Example: Reconstructing decisions from session transcripts
+
+A tide-table app for a sailing club, built over three evenings of chat with a
+model. The repository has eleven commits, all titled "update"; the exported
+transcripts survived.
+
+```clojure
+(x/reconstruct-decisions "../tide-tables"
+  :from        [:git-history :structure :dependencies :transcripts]
+  :transcripts ["../tide-tables-sessions/*.md"]
+  :recover     [:what :why :alternatives-rejected :when]
+  :grade       :each
+  :emit        :charter-decisions
+  :manifest    tide-table-decisions)
+
+;; Returns:
+{:decisions [
+   {:date "2026-09-14"
+    :decision "Tide predictions are computed from harmonic constants, not
+               fetched from an API at runtime"
+    :what-confidence :attested
+    :why-confidence  :strongly-inferred
+    :why "The practitioner wanted the app to work offline on the water"
+    :alternatives-rejected {:claim "A tide API with a daily cache"
+                            :confidence :attested
+                            :evidence "session 1: the model proposed it; the
+                                       practitioner declined because of signal loss
+                                       at sea"}
+    :evidence "session 1, practitioner turn; src/harmonics.ts"}
+   {:date "2026-09-16"
+    :decision "Times are shown in local time, never UTC"
+    :what-confidence :attested
+    :why-confidence  :speculative
+    :why "Not discussed: the model generated it and the practitioner accepted
+          the screen without comment"
+    :evidence "session 3; src/format.ts"}]
+ :not-decisions [
+   "Dark mode — suggested by the model in session 2, never taken up; absent
+    from the code"]
+ :unreconstructable []}
+;; ✓ The offline decision carries its stated reason and a rejected alternative —
+;;   both recoverable only because the transcript survived; eleven commits titled
+;;   "update" attest nothing about why.
+;; ✓ Local time was accepted, not decided: the what is attested, the why is
+;;   :speculative. That is the honest grade for output taken because it looked right.
+;; ✓ A model suggestion that never reached the code is recorded as a non-decision,
+;;   not promoted to one because it appeared in the conversation.
 ```
 
 #### Usage patterns
@@ -1109,6 +1186,63 @@ again.
 ;; now closed.
 ```
 
+### Crystallising an exploratory prototype
+
+Not every project should begin with a charter. When the problem is not yet
+understood, the fastest way to find out what to build is often to build
+something and react to it — in conversation with a model, accepting what
+looks right, specifying nothing in advance. That way of working discovers
+requirements cheaply, but it records them nowhere: the reasons stay in a
+session that ends, and the code is all that is left. Specify too early and
+you freeze ignorance into structure; explore without crystallising and you
+lose what the exploration found.
+
+`exhume` is the phase transition between the two. Explore freely; when the
+prototype has taught what it can, exhume its model and its decisions — from
+the transcripts, where they survived — charter the intent that survived
+contact with reality, and continue in the forward flow. Ideas the exploration
+raised but did not settle become foresight candidates instead of being
+forgotten. When a genuine unknown appears later, explore again, locally, and
+crystallise again.
+
+```mermaid
+flowchart LR
+    A[Explore freely] --> B[Exhume model and decisions]
+    B --> C[Charter what survived]
+    C --> D[Materialise from a preflight]
+    D --> E[Foresight for what is not now]
+    E -->|a genuine unknown appears| A
+```
+
+```clojure
+;; Three evenings of conversational prototyping produced ../tide-tables
+(~> "../tide-tables"
+  (x/survey)
+  (x/recover-model :emit :d-explore-compatible)
+  (x/reconstruct-decisions :from [:git-history :structure :dependencies :transcripts]
+                           :transcripts ["../tide-tables-sessions/*.md"]
+                           :emit :charter-decisions)
+  (x/charter :title "Tide Tables" :open-from :gaps))
+;; The recovered .cnj carries a firm what and, for most decisions, a speculative
+;; why — except where a transcript records the reason. That is the honest result
+;; of exploration, not a failed recovery: the speculative whys become :open
+;; questions, the practitioner answers them in the charter, and the next change
+;; is made against the charter instead of against the code.
+
+(f/candidate :tide-alerts
+  :label     "Push alerts before the tide turns at the club's mooring"
+  :added     "2026-09-17"
+  :status    :proposed
+  :scores    {:feasibility 6 :elegance 7 :containment 8 :value 7}
+  :rationale "Raised in session 2 and set aside; recorded so it is graded later
+              instead of rediscovered.")
+```
+
+Crystallisation does not require the prototype to be good, only finished
+enough to have taught something. What it cannot do is invent the reasons the
+exploration never stated; those it leaves as questions, which is where the
+forward work begins.
+
 ---
 
 ## Grimoire metadata
@@ -1116,7 +1250,7 @@ again.
 ```clojure
 {:grimoire    "exhume"
  :namespace   "x/"
- :version     "2.0.0"
+ :version     "2.1.0"
  :description "Code and artefact archaeology: recovering Conjurer specification —
                domain models, the declared technical stack, conventions, decisions,
                and a continuable .cnj — from existing codebases never written in
@@ -1134,11 +1268,13 @@ again.
     (dependencies, build config, lint/format enforcement) — language-agnostic"
    "Inferring a codebase's actually-practised coding conventions as an asset"
    "Reconstructing the decision log behind a project from git history and structure"
+   "Recovering the why of conversationally built code from its session transcripts"
+   "Crystallising an exploratory prototype into a charter that can be continued"
    "Deciding what is reusable in a prior attempt before starting fresh"
    "Bringing an inherited or legacy system into the Conjurer ecosystem"
    "Closing the spec↔code loop: turning materialised code back into specification"]
 
- :works-with [:core :domain :reasoning :data :web]
+ :works-with [:core :domain :reasoning :data :web :foresight]
 
  :key-concepts [
    {:term "Exhumation"
@@ -1168,6 +1304,17 @@ again.
                  and the practised code disagree. A dependency that embodies a
                  standard (a prelude or style package) is recovered as a standard,
                  not as import noise."}
+   {:term "Speaker attribution"
+    :definition "Reading a session transcript turn by turn: a choice the
+                 practitioner stated or explicitly accepted is a decision, a
+                 proposal the model made and the practitioner never took up is
+                 not, and output accepted without comment is a decision whose
+                 why is speculative."}
+   {:term "Crystallisation"
+    :definition "Turning the result of free exploration — a prototype found by
+                 conversation — into a continuable .cnj: exhume the model and the
+                 decisions, charter what survived, and carry on in the forward
+                 flow. The way out of exploration that keeps what it discovered."}
    {:term "Reverse handover"
     :definition "x/charter's role: assembling recovered fragments into a complete,
                  continuable .cnj. The exact inverse of materialisation —
@@ -1202,7 +1349,23 @@ strong evidence of intended behaviour; function bodies show mechanism but weak
 intent; inferences from call patterns alone are weakest. Recover preferentially
 from the strong sources and grade down what you draw from weak ones. The same
 ordering applies to decisions: git history and explicit "because" comments
-outweigh structural guesses.
+outweigh structural guesses, and a surviving session transcript outweighs both
+for *why*, because it was written while the decision was being made.
+
+### Read a transcript by speaker
+
+When `:from` includes `:transcripts`, attribute every candidate decision to
+the turn it came from. A choice the practitioner stated, or explicitly
+accepted when the model proposed it, is a decision; its stated reason is
+`:strongly-inferred`. A proposal the practitioner never took up is not a
+decision, however fully the model argued it — record it as a non-decision
+when it left a trace, and otherwise leave it out. Output accepted without
+comment is a decision whose why is `:speculative`. Where the transcript and the
+code disagree — the conversation settled on one thing and the code does
+another — recover the discrepancy as a finding. Recover decisions, not the
+conversation: cite the session and turn as evidence, and do not copy the
+transcript into the emitted specification; a `.cnj` file is not a chat
+transcript.
 
 ### Read the declared stack directly; it is the firmest evidence there is
 

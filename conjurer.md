@@ -312,6 +312,8 @@ Stated in one line: **Conjurer is an intent-sourced, semantically executed parad
 
 **Conjurer is not session-scoped.** A conversation ends; a `.cnj` file persists. Conjurer projects span sessions, editors, and agents — with the `.cnj` file carrying the project's intellectual history intact from one context to the next. This is a fundamentally different model from an AI assistant that forgets everything when the chat closes.
 
+**Conjurer is not vibe coding — but it can absorb it.** Steering a model by conversation and keeping whatever looks right is a fast way to discover what to build, and Conjurer does not forbid it. But it keeps only the artefact: the reasons stay in a session that ends, and every change accepted because it looked right silently promotes an accident to a requirement. Conjurer keeps the reasons. A prototype found by conversation is ore for `exhume`, which recovers its model and — from the session transcripts, where they survive — its decisions, so that what the exploration discovered is crystallised into a charter rather than lost with the chat.
+
 ---
 
 ## The grimoire ecosystem

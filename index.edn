@@ -5,7 +5,7 @@
 ;; :prelude lists the expression forms a deterministic processor may evaluate
 ;; (core.md, Part V, The prelude); every other head is a semantic function.
 
-{:version    "2.0.0"
+{:version    "2.1.0"
  :prelude    {:literals   [:string :number :ratio :keyword :boolean :nil :vector :map :set]
               :units      :open-family
               :types      [string integer decimal boolean keyword date datetime uuid url list one-of]
@@ -1169,10 +1169,10 @@
   x/reconstruct-decisions
   {:grimoire  "exhume"
    :namespace "x/"
-   :synopsis  "Reconstructs the decision log behind a codebase from git history, comments, and structure; separates what from why by confidence"
+   :synopsis  "Reconstructs the decision log behind a codebase from git history, comments, structure, and session transcripts read by speaker; separates what from why by confidence"
    :accepts   [:source]
    :produces  [:charter-decisions]
-   :key-params [:from :recover :grade :emit :manifest]}
+   :key-params [:from :transcripts :recover :grade :emit :manifest]}
 
   x/charter
   {:grimoire  "exhume"

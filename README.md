@@ -195,6 +195,8 @@ conjurer/
 ├── index.edn              ← machine-readable symbol catalogue
 ├── quick-reference.md     ← every symbol at a glance
 ├── SKILL.md               ← agent entry point and processing guidance
+├── design/
+│   └── conjurer.cnj       ← the language's own charter: goals and the decision log
 └── grimoires/
     ├── core.md            ← the language's foundational constructs
     ├── domain.md
