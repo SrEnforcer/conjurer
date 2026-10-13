@@ -55,6 +55,31 @@ Earlier exploratory evolution is treated as pre-history.
 - Lifetimes given an end: `given :scope :session` lasts until a later `given` states a contrary fact; `context :active-in :block` lives within the `using` form that applies it; `given :scope :block` names real enclosing forms instead of `do`.
 - Grimoire versions: core 2.3.1 → 2.4.0, reasoning 1.2.1 → 1.2.2, taxonomy 1.1.0 → 1.1.1, orchestrate 2.1.0 → 2.1.1 (a nameless `ward` with `:protect nil` in the circuit-breaker template replaced by a plain fallback). `README.md` and `SKILL.md` examples follow the new forms.
 
+## [1.3.0](https://github.com/SrEnforcer/conjurer/compare/conjurer-v1.2.0...conjurer-v1.3.0) (2026-10-13)
+
+
+### Features
+
+* add Conjurer MCP scaffold ([f8d85c0](https://github.com/SrEnforcer/conjurer/commit/f8d85c02957bac1dbdcf55527ba802f53475fbdf))
+* add foresight grimoire and materialise construct ([1ff8225](https://github.com/SrEnforcer/conjurer/commit/1ff8225e84f3a026a9498340d5195de18a9991e0))
+* **core:** add abstraction layer, :forbids topology, and practitioner grimoires ([f6eb7cd](https://github.com/SrEnforcer/conjurer/commit/f6eb7cd32acf2417efa806b853dc7ff24e1c50d4))
+* **dice-forge:** aesthetic round — die finishes, required tumble, configurable roll effects ([712c00e](https://github.com/SrEnforcer/conjurer/commit/712c00eec24966a01a5c57f9a04dc2b727757dbc))
+* **examples:** add single and multi-file conjurer-site examples ([b164511](https://github.com/SrEnforcer/conjurer/commit/b1645116f9efd24819e5e11414c2d33c450f52fb))
+* **examples:** add The Dice Forge — the new single-file .cnj example ([249be12](https://github.com/SrEnforcer/conjurer/commit/249be120b1e466c9c25d9d2b6f5efa1a7e7bc745))
+* **examples:** add The Dice Forge — the new single-file .cnj example ([7809986](https://github.com/SrEnforcer/conjurer/commit/7809986da26fcb5f62912751e125ee2daceecdf7))
+* **examples:** recover the real TSF++ standard from source, wire it into dice-forge ([bf1ff2c](https://github.com/SrEnforcer/conjurer/commit/bf1ff2c4a1aee9f7c2bb8de82d0918cb6c9c363a))
+* **exhume:** enrich stack recovery evidence model ([7ca3ca9](https://github.com/SrEnforcer/conjurer/commit/7ca3ca96e06b96324b66174ba37334a218ccc7b1))
+* expand exhume model and refresh spec catalog ([ef4be30](https://github.com/SrEnforcer/conjurer/commit/ef4be3005e3f8d5c9f64a7b96b1e6e65de3475ab))
+* intent over vibes — transcripts, variance surface, crystallisation, self-charter ([25334f0](https://github.com/SrEnforcer/conjurer/commit/25334f06f2cd2b079b42fb0e86287cc28acee548))
+
+
+### Bug Fixes
+
+* **dice-forge:** conform new annotation to d/annotate's :kind enum ([6c67eda](https://github.com/SrEnforcer/conjurer/commit/6c67edab2c8f8bb63311530afc1637c602ce739a))
+* **dice-forge:** resolve materialise preflight blockers ([a0a12f9](https://github.com/SrEnforcer/conjurer/commit/a0a12f9695f6990ea75a0112e3b5c3a9c40d99e4))
+* **dice-forge:** resolve second-preflight spec gaps — persistence spec, responsive scope ([5a2481a](https://github.com/SrEnforcer/conjurer/commit/5a2481a951c972ccb25c0acc70bc0f981a8bf8a9))
+* **missing:** domain content was 0 lines ([43529c3](https://github.com/SrEnforcer/conjurer/commit/43529c3b965c4d7c8f12f561c5583f3b0879f579))
+
 ## 1.2.0 - 2026-07-01
 
 ### Added
