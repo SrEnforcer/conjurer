@@ -282,14 +282,304 @@
                 survived, materialise from a preflight, park the rest in
                 foresight, and explore again when a genuine unknown appears.
                 Reason: specifying before discovery freezes ignorance, and
-                discovering without crystallising loses what was found."}]
+                discovering without crystallising loses what was found."}
+
+    ;; ── Recovered 2026-10-13 from the design sessions ───────────────
+    ;; The conversations in which the language was shaped, read by speaker
+    ;; as :decision/transcripts-as-evidence prescribes. A choice the
+    ;; maintainer stated or explicitly accepted is a decision. A reason in
+    ;; his own words is given as his; a reason the model proposed and he
+    ;; accepted is marked as the model's in :note; where he gave none, the
+    ;; question stands in :open. Each date is the day the session was last
+    ;; active. Proposals nobody took up appear only where they left a trace.
+
+    {:id        :name-conjurer
+     :date      "2025-10-31"
+     :decision  "The language is called Conjurer. The maintainer's brief named
+                 the reasons: the echo of Clojure and its conj, the automagical
+                 feel of a language whose forms are manifested rather than
+                 executed, and macros."
+     :recovered :strongly-inferred
+     :source    "session 2025-10-31, Conjurer pseudo-programming language
+                 design: the maintainer's opening turn"}
+
+    {:id        :english-canonical
+     :date      "2025-11-03"
+     :decision  "English is the norm for keywords, model names and descriptions
+                 in the specification; Dutch appears only to demonstrate a
+                 :locale feature. Restated on 2026-06-01 and 2026-06-06, when
+                 drafts in Dutch were sent back as not being English
+                 instructions. Dates the first rule of :decision/house-rules."
+     :recovered :strongly-inferred
+     :source    "session 2025-11-03, Semantics grimoire: the maintainer asked
+                 for every Dutch keyword and model name to be translated;
+                 sessions 2026-06-01 and 2026-06-06"
+     :note      "The rule is stated as a norm here; the reasons followed on
+                 2026-10-13 (:decision/english-why)."}
+
+    {:id        :primitives-in-core
+     :date      "2025-11-03"
+     :decision  "The execution primitives (sequence, parallel, branch, retry,
+                 intercept) went into core before orchestrate was written, and
+                 orchestrate composes them: core holds the building blocks,
+                 orchestrate the workflow patterns built from them."
+     :recovered :strongly-inferred
+     :source    "session 2025-11-03, Essential grimoires for the library"
+     :note      "The reason is the model's, accepted by the maintainer: without
+                 the primitives in core, orchestrate would either absorb
+                 low-level forms that belong in core or force core to be
+                 retrofitted."}
+
+    {:id        :nomenclature
+     :date      "2025-11-07"
+     :decision  "The core vocabulary is conjure, invocation, ritual, grimoire,
+                 spell for a named definition, charm for an anonymous one and
+                 incantation for a macro; grimoire is a declaration like
+                 Clojure's ns, not a wrapper around its contents. The
+                 maintainer's brief: themed terms from the start, mnemonic and
+                 elegant, and not too many of them. His first ideas, spellbind
+                 for a named definition and spell for an anonymous one, became
+                 spell and charm. The forms entered core with
+                 :decision/abstraction-layer."
+     :recovered :strongly-inferred
+     :source    "session 2025-11-07, Conjurer terminology proposal"
+     :note      "Why spell rather than spellbind is the model's argument
+                 (shorter, composes better), accepted by the maintainer; the
+                 grimoire-as-ns refinement is his."}
+
+    {:id        :symbol-catalogue
+     :date      "2025-11-07"
+     :decision  "Every symbol belongs in one catalogue, so that a definition can
+                 be told from an example and symbols and their dependencies can
+                 be checked mechanically. The same proposal's scribe grimoire,
+                 sigil metadata and ;;; form-declaration markers were never
+                 adopted."
+     :recovered :strongly-inferred
+     :source    "session 2025-11-07, Conjurer terminology proposal; the
+                 repository holds index.edn and none of the rest"
+     :note      "The aim is taken from the session's summary, not a verbatim
+                 turn. That index.edn, introduced with the skill packaging on
+                 2026-05-31, descends from this proposal is inferred from the
+                 purpose they share."}
+
+    {:id        :design-directory
+     :date      "2026-05-31"
+     :decision  ".cnj files live in design/ and are named by concern, never by
+                 sequence: no numeric prefixes. design/ was the maintainer's own
+                 first choice. On 2026-06-01 he restated the prefix rule as long
+                 settled, for grimoire names too
+                 (:decision/clean-grimoire-names)."
+     :recovered :strongly-inferred
+     :source    "session 2026-05-31, Elevating Conjurer's core abstractions;
+                 session 2026-06-01, Deterministic and probabilistic principles"
+     :note      "The reasons against the alternatives are the model's, accepted:
+                 dev/ suggests scripts, a hidden directory hides first-class
+                 documents, specs/ sounds static. The maintainer's reason for the
+                 prefix rule followed on 2026-10-13
+                 (:decision/no-numeric-prefixes-why)."}
+
+    {:id        :examples-generic
+     :date      "2026-05-31"
+     :decision  "Worked examples use generic business domains and name no
+                 particular standard: the municipal enforcement roster in core
+                 became a SaaS subscription platform, TSF++ became a team
+                 coding standard, and wordguard was dropped as an example
+                 because, as the maintainer put it, nobody knows it and it is a
+                 side project."
+     :recovered :strongly-inferred
+     :source    "session 2026-05-31, Elevating Conjurer's core abstractions:
+                 the maintainer's turns"
+     :note      "For the domain and the standard he asked for something more
+                 generic without giving a further reason."}
+
+    {:id        :handover-in-core
+     :date      "2026-05-31"
+     :decision  "handover belongs to core's ecosystem layer with charter, target
+                 and asset, not to orchestrate. orchestrate coordinates what
+                 happens inside a running system; handover moves context between
+                 agents, sessions and tools, at the level of the project."
+     :recovered :strongly-inferred
+     :source    "session 2026-05-31, Elevating Conjurer's core abstractions"
+     :note      "The maintainer questioned the placement; the reason is the
+                 model's answer, which he accepted."}
+
+    {:id        :annotations-only-external
+     :date      "2026-05-31"
+     :decision  "Section dividers above forms were dropped, because a form
+                 already states its kind and its name. A comment earns its place
+                 only for a connection outside the file that the form cannot
+                 state. Dates and gives the reason for the annotation rule in
+                 :decision/house-rules."
+     :recovered :strongly-inferred
+     :source    "session 2026-05-31: the maintainer asked why the divider was
+                 needed, and accepted the answer"}
+
+    {:id        :conventions-as-prose
+     :date      "2026-05-31"
+     :decision  "An asset's :conventions are plain-language principles, not path
+                 templates. A template duplicates the layout, diverges when the
+                 code is reorganised and claims a precision that holds for one
+                 layout only; a principle lets the model derive a place and say
+                 that it did. A structured :structure field may follow once real
+                 projects show which conventions are stable. Dates and gives the
+                 reason for the :conventions rule in :decision/house-rules."
+     :recovered :strongly-inferred
+     :source    "session 2026-05-31, Elevating Conjurer's core abstractions"
+     :note      "The reason is the model's; the maintainer accepted it with the
+                 rest of that round."}
+
+    {:id        :plan-before-write
+     :date      "2026-05-31"
+     :decision  "Materialisation plans before it writes, a dry run ships before
+                 write mode, and rewriting existing files to changed conventions
+                 is a separate operation from materialising new ones, because
+                 the two carry different risks. The forerunner of
+                 :decision/materialise-two-phase."
+     :recovered :strongly-inferred
+     :source    "session 2026-05-31: review of an IDE agent's analysis of
+                 materialisation"
+     :note      "The reasoning is the model's, accepted by the maintainer."}
+
+    {:id        :branding
+     :date      "2026-05-31"
+     :decision  "The README shows Hieronymus Bosch's The Conjurer, the
+                 maintainer's choice, under an epigraph from Marlowe's Doctor
+                 Faustus. The epigraph follows a Clojure custom he cited: a
+                 literary citation at the head of a project, as Leiningen has."
+     :recovered :strongly-inferred
+     :source    "session 2026-05-31: the maintainer's turn on the README"
+     :note      "The lines from Faustus are the model's suggestion, adopted
+                 without comment: their three wishes read as conjure, explain and
+                 a/delegate."}
+
+    {:id        :elegance-first
+     :date      "2026-06-01"
+     :decision  "Elegance and simplicity are the maintainer's starting point for
+                 almost every choice, as he put it when choosing the certainty
+                 qualifiers. Dates the last rule of :decision/house-rules; the
+                 rule is his own design value rather than a derived one."
+     :recovered :strongly-inferred
+     :source    "session 2026-06-01, Deterministic and probabilistic principles"}
+
+    {:id        :calibrated-certainty
+     :date      "2026-06-01"
+     :decision  "Certainty is expressed at two grains: the inline qualifiers
+                 certain, prefer and allow on values, and the contract pair
+                 given and ensure around an invocation, with a philosophy
+                 section in conjurer.md. The maintainer chose the qualifiers as
+                 the most elegant option and kept given and ensure beside them,
+                 because the qualifiers grade freedom but do not separate before
+                 from after."
+     :recovered :strongly-inferred
+     :source    "session 2026-06-01, Deterministic and probabilistic principles:
+                 the maintainer's turns"
+     :note      "The model asked whether prefer clashes with :prefers; the
+                 question went unanswered and the name stayed. core argues that
+                 the two work at different levels, value and capability."}
+
+    {:id        :context-establish-dropped
+     :date      "2026-06-01"
+     :decision  "(context establish name ...) was removed from core. The
+                 maintainer's reasons: it put a verb between head and name,
+                 breaking the pattern of every other form, and conjurer-mcp had
+                 tripped over it. The copies left in other files went on
+                 2026-10-12 (:decision/symmetric-form-shape)."
+     :recovered :strongly-inferred
+     :source    "session 2026-06-01, Deterministic and probabilistic principles"}
+
+    {:id        :greenfield-cleanup
+     :date      "2026-06-01"
+     :decision  "No backward compatibility while the language was greenfield:
+                 references to earlier versions were removed from core and the
+                 grimoire-level :version was dropped. The maintainer's reason:
+                 demo code that depended on the specification could be patched,
+                 and conjurer-mcp might be overhauled."
+     :recovered :strongly-inferred
+     :source    "session 2026-06-01, Deterministic and probabilistic principles"
+     :note      "Dropping :version was the model's reading of that brief. Since
+                 reversed in part: :decision/three-version-lines gives each
+                 grimoire its version back, and
+                 :decision/british-prose-stable-symbols keeps symbol names
+                 stable for the sake of callers."}
+
+    {:id        :mermaid-plain-text
+     :date      "2026-06-01"
+     :decision  "Mermaid diagrams use plain-text labels, because HTML markup
+                 showed up literally in the renderer; emoji are not used at all.
+                 Dates the Mermaid rule of :decision/house-rules and gives the
+                 reason for its HTML half."
+     :recovered :strongly-inferred
+     :source    "session 2026-06-01: the maintainer's turn on the diagrams"
+     :note      "The reason for the emoji ban followed on 2026-10-13
+                 (:decision/no-emoji-why)."}
+
+    {:id        :determinism-boundary-reasons
+     :date      "2026-06-06"
+     :decision  "The maintainer's own reasons for :decision/determinism-boundary:
+                 a server without a model can still hold workspace knowledge,
+                 parse, resolve and remember, and so save tokens and room in the
+                 context window; the work that needs judgement, exhume and
+                 materialise above all, stays with the model in the editor."
+     :recovered :strongly-inferred
+     :source    "session 2026-06-06, conjurer-mcp without an embedded model: the
+                 maintainer's opening turn"}
+
+    {:id        :exhume-origin
+     :date      "2026-06-09"
+     :decision  "exhume answered a concrete need: recover the earlier conjurer-mcp
+                 codebase into .cnj files, then rebuild the server from the
+                 updated specification. x/recover-stack followed when the first
+                 real exhume run showed dependencies and lint configuration only
+                 as incidental evidence. Gives the origin of
+                 :decision/exhume-as-inverse."
+     :recovered :strongly-inferred
+     :source    "session 2026-06-09, Improvement iterations: the maintainer's
+                 four-step plan, and the IDE agent's exhume run"}
+
+    {:id        :delegated-adoption
+     :date      "2026-10-12"
+     :decision  "The maintainer delegated the adoption of the October
+                 evaluation's recommended candidates: he trusted the analysis and
+                 said to go ahead in full. The reasons recorded for
+                 :decision/three-version-lines,
+                 :decision/template-owns-cnj-structure,
+                 :decision/decision-identifiers, :decision/expression-prelude and
+                 :decision/confidence-two-axes are therefore the evaluation's,
+                 adopted on that delegation and confirmed by his merge."
+     :recovered :strongly-inferred
+     :source    "session 2026-10-12, Conjurer core improvements"}
+
+    {:id       :sessions-recovered
+     :date     "2026-10-13"
+     :decision "The design sessions of 2025-10-31 to 2026-10-12 were read by
+                speaker (:decision/transcripts-as-evidence) and the decisions
+                they hold appended to this log, graded and sourced, with the
+                maintainer's reasons kept apart from the model's. The log is the
+                record; the transcripts are not copied into it."}
+
+    {:id       :english-why
+     :date     "2026-10-13"
+     :decision "The maintainer's reasons for :decision/english-canonical:
+                computer science largely works in English, and many of the
+                terms Conjurer uses are best captured in it; English reaches a
+                far larger potential audience; and a Dutch specification would
+                still have to borrow English terms, or look up or invent Dutch
+                ones."}
+
+    {:id       :no-emoji-why
+     :date     "2026-10-13"
+     :decision "The maintainer's reason for the emoji half of
+                :decision/mermaid-plain-text: emoji almost always look cheap."}
+
+    {:id       :no-numeric-prefixes-why
+     :date     "2026-10-13"
+     :decision "The maintainer's reason for :decision/clean-grimoire-names and
+                :decision/design-directory: numeric prefixes on file names are
+                not idiomatic in programming languages, and he does not like
+                them. The model's earlier reason, that order comes from the
+                dependency graph, agrees with this but is not his."}]
 
   :open [
-    "Why were numeric prefixes dropped from the grimoire file names before the
-     repository was created? (reason not recorded)"
-    "What are the reasons behind the house rules in :decision/house-rules?
-     Each should be recorded where it is known; until then they are rules
-     without a written why."
     "Should this file be validated by conjurer-mcp in CI, and in which
      validate_cnj mode: authored, or recovered for its history?"
     "Do the live candidates graded in proposals/ (:scry-grimoire,
