@@ -74,6 +74,16 @@ evaluate (`index.edn` `:prelude`).
 | `(given ...)` | Preconditions: `:facts`, `:state`, `:from-mcp` treated as ground truth; `:scope` controls reach |
 | `(ensure ...)` | Postconditions: `:structural` (mechanical), `:semantic` (LLM-enforced), `:behavioural` (scenarios); `:verify-via [:mcp :llm :tests :lint]`; `:on-violation :halt \| :warn \| :document` |
 
+### Where a binding statement is honoured
+
+| Layer | Holds |
+|---|---|
+| MCP | Structure, names, references; prelude predicates under `:verify-via [:mcp]` where a checker exists for the artefact |
+| Target | `ensure` properties under `:tests` or `:lint`, checked in the materialised code |
+| LLM — the **variance surface** | Everything else: `certain` values, `:requires` and `:forbids` no `ensure` checks, semantic functions, invariants in prose, `:semantic` postconditions |
+
+`(explain spec :show [:variance-surface])` lists what is on the surface. To move a statement off it, write it as a prelude predicate or name `:tests` or `:lint`.
+
 ---
 
 ## domain `d/` — Knowledge extraction
@@ -313,7 +323,7 @@ code. Every recovery is graded `:attested` (read directly) vs `:inferred`
 | `x/recover-model` | Domain model from source (entities, relationships, invariants) — code-facing twin of `d/explore` |
 | `x/infer-conventions` | Actually-practised coding standards → emits an `asset`; separates convention from accident/drift |
 | `x/recover-stack` | Declared & enforced standard from manifest + config (deps, build, lint/format); language-agnostic → asset + infra assumption |
-| `x/reconstruct-decisions` | Decision log from git history, comments, structure → charter `:decisions`; *what* vs *why* graded |
+| `x/reconstruct-decisions` | Decision log from git history, comments, structure and session transcripts (`:transcripts`, read by speaker) → charter `:decisions`; *what* vs *why* graded |
 | `x/charter` | **Capstone:** assemble recovered fragments into a continuable `.cnj` — the reverse handover |
 
 ### Confidence grades
@@ -331,6 +341,10 @@ code. Every recovery is graded `:attested` (read directly) vs `:inferred`
   (x/charter :title "Project (recovered)" :open-from :gaps))
 ;; code → spec; continue forward from the recovered .cnj
 ```
+
+The same arc crystallises an exploratory prototype built in conversation: add
+`:transcripts` so the why comes from the sessions where it was spoken, and
+park the ideas the exploration did not settle as `f/candidate` forms.
 
 ---
 

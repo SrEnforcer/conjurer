@@ -60,7 +60,11 @@ The LLM is not an executor — it is a co-author that ascends to meet the practi
 
 Expressions: only prelude forms (`core.md`, Part V; `index.edn` `:prelude`) are
 evaluated deterministically; any other head is a semantic function the model
-resolves, and a check that rests on one is reported as `:llm`-level.
+resolves, and a check that rests on one is reported as `:llm`-level. The
+binding statements left to the `:llm` layer are the specification's variance
+surface (`core.md`, Part IV); `explain :show [:variance-surface]` lists them,
+and a statement is never reported as checked because the model expects to
+honour it.
 
 When layers disagree: the invocation's explicit parameters win over a
 grimoire's implementation notes (except where a note declares a binding
@@ -293,6 +297,7 @@ quick-reference.md      ← every symbol at a glance
 conjurer.md             ← language philosophy and principles
 architecture.md         ← high-level overview of the system, with diagrams
 template.md             ← grimoire and .cnj file structure specification
+design/conjurer.cnj     ← the language's own charter and decision log
 grimoires/
   core.md               ← all core constructs with full signatures
   domain.md             ← d/ knowledge extraction

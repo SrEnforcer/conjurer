@@ -193,7 +193,7 @@ code-generation form of a fabricated rationale.
 flowchart LR
   CNJ[".cnj file: charter, assets, context, abstractions, domain work, targets"]
   MAT["materialise: preflight, then generate"]
-  CODE["Codebase: source, configuration, tests, git history"]
+  CODE["Codebase: source, configuration, tests, git history, session transcripts"]
   EXH["exhume x/: survey, recover model, conventions, stack, decisions, x/charter"]
   FS["foresight f/: candidate, reassess, hoist"]
   CNJ -- forward --> MAT --> CODE
@@ -206,6 +206,12 @@ The `.cnj` file is the hub every flow passes through. Exhume emits Conjurer
 specification rather than a report, grading each recovered claim. A hoisted
 candidate lands as a charter decision with its own `:id`, or as a `target`,
 and `f/hoist :into` names it (`:decision/<id>`, `:target/<name>`).
+
+The reverse flow is also the way out of free exploration: a prototype built
+by conversation, with nothing specified in advance, is exhumed — its decisions
+from the session transcripts where they survive — and crystallised into a
+charter the forward flow continues from (`grimoires/exhume.md` ·
+*Crystallising an exploratory prototype*).
 
 ---
 

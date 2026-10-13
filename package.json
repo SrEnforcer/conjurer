@@ -29,6 +29,7 @@
     "CHANGELOG.md",
     "template.md",
     "grimoires/",
+    "design/",
     "examples/"
   ],
   "scripts": {
