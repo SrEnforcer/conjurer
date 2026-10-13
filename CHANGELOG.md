@@ -55,7 +55,7 @@ Earlier exploratory evolution is treated as pre-history.
 - Lifetimes given an end: `given :scope :session` lasts until a later `given` states a contrary fact; `context :active-in :block` lives within the `using` form that applies it; `given :scope :block` names real enclosing forms instead of `do`.
 - Grimoire versions: core 2.3.1 → 2.4.0, reasoning 1.2.1 → 1.2.2, taxonomy 1.1.0 → 1.1.1, orchestrate 2.1.0 → 2.1.1 (a nameless `ward` with `:protect nil` in the circuit-breaker template replaced by a plain fallback). `README.md` and `SKILL.md` examples follow the new forms.
 
-## [1.3.0](https://github.com/SrEnforcer/conjurer/compare/conjurer-v1.2.0...conjurer-v1.3.0) (2026-10-13)
+## [1.3.0](https://github.com/SrEnforcer/conjurer/compare/v1.2.0...v1.3.0) (2026-10-13)
 
 
 ### Features
