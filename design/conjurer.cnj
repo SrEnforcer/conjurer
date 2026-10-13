@@ -314,8 +314,8 @@
      :source    "session 2025-11-03, Semantics grimoire: the maintainer asked
                  for every Dutch keyword and model name to be translated;
                  sessions 2026-06-01 and 2026-06-06"
-     :note      "The rule is stated as a norm; no reason beyond that was given.
-                 See :open."}
+     :note      "The rule is stated as a norm here; the reasons followed on
+                 2026-10-13 (:decision/english-why)."}
 
     {:id        :primitives-in-core
      :date      "2025-11-03"
@@ -374,8 +374,9 @@
                  session 2026-06-01, Deterministic and probabilistic principles"
      :note      "The reasons against the alternatives are the model's, accepted:
                  dev/ suggests scripts, a hidden directory hides first-class
-                 documents, specs/ sounds static. For the prefix rule no reason
-                 of the maintainer's own is on record; see :open."}
+                 documents, specs/ sounds static. The maintainer's reason for the
+                 prefix rule followed on 2026-10-13
+                 (:decision/no-numeric-prefixes-why)."}
 
     {:id        :examples-generic
      :date      "2026-05-31"
@@ -509,7 +510,8 @@
                  reason for its HTML half."
      :recovered :strongly-inferred
      :source    "session 2026-06-01: the maintainer's turn on the diagrams"
-     :note      "No reason was given for the emoji ban; see :open."}
+     :note      "The reason for the emoji ban followed on 2026-10-13
+                 (:decision/no-emoji-why)."}
 
     {:id        :determinism-boundary-reasons
      :date      "2026-06-06"
@@ -553,18 +555,31 @@
                 speaker (:decision/transcripts-as-evidence) and the decisions
                 they hold appended to this log, graded and sourced, with the
                 maintainer's reasons kept apart from the model's. The log is the
-                record; the transcripts are not copied into it."}]
+                record; the transcripts are not copied into it."}
+
+    {:id       :english-why
+     :date     "2026-10-13"
+     :decision "The maintainer's reasons for :decision/english-canonical:
+                computer science largely works in English, and many of the
+                terms Conjurer uses are best captured in it; English reaches a
+                far larger potential audience; and a Dutch specification would
+                still have to borrow English terms, or look up or invent Dutch
+                ones."}
+
+    {:id       :no-emoji-why
+     :date     "2026-10-13"
+     :decision "The maintainer's reason for the emoji half of
+                :decision/mermaid-plain-text: emoji almost always look cheap."}
+
+    {:id       :no-numeric-prefixes-why
+     :date     "2026-10-13"
+     :decision "The maintainer's reason for :decision/clean-grimoire-names and
+                :decision/design-directory: numeric prefixes on file names are
+                not idiomatic in programming languages, and he does not like
+                them. The model's earlier reason, that order comes from the
+                dependency graph, agrees with this but is not his."}]
 
   :open [
-    "Why no numeric prefixes in file names? The sessions record the rule
-     (2026-05-31, restated on 2026-06-01 as long settled) but not the
-     maintainer's reason. The reason on record, that order comes from the
-     dependency graph and a name should state a concern, was the model's and
-     went uncontested. (:decision/design-directory)"
-    "Two house rules still lack the maintainer's reason: why English is the
-     norm (:decision/english-canonical) and why emoji are banned from diagrams
-     (:decision/mermaid-plain-text). The other rules in :decision/house-rules
-     now have dated entries with their reasons."
     "Should this file be validated by conjurer-mcp in CI, and in which
      validate_cnj mode: authored, or recovered for its history?"
     "Do the live candidates graded in proposals/ (:scry-grimoire,
