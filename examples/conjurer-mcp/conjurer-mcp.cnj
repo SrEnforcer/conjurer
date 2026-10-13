@@ -15,7 +15,7 @@
 (charter "Conjurer MCP Toolchain"
   :version  "0.1.0"
   :created  "2026-06-05"
-  :updated  "2026-10-12"
+  :updated  "2026-10-13"
   :domain   "A local-first Model Context Protocol server, and companion VS Code
              extension, that serve targeted Conjurer specification content —
              symbols, sections, examples, validation — to an IDE coding agent so
@@ -116,7 +116,15 @@
                 rule. validate_symbol_usage follows, checking parameters against
                 index.edn :key-params and expressions against the prelude.
                 lint_conventions is not planned: style belongs in review, not in
-                a validator that blocks."}]
+                a validator that blocks."}
+    {:id :validation-depth-v3
+     :date "2026-10-13"
+     :supersedes :validation-depth-v2
+     :decision "v2 validation depth in three phases: validate_symbol_usage
+                (warnings), check_references (errors: a broken reference is a
+                hard gap), then lint_conventions (warnings only, promoted to
+                errors only once signal quality is confirmed). Reason:
+                conjurer-mcp built all three phases, lint_conventions included."}]
 
   :open []
 
