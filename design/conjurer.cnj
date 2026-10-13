@@ -55,7 +55,8 @@
      :source    "git: the first scaffolding commit already uses clean names;
                  the maintainer's design notes state the rule as never to be
                  broken"
-     :note      "Why is not recorded; see :open."}
+     :note      "Why was not recorded here; the maintainer gave his reason on
+                 2026-10-13 (:decision/no-numeric-prefixes-why)."}
 
     {:id        :determinism-boundary
      :date      "2026-06-05"
@@ -238,7 +239,8 @@
      :source    "the maintainer's design notes, kept from design conversations"
      :note      "The date is when they were recorded here, not when they were
                  decided; those dates and most of the reasons were not kept.
-                 See :open."}
+                 Each rule now has a dated entry with its reason; see
+                 :decision/sessions-recovered and the entries after it."}
 
     ;; ── Authored 2026-10-13: Intent over vibes ──────────────────────
 
