@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 This changelog is intentionally initialized at the current maturity baseline.
 Earlier exploratory evolution is treated as pre-history.
 
+## Unreleased
+
+### Added
+
+- `scripts/build-skill.sh` and `npm run skill:build`: build the claude.ai skill bundle, `dist/conjurer-skill.zip`, from `SKILL.md` and every file it refers to, so the installed skill can read the grimoires and the catalogue it routes to. The skill is a build of this repository, never a separate source. The script stops when the `SKILL.md` description exceeds the 1,024 characters claude.ai accepts. Listed in `README.md`.
+
+### Fixed
+
+- `SKILL.md`: the description had grown to 1,081 characters and was refused on upload to claude.ai. Shortened to 1,022 by dropping `grimoire` from the core constructs and shortening the glosses on `x/` and `f/`; the body is unchanged.
+
 ## [1.3.0](https://github.com/SrEnforcer/conjurer/compare/v1.2.0...v1.3.0) (2026-10-13)
 
 ### Added
