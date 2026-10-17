@@ -197,6 +197,8 @@ conjurer/
 ├── SKILL.md               ← agent entry point and processing guidance
 ├── design/
 │   └── conjurer.cnj       ← the language's own charter: goals and the decision log
+├── scripts/
+│   └── build-skill.sh     ← builds the claude.ai skill bundle from SKILL.md and the files it refers to
 └── grimoires/
     ├── core.md            ← the language's foundational constructs
     ├── domain.md
@@ -211,6 +213,8 @@ conjurer/
     ├── exhume.md          ← recover Conjurer spec from existing code
     └── foresight.md       ← graded deferred candidates and their lifecycle
 ```
+
+The Claude skill is a build of this repository, not a separate source: `npm run skill:build` (or `sh scripts/build-skill.sh`) writes `dist/conjurer-skill.zip`, ready to upload to claude.ai under Customize > Skills. The script fails when the `SKILL.md` description exceeds the 1,024 characters claude.ai accepts.
 
 Start with [`conjurer.md`](conjurer.md) for the philosophical foundation, then [`grimoires/core.md`](grimoires/core.md) for the language itself.
 
